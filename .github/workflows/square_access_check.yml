@@ -1,0 +1,53 @@
+# Проверяет только доступ к Binance Square из GitHub. Ничего не публикует.
+# GitHub: публичный репозиторий -> файл .github/workflows/square_access_check.yml
+# Actions -> Check Binance Square access -> Run workflow.
+name: Check Binance Square access
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check both public Square feeds
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const tags = ['redpacket', 'redpacketgiveawaycampaign'];
+          const rows = await Promise.all(tags.map(async tag => {
+            const url = new URL('https://www.binance.com/bapi/composite/v4/friendly/pgc/content/queryByHashtag');
+            url.search = new URLSearchParams({hashtag: '#'+tag, pageIndex: '1', pageSize: '20', orderBy: 'LATEST'});
+            try {
+              const response = await fetch(url, {
+                headers: {
+                  Accept: 'application/json, text/plain, */*',
+                  'Accept-Language': 'en-US,en;q=0.9',
+                  Referer: 'https://www.binance.com/en/square/hashtag/'+tag,
+                  clienttype: 'web',
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36'
+                },
+                signal: AbortSignal.timeout(15000)
+              });
+              if (!response.ok) return {tag, ok: false, http: response.status, count: 0, error: 'Source denied the request'};
+              const body = await response.json();
+              if (body.success !== true || !Array.isArray(body.data?.feedData)) {
+                return {tag, ok: false, http: response.status, count: 0, error: 'Unexpected JSON structure'};
+              }
+              return {tag, ok: true, http: response.status, count: body.data.feedData.length, error: ''};
+            } catch (error) {
+              return {tag, ok: false, http: '-', count: 0, error: String(error.message).slice(0,150)};
+            }
+          }));
+          for (const row of rows) console.log(JSON.stringify(row));
+          const summary = ['## Binance Square: access check', '',
+            '| Tag | Result | HTTP | Posts returned |', '|---|---|---|---|',
+            ...rows.map(row => `| ${row.tag} | ${row.ok ? 'OK' : 'FAILED'} | ${row.http} | ${row.count} |`),
+            '', 'Read-only test. No Telegram messages sent. Reward availability is not checked.'];
+          if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary.join('\n')+'\n');
+          if (rows.some(row => !row.ok)) process.exitCode = 1;
+          JS
