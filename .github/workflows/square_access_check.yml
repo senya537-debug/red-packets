@@ -6,6 +6,7 @@
 # Public state contains hashed destination, post IDs and delivery status, no tokens.
 # Uncertain sends are not automatically repeated; check the group before resetting.
 # Standard Ubuntu runner in a public repository; schedule may be delayed/dropped.
+# Only posts published within the last 10 minutes are eligible, including quizzes.
 name: Red Packets to Telegram
 
 on:
@@ -50,7 +51,7 @@ jobs:
           const ENDPOINT = "https://www.binance.com/bapi/composite/v4/friendly/pgc/content/queryByHashtag";
           const PAGE_SIZE = 20;
           const MAX_POSTS_PER_RUN = 5;
-          const CODE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+          const POST_MAX_AGE_MS = 10 * 60 * 1000;
           
           function epoch(value) {
             const n = Number(value);
@@ -213,14 +214,19 @@ jobs:
             return {text: lines.join("\n"), parse_mode: "HTML", link_preview_options: {is_disabled: true},
               reply_markup: {inline_keyboard: [[{text: "🧧 Открыть в Binance", url: post.url}]]}};
           }
+          export function isFreshPost(post, now = Date.now()) {
+            const published = Date.parse(post?.published_at);
+            return Number.isFinite(published) && published <= now + 60000 && now - published <= POST_MAX_AGE_MS;
+          }
           export function publishCandidates(snapshot, now = Date.now()) {
             const unique = new Map();
-            for (const post of [...(snapshot.reported_open || []), ...(snapshot.other_candidates || [])]) {
+            const recent = [...(snapshot.reported_open || []), ...(snapshot.other_candidates || [])]
+              .filter(post => isFreshPost(post, now))
+              .sort((a,b) => Date.parse(b.published_at) - Date.parse(a.published_at));
+            for (const post of recent) {
               if (post.status === "reported_open" && !(post.expires_at && Date.parse(post.expires_at) <= now)) {
                 unique.set(`post:${post.post_id}`, {key: `post:${post.post_id}`, post});
               } else if (post.kind === "code" && post.status === "unverified_code") {
-                const published = Date.parse(post.published_at);
-                if (!Number.isFinite(published) || published > now + 60000 || now - published > CODE_MAX_AGE_MS) continue;
                 for (const code of post.published_codes || []) {
                   // Same published code across different posts is sent once to this destination.
                   const key = `code:${code}`;
@@ -346,11 +352,18 @@ jobs:
             let attempted=0;
             for (const candidate of candidates) {
               if (attempted>=MAX_POSTS_PER_RUN) break;
+              if (candidate.post && !isFreshPost(candidate.post)) continue;
               if (candidate.post?.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()) continue;
               const key=destination+':'+candidate.key, old=state.items[key];
               if (old && (old.state!=='queued' || old.retry_at>Date.now())) {stats.skipped++;continue;}
               state.items[key]={state:'sending',post_id:candidate.post?.post_id||null,updated_at:Date.now()};
               await storage.save(state,'claim before send');
+              // Persistence can take time; enforce freshness again immediately before Telegram.
+              if (candidate.post && (!isFreshPost(candidate.post) ||
+                  (candidate.post.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()))) {
+                state.items[key].state='skipped_stale';state.items[key].updated_at=Date.now();
+                await storage.save(state,'post became too old before send');stats.skipped++;continue;
+              }
               attempted++;
               const result=await sendMessage(env,chatId,candidate.message);
               const item=state.items[key];item.updated_at=Date.now();
@@ -374,10 +387,11 @@ jobs:
             if (!['preview','telegram_test','publish','scheduled'].includes(mode)) throw new Error('Unknown run mode');
             const snapshot=mode==='telegram_test' ? {reported_open:[],other_candidates:[]} : await scan();
             if (mode!=='telegram_test') summary('## Binance Square\n\n'+snapshot.sources.map(s=>`${s.tag}: ${s.ok ? 'OK, posts '+s.posts_checked : s.error}`).join('\n\n'),env);
+            if (mode!=='telegram_test') summary(`\nСвежесть: не старше 10 минут. Подходящих находок: ${publishCandidates(snapshot).length}. Старые публикации не отправляются.`,env);
             if (mode==='preview') {
               if(snapshot.all_sources_failed)throw new Error('Both Square feeds failed');
               const items=publishCandidates(snapshot);
-              summary(`\nCandidates eligible for posts: ${items.length}. No messages sent.`,env);
+              summary(`\nFresh candidates (last 10 minutes): ${items.length}. No messages sent.`,env);
               for(const {post} of items.slice(0,5)) console.log(JSON.stringify({kind:post.kind,status:post.status,url:post.url,codes:post.published_codes,question:post.question,hint:post.hint}));
               return;
             }
