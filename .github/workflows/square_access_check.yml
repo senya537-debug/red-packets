@@ -5,15 +5,20 @@
 # Deduplication state is saved in .redpacket/delivery.json before sending.
 # Public state contains hashed destination, post IDs and delivery status, no tokens.
 # Uncertain sends are not automatically repeated; check the group before resetting.
+# State writes retry conflicts with a three-way merge and recheck the delivery claim.
 # Standard Ubuntu runner in a public repository; schedule may be delayed/dropped.
-# Text codes and unverified Telegram links: last 10 minutes only.
+# Text codes: last 10 minutes of the original Square post only.
 # Square quizzes/Claim: require open flags and a future expiry, regardless of post age.
-# Telegram public previews are optional sources; unavailable previews are reported.
+# Telegram is a fallback: only numeric Binance originals, never standalone competitor codes.
+# Optional repository Variable TELEGRAM_DISCOVERY_ENABLED=false disables Telegram discovery.
 # Also reads a bounded latest-post feed and remembered packet authors without tags.
 # Linked Telegram finds are enriched from Binance; competitor names/links are not published.
-# Delivery prefers 3 independently found Square posts and 2 Telegram discoveries per batch.
+# Delivery prefers 4 independently found Square posts and 1 verified Telegram discovery per batch.
 # Cloudflare clock dispatches mode=scheduled; it never enables a different Telegram destination.
 # One delivery history across sources: post IDs, published codes and explicit packet IDs.
+# Keyword API failures are reported; matching feed posts are also checked via original details.
+# Live alerts require the public liveRedEnvelopeInfo.isDisplay badge and a currently live room.
+# A live badge does not verify the reward amount or eligibility. No Binance login is used.
 name: Red Packets to Telegram
 run-name: ${{ (github.event_name == 'schedule' || inputs.mode == 'scheduled') && 'Red Packets · automatic' || format('Red Packets · {0}', inputs.mode) }}
 
@@ -54,10 +59,16 @@ jobs:
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           TG_THREAD_ID: ${{ secrets.TG_THREAD_ID }}
           GH_STATE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_DISCOVERY_ENABLED: ${{ vars.TELEGRAM_DISCOVERY_ENABLED || 'true' }}
         run: |
           node --input-type=module <<'JS'
-          const TAGS = ["redpacket", "redpacketgiveawaycampaign", "cryptobox", "binanceredpacket"];
+          const TAGS = ["redpacket", "redpacketgiveawaycampaign", "cryptobox", "binanceredpacket", "redpacketmission"];
           const TELEGRAM_SOURCES = ["SBCryptoz", "binance_red_packetz"];
+          const SEARCH_TERMS = ['Red Packet Quiz','Red Packet','🧧','🎁'];
+          const LIVE_HOST_UIDS = ['CeJ9rMnk2XCPrWM2j3Cz2w'];
+          const SEARCH_DETAIL_LIMIT = 12;
+          const LIVE_DETAIL_LIMIT = 8;
+          const LIVE_CHECK_MAX_AGE_MS = 90 * 1000;
           const ENDPOINT = "https://www.binance.com/bapi/composite/v4/friendly/pgc/content/queryByHashtag";
           const PAGE_SIZE = 50;
           const LATEST_PAGES = 3;
@@ -92,8 +103,71 @@ jobs:
             if (envelope.isExpired === false && envelope.isRunOut === false && epoch(envelope.expiredTime) > now) return "reported_open";
             return "unknown";
           }
+          function postText(post) {
+            let text=typeof post?.bodyTextOnly==='string' ? post.bodyTextOnly : typeof post?.content==='string' ? post.content : '';
+            try {const parsed=JSON.parse(text);if(typeof parsed?.richtext==='string')text=parsed.richtext;} catch {}
+            return String(post?.title||'')+'\n'+text;
+          }
+          export function searchMarkers(post) {
+            const text=postText(post);
+            return SEARCH_TERMS.filter(term=>term==='Red Packet Quiz' ? /red\s*packet\s*quiz/i.test(text) :
+              term==='Red Packet' ? /red\s*packet|crypto\s*box|红包|красн\S*\s+(?:пакет|конверт)|ред\s*пакет/i.test(text) : text.includes(term));
+          }
+          export async function fetchKeyword(term) {
+            const response=await fetch('https://www.binance.com/bapi/composite/v2/friendly/pgc/feed/search/list',{
+              method:'POST',signal:AbortSignal.timeout(10000),headers:{Accept:'application/json','Content-Type':'application/json',
+                'User-Agent':'Mozilla/5.0',clienttype:'web',versioncode:'2.61.0',Referer:'https://www.binance.com/en/square/search?s='+encodeURIComponent(term)},
+              body:JSON.stringify({scene:'web',pageIndex:1,pageSize:20,searchContent:term,type:1})});
+            const data=await response.json().catch(()=>null);
+            if(!response.ok || data?.success!==true)throw new Error('Square search HTTP '+response.status+'; '+String(data?.message||'request failed').slice(0,100));
+            if(!Array.isArray(data.data?.vos))throw new Error('Square search response changed');
+            return data.data.vos;
+          }
+          async function fetchOriginal(id) {
+            if(!/^\d+$/.test(String(id)))throw new Error('Invalid Square post ID');
+            const response=await fetch(`https://www.binance.com/bapi/composite/v3/friendly/pgc/content/${id}`,{
+              signal:AbortSignal.timeout(10000),headers:{Accept:'application/json','User-Agent':'Mozilla/5.0',clienttype:'web',
+                Referer:`https://www.binance.com/en/square/post/${id}`}});
+            if(!response.ok)throw new Error('Square post detail HTTP '+response.status);
+            const data=await response.json();
+            if(data.success!==true || String(data.data?.id)!==String(id))throw new Error('Square post detail response changed');
+            return data.data;
+          }
+          export function normalizeLive(post,room,now=Date.now()) {
+            const id=String(post?.id||post?.contentId||'');
+            if(!/^\d+$/.test(id) || post?.liveRedEnvelopeInfo?.isDisplay!==true ||
+              post.liveStatus!==1 || room?.liveStatus!==1 || String(room.contentId)!==id)return null;
+            return {post_id:id,live_id:id,kind:'live',status:'live_badge',discovery_kind:'square',source_kind:'square',
+              url:'https://www.binance.com/en/square/audio?id='+id,author:room.userInfo?.displayName||post.displayName||post.authorName||'',
+              author_id:room.userInfo?.squareUid||post.squareUid||post.squareAuthorId||'',title:room.title||post.title||'',
+              published_at:iso(room.liveStartTime||post.firstReleaseTime||post.date),live_checked_at:new Date(now).toISOString(),
+              live_badge:true,reward_verified:false,expires_at:null,published_codes:[],sources:['square:live']};
+          }
+          async function fetchLiveCatalog() {
+            const response=await fetch('https://www.binance.com/bapi/composite/v1/friendly/pgc/feed/audio-live-recommend/list',{
+              method:'POST',signal:AbortSignal.timeout(10000),headers:{Accept:'application/json','Content-Type':'application/json',
+                'User-Agent':'Mozilla/5.0',clienttype:'web'},body:JSON.stringify({scene:'web-homepage'})});
+            if(!response.ok)throw new Error('Square live catalog HTTP '+response.status);
+            const data=await response.json();
+            if(data.success!==true || !Array.isArray(data.data?.spaceLiveList))throw new Error('Square live catalog response changed');
+            return data.data.spaceLiveList;
+          }
+          async function fetchLiveRoom(id) {
+            const response=await fetch('https://www.binance.com/bapi/square/v2/friendly/square-live/space/room-detail?contentId='+id,
+              {signal:AbortSignal.timeout(10000),headers:{Accept:'application/json','User-Agent':'Mozilla/5.0',clienttype:'web'}});
+            if(!response.ok)throw new Error('Square live detail HTTP '+response.status);
+            const data=await response.json();
+            if(data.success!==true || String(data.data?.contentId)!==String(id))throw new Error('Square live detail response changed');
+            return data.data;
+          }
+          export async function refreshLive(post) {
+            const feed=await fetchAuthor(post.author_id),original=feed.find(p=>String(p.id)===post.live_id);
+            if(!original || original.liveRedEnvelopeInfo?.isDisplay!==true || original.liveStatus!==1)return null;
+            return normalizeLive(original,await fetchLiveRoom(post.live_id));
+          }
           export function normalize(post, tag, now = Date.now()) {
             if (!post || typeof post !== "object" || !/^\d+$/.test(String(post.id || ""))) return null;
+            if(post.extraFeature==='SPACE_LIVE' || (post.contentType===4 && post.liveType>0))return null;
             let text = typeof post.bodyTextOnly==='string' ? post.bodyTextOnly : typeof post.content === "string" ? post.content : "";
             try {const parsed=JSON.parse(text);if(typeof parsed?.richtext==='string')text=parsed.richtext;} catch {}
             const envelope = post.redEnvelop && typeof post.redEnvelop === "object" ? post.redEnvelop : null;
@@ -230,15 +304,9 @@ jobs:
             return data.data.contents;
           }
           export async function enrichTelegramCandidate(item,now=Date.now()) {
-            if(!/^\d+$/.test(item.post_id||''))return item;
+            if(!/^\d+$/.test(item.post_id||''))return null;
             if(!isFreshPost(item,now))return null;
-            const response=await fetch(`https://www.binance.com/bapi/composite/v3/friendly/pgc/content/${item.post_id}`,{
-              signal:AbortSignal.timeout(10000),headers:{Accept:'application/json','User-Agent':'Mozilla/5.0',
-                clienttype:'web',Referer:`https://www.binance.com/en/square/post/${item.post_id}`}});
-            if(!response.ok)throw new Error('Square post detail HTTP '+response.status);
-            const data=await response.json();
-            if(data.success!==true || String(data.data?.id)!==item.post_id)throw new Error('Square post detail response changed');
-            const original=normalize(data.data,item.sources?.[0]||'telegram:discovery',now);
+            const original=normalize(await fetchOriginal(item.post_id),item.sources?.[0]||'telegram:discovery',now);
             if(!original)return null;
             return {...original,source_kind:'square',discovery_kind:'telegram',
               answer_claimed_in_post:item.answer_claimed_in_post||original.answer_claimed_in_post,
@@ -262,13 +330,23 @@ jobs:
           }
           export async function scan(env=process.env) {
             const now = Date.now();
-            const results = await Promise.allSettled([...TAGS.map(fetchTag),fetchLatest()]);
+            const feeds=[...TAGS.map(tag=>({tag,coverage:'first_latest_page_only',run:()=>fetchTag(tag)})),
+              {tag:'square:latest',coverage:'latest_first_3_pages_only',run:fetchLatest},
+              ...SEARCH_TERMS.map(term=>({tag:'square:search:'+term,coverage:'first_search_page_only',run:()=>fetchKeyword(term)})),
+              {tag:'square:live:catalog',coverage:'recommended_live_rooms_only',run:fetchLiveCatalog}];
+            const results = await Promise.allSettled(feeds.map(feed=>feed.run()));
             const posts = new Map();
+            const markerPosts=new Map(),liveSeeds=new Map();
             const sourceChecks = [];
             const observedAuthors=[];
             function ingest(post,source) {
+              const id=String(post?.id||post?.contentId||'');
+              if(/^\d+$/.test(id) && post?.liveRedEnvelopeInfo?.isDisplay===true && post.liveStatus===1)liveSeeds.set(id,post);
               const item=normalize(post,source,now);
-              if(!item)return;
+              if(!item) {
+                if(/^\d+$/.test(id) && post?.extraFeature!=='SPACE_LIVE' && !(post?.contentType===4 && post.liveType>0) && searchMarkers(post).length)markerPosts.set(id,post);
+                return;
+              }
               if(item.author_id)observedAuthors.push({uid:item.author_id,name:item.author,last_packet_at:Date.parse(item.published_at)||0});
               const previous=posts.get(item.post_id);
               if(previous) {
@@ -277,7 +355,7 @@ jobs:
               } else posts.set(item.post_id,item);
             }
             for (let i = 0; i < results.length; i++) {
-              const result = results[i], tag = TAGS[i] || 'square:latest';
+              const result = results[i], tag = feeds[i].tag;
               if (result.status !== "fulfilled") {
                 sourceChecks.push({tag, ok: false, error: String(result.reason?.message || result.reason)});
                 continue;
@@ -287,17 +365,19 @@ jobs:
               sourceChecks.push({tag, ok: true, posts_checked: feed.length,
                 newest_post_at: dates.length ? iso(Math.max(...dates)) : null,
                 oldest_post_at: dates.length ? iso(Math.min(...dates)) : null,
-                coverage: i===TAGS.length ? 'latest_first_3_pages_only' : "first_latest_page_only", may_have_more: feed.length >= PAGE_SIZE});
+                coverage: feeds[i].coverage, may_have_more: feed.length >= PAGE_SIZE});
               for (const post of feed) {
                 ingest(post,tag);
               }
             }
-            let remembered=[];
+            let remembered=[],keywordChecks={};
             if(env.GITHUB_REPOSITORY && env.GITHUB_REF_NAME && env.GH_STATE_TOKEN) {
-              try {const memory=await new GitHubState(env).load();remembered=Array.isArray(memory.authors)?memory.authors:[];}
+              try {const memory=await new GitHubState(env).load();remembered=Array.isArray(memory.authors)?memory.authors:[];
+                keywordChecks=memory.keyword_checks && typeof memory.keyword_checks==='object' && !Array.isArray(memory.keyword_checks) ? memory.keyword_checks : {};}
               catch(error){sourceChecks.push({tag:'authors:memory',ok:false,error:redact(error,env)});}
             }
             const authors=chooseAuthors(mergeAuthors(observedAuthors,remembered));
+            for(const uid of LIVE_HOST_UIDS)if(!authors.some(a=>a.uid===uid))authors.push({uid,name:'Live host',last_packet_at:0,last_checked_at:0});
             const authorResults=await Promise.allSettled(authors.map(a=>fetchAuthor(a.uid)));
             for(let i=0;i<authorResults.length;i++) {
               const result=authorResults[i],source='author:'+authors[i].uid;
@@ -307,15 +387,46 @@ jobs:
               sourceChecks.push({tag:source,author:authors[i].name,ok:true,posts_checked:result.value.length,coverage:'first_author_page_only'});
               for(const post of result.value)ingest(post,source);
             }
-            const telegramResults=await Promise.allSettled(TELEGRAM_SOURCES.map(fetchTelegram));
+            const detailPosts=[...markerPosts.values()].filter(p=>!posts.has(String(p.id))).sort((a,b)=>
+              (Number(keywordChecks[a.id])||0)-(Number(keywordChecks[b.id])||0) ||
+              (epoch(b.date??b.firstReleaseTime??b.createTime)||0)-(epoch(a.date??a.firstReleaseTime??a.createTime)||0)).slice(0,SEARCH_DETAIL_LIMIT);
+            let markerVerified=0;
+            for(let start=0;start<detailPosts.length;start+=4) {
+              const batch=detailPosts.slice(start,start+4),details=await Promise.allSettled(batch.map(p=>fetchOriginal(p.id)));
+              for(let i=0;i<details.length;i++) {
+                const result=details[i];
+                if(result.status==='fulfilled') {
+                  keywordChecks[String(batch[i].id)]=now;
+                  const found=normalize(result.value,'square:keyword-detail',now);
+                  if(found){markerVerified++;ingest(result.value,'square:keyword-detail');}
+                } else sourceChecks.push({tag:'square:keyword-detail:'+batch[i].id,ok:false,error:String(result.reason?.message||result.reason)});
+              }
+            }
+            sourceChecks.push({tag:'square:feed-keywords',ok:true,posts_checked:detailPosts.length,matched_posts:markerPosts.size,
+              verified_packets_or_codes:markerVerified,coverage:'markers_in_loaded_feeds_only',local_processing:true});
+            const liveItems=[];
+            const liveRaw=[...liveSeeds.values()].sort((a,b)=>(epoch(b.firstReleaseTime||b.date)||0)-(epoch(a.firstReleaseTime||a.date)||0)).slice(0,LIVE_DETAIL_LIMIT);
+            const liveDetails=await Promise.allSettled(liveRaw.map(p=>fetchLiveRoom(String(p.id||p.contentId))));
+            for(let i=0;i<liveDetails.length;i++) {
+              const result=liveDetails[i],id=String(liveRaw[i].id||liveRaw[i].contentId);
+              if(result.status!=='fulfilled'){sourceChecks.push({tag:'square:live:'+id,ok:false,error:String(result.reason?.message||result.reason)});continue;}
+              const item=normalizeLive(liveRaw[i],result.value);
+              sourceChecks.push({tag:'square:live:'+id,ok:true,posts_checked:1,live:item!==null,coverage:'public_badge_and_live_status'});
+              if(item){liveItems.push(item);if(item.author_id)observedAuthors.push({uid:item.author_id,name:item.author,last_packet_at:Date.parse(item.published_at)||0});}
+            }
+            const telegramSources=String(env.TELEGRAM_DISCOVERY_ENABLED||'true').trim().toLowerCase()==='false' ? [] : TELEGRAM_SOURCES;
+            if(!telegramSources.length)sourceChecks.push({tag:'telegram:disabled',ok:true,posts_checked:0,coverage:'disabled_by_configuration'});
+            const telegramResults=await Promise.allSettled(telegramSources.map(fetchTelegram));
             for (let i=0;i<telegramResults.length;i++) {
-              const result=telegramResults[i],channel=TELEGRAM_SOURCES[i];
+              const result=telegramResults[i],channel=telegramSources[i];
               if (result.status!=='fulfilled') {
                 sourceChecks.push({tag:'telegram:'+channel,ok:false,error:String(result.reason?.message||result.reason)});continue;
               }
-              sourceChecks.push({tag:'telegram:'+channel,ok:true,posts_checked:result.value.length,coverage:'public_preview_only'});
               const fresh=result.value.filter(item=>isFreshPost(item,now)).sort((a,b)=>Date.parse(b.published_at)-Date.parse(a.published_at));
-              const candidates=[...fresh.filter(item=>!/^\d+$/.test(item.post_id)),...fresh.filter(item=>/^\d+$/.test(item.post_id)).slice(0,8)];
+              const linked=fresh.filter(item=>/^\d+$/.test(item.post_id));
+              sourceChecks.push({tag:'telegram:'+channel,ok:true,posts_checked:result.value.length,coverage:'public_preview_linked_originals_only',
+                excluded_without_original:fresh.length-linked.length,originals_checked:Math.min(linked.length,8)});
+              const candidates=linked.slice(0,8);
               const verified=[];
               for(let start=0;start<candidates.length;start+=4) {
                 const batch=candidates.slice(start,start+4);
@@ -339,14 +450,20 @@ jobs:
             const statusCounts = {};
             for (const p of items) statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
             return {checked_at: new Date(now).toISOString(), sources: sourceChecks,
-              partial: sourceChecks.some(s => !s.ok), all_sources_failed: sourceChecks.every(s => !s.ok),
-              total_unique_candidates: items.length, status_counts: statusCounts,
+              partial: sourceChecks.some(s => !s.ok), all_sources_failed: sourceChecks.filter(s=>s.coverage!=='disabled_by_configuration' && !s.local_processing).every(s => !s.ok),
+              total_unique_candidates: items.length+liveItems.length, status_counts: {...statusCounts,live_badge:liveItems.length},
               packet_authors: mergeAuthors(observedAuthors,remembered,authors.map(a=>({...a,last_checked_at:now}))),
               reported_open: items.filter(p => p.status === "reported_open"),
               other_candidates: items.filter(p => p.status !== "reported_open"),
+              live_candidates:liveItems,
+              keyword_checks:Object.fromEntries(Object.entries(keywordChecks).filter(([id,stamp])=>/^\d+$/.test(id) &&
+                Number.isFinite(Number(stamp)) && Number(stamp)>now-86400000).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,1000)),
               limitations: ["Discovery only; no reward claimed", "Hints are not verified answers",
                 "Public Square endpoint is undocumented and can change", "Only 50 latest posts per tag; incomplete during high traffic",
                 "Latest feed: first 3 pages; author feeds: first page of up to 6 known authors; this is not all Square",
+                "Global keyword API can reject anonymous requests; feed keyword fallback checks up to 12 originals, not all Square",
+                "Live discovery: public recommendation list, feed badges and known hosts; at most 8 room checks; badge does not verify claimability",
+                "Telegram is a fallback: standalone codes are excluded; linked originals require Square metadata or a fresh original code",
                 "Telegram public previews may be unavailable; image-only answers and short links are not extracted"],
               storage_enabled: false};
           }
@@ -356,6 +473,17 @@ jobs:
               .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
           }
           export function formatTelegramPost(post) {
+            if(post.kind==='live') {
+              if(!/^https:\/\/www\.binance\.com\/en\/square\/audio\?id=\d+$/.test(post.url||''))throw new Error('Invalid live URL');
+              const lines=['🔴 <b>Эфир со значком красного пакета</b>'];
+              if(post.author)lines.push('👤 '+escapeHtml(post.author,80));
+              if(post.title)lines.push('',escapeHtml(post.title,500));
+              lines.push('','Square показывает значок красного пакета.','Доступность награды для вас не проверена.');
+              if(post.published_at)lines.push('🕒 Начало: '+escapeHtml(post.published_at.replace('T',' ').replace(/\.\d{3}Z$/,' UTC'),40));
+              lines.push('',`<a href="${post.url}">Открыть эфир в Binance</a>`);
+              return {text:lines.join('\n'),parse_mode:'HTML',link_preview_options:{is_disabled:true},
+                reply_markup:{inline_keyboard:[[{text:'🔴 Открыть эфир',url:post.url}]]}};
+            }
             if (!/^https:\/\/www\.binance\.com\/en\/square\/post\/\d+$/.test(post.url || "") &&
                 !/^https:\/\/t\.me\/(?:SBCryptoz|binance_red_packetz)\/\d+$/.test(post.url || "")) {
               throw new Error("Invalid source post URL");
@@ -398,18 +526,26 @@ jobs:
             return Number.isFinite(published) && published <= now + 60000 && now - published <= POST_MAX_AGE_MS;
           }
           export function isEligiblePost(post, now=Date.now()) {
+            if(post?.source_kind==='telegram' || post?.status==='unverified_link')return false;
+            if(post?.discovery_kind==='telegram' && (post.source_kind!=='square' || !/^\d+$/.test(post.post_id||'')))return false;
+            if(post?.kind==='live') {
+              const checked=Date.parse(post.live_checked_at);
+              return post.status==='live_badge' && post.live_badge===true && /^\d+$/.test(post.live_id||'') &&
+                Number.isFinite(checked) && checked<=now+60000 && now-checked<=LIVE_CHECK_MAX_AGE_MS;
+            }
             if (post?.status==='reported_open' && ['quiz','packet'].includes(post.kind)) {
               return Number.isFinite(Date.parse(post.expires_at)) && Date.parse(post.expires_at)>now;
             }
-            return ['unverified_code','unverified_link'].includes(post?.status) && isFreshPost(post,now);
+            return post?.status==='unverified_code' && isFreshPost(post,now);
           }
           export function publishCandidates(snapshot, now = Date.now()) {
             const unique = new Map();
-            const recent = [...(snapshot.reported_open || []), ...(snapshot.other_candidates || [])]
+            const recent = [...(snapshot.reported_open || []), ...(snapshot.other_candidates || []),...(snapshot.live_candidates||[])]
               .filter(post => isEligiblePost(post, now))
               .sort((a,b) => Date.parse(b.published_at) - Date.parse(a.published_at));
             for (const post of recent) {
-              if (post.status === "reported_open" && !(post.expires_at && Date.parse(post.expires_at) <= now)) {
+              if(post.kind==='live')unique.set('live:'+post.live_id,{key:'live:'+post.live_id,post});
+              else if (post.status === "reported_open" && !(post.expires_at && Date.parse(post.expires_at) <= now)) {
                 unique.set(`post:${post.post_id}`, {key: `post:${post.post_id}`, post});
               } else if (post.kind === "code" && post.status === "unverified_code") {
                 for (const code of post.published_codes || []) {
@@ -417,15 +553,13 @@ jobs:
                   const key = `code:${code.toUpperCase()}`;
                   if (!unique.has(key)) unique.set(key, {key, post: {...post, published_codes: [code]}});
                 }
-              } else if (['quiz_answer','packet_link'].includes(post.kind) && post.status==='unverified_link') {
-                unique.set(`post:${post.post_id}`,{key:`post:${post.post_id}`,post});
               }
             }
             return deduplicateCandidates([...unique.values()]);
           }
           function canonicalIdentity(key) {
             if (/^code:[A-Za-z0-9]{8}$/.test(key)) return key.toUpperCase().replace(/^CODE:/,'code:');
-            return /^(?:post:\d+|packet:[A-Za-z0-9_-]{1,128}|test:[A-Za-z0-9_-]+)$/.test(key) ? key : null;
+            return /^(?:post:\d+|live:\d+|packet:[A-Za-z0-9_-]{1,128}|test:[A-Za-z0-9_-]+)$/.test(key) ? key : null;
           }
           export function candidateIdentityKeys(candidate) {
             const post=candidate.post||{}, keys=[candidate.key,...(candidate.identity_keys||[])];
@@ -475,12 +609,13 @@ jobs:
           }
           export function orderDeliveryCandidates(candidates) {
             const telegram=candidates.filter(c=>c.post?.discovery_kind==='telegram'||c.post?.source_kind==='telegram');
-            const square=candidates.filter(c=>!telegram.includes(c));
-            return [...square.slice(0,3),...telegram.slice(0,2),...square.slice(3),...telegram.slice(2)];
+            const direct=candidates.filter(c=>!telegram.includes(c)),live=direct.filter(c=>c.post?.kind==='live');
+            const square=[...live.slice(0,1),...direct.filter(c=>c.post?.kind!=='live'),...live.slice(1)];
+            return [...square.slice(0,4),...telegram.slice(0,1),...square.slice(4),...telegram.slice(1)];
           }
           
           import fs from 'node:fs';
-          import {createHash} from 'node:crypto';
+          import {createHash,randomUUID} from 'node:crypto';
           
           const STATE_PATH = '.redpacket/delivery.json';
           const WAIT = ms => new Promise(resolve => setTimeout(resolve,ms));
@@ -496,24 +631,71 @@ jobs:
             console.log(safe);
             if (env.GITHUB_STEP_SUMMARY) fs.appendFileSync(env.GITHUB_STEP_SUMMARY,safe+'\n');
           }
-          class GitHubState {
+          const cloneState = value => JSON.parse(JSON.stringify(value));
+          const sameState = (a,b) => JSON.stringify(a)===JSON.stringify(b);
+          function deliveryCore(item) {
+            if(!item)return item;
+            const {identity_keys,...core}=item;
+            return core;
+          }
+          export function mergeDeliveryState(base,local,remote) {
+            const merged=cloneState(remote);
+            // Only apply our changes to fields that the other writer left alone.
+            // Conflicting destination changes keep the latest persisted setting.
+            for(const [key,value] of Object.entries(local)) {
+              if(['items','authors','keyword_checks','last_check_at'].includes(key))continue;
+              if(!sameState(value,base[key]) && sameState(remote[key],base[key]))merged[key]=cloneState(value);
+            }
+            merged.items={};
+            for(const key of new Set([...Object.keys(remote.items),...Object.keys(local.items)])) {
+              const b=base.items[key],l=local.items[key],r=remote.items[key];
+              let winner;
+              if(!l)winner=r;
+              else if(!r)winner=l;
+              else if(sameState(deliveryCore(l),deliveryCore(b)))winner=r;
+              else if(sameState(deliveryCore(r),deliveryCore(b)))winner=l;
+              else if(l.state==='sent' || r.state==='sent')winner=r.state==='sent'?r:l;
+              // An independently changed claim always wins over a fresh local claim.
+              else if(l.state==='sending' && l.claim_id!==r.claim_id)winner=r;
+              else {
+                const priority={uncertain:4,sending:3,skipped_stale:2,queued:1};
+                winner=(priority[l.state]||5)>(priority[r.state]||5)?l:r;
+              }
+              merged.items[key]={...cloneState(winner),identity_keys:[...new Set([
+                ...(b?.identity_keys||[]),...(r?.identity_keys||[]),...(l?.identity_keys||[])
+              ])]};
+            }
+            merged.authors=mergeAuthors(remote.authors||[],local.authors||[]);
+            merged.keyword_checks={};
+            for(const [id,stamp] of [...Object.entries(remote.keyword_checks||{}),...Object.entries(local.keyword_checks||{})]) {
+              if(/^\d+$/.test(id) && Number.isFinite(Number(stamp)))
+                merged.keyword_checks[id]=Math.max(Number(stamp),merged.keyword_checks[id]||0);
+            }
+            merged.last_check_at=Math.max(Number(remote.last_check_at)||0,Number(local.last_check_at)||0);
+            return merged;
+          }
+          export class GitHubState {
             constructor(env) {
               if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(env.GITHUB_REPOSITORY || '') || !env.GITHUB_REF_NAME || !env.GH_STATE_TOKEN) {
                 throw new Error('GitHub state configuration missing');
               }
-              this.env=env; this.sha=null;
+              this.env=env; this.sha=null;this.base=null;
               this.url=`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/contents/${STATE_PATH}`;
             }
             async request(method,body,accept='application/vnd.github.object+json') {
               const url = method==='GET' ? this.url+'?ref='+encodeURIComponent(this.env.GITHUB_REF_NAME) : this.url;
               return fetch(url, {method, redirect:'error', signal:AbortSignal.timeout(20000),
                 headers:{Accept:accept,Authorization:'Bearer '+this.env.GH_STATE_TOKEN,
-                  'X-GitHub-Api-Version':'2026-03-10','User-Agent':'SquareTelegramPublisher','Content-Type':'application/json'},
+                  'X-GitHub-Api-Version':'2026-03-10','User-Agent':'SquareTelegramPublisher','Content-Type':'application/json',
+                  'Cache-Control':'no-cache'},
                 ...(body ? {body:JSON.stringify(body)} : {})});
             }
-            async load() {
+            async readLatest() {
               const response=await this.request('GET');
-              if (response.status===404) return {version:1,items:{},enabled_destination:null};
+              if (response.status===404) {
+                if(this.sha!==null)throw new Error('GitHub delivery history disappeared; publishing stopped');
+                this.sha=null;return {version:1,items:{},enabled_destination:null};
+              }
               if (!response.ok) throw new Error('GitHub state read: HTTP '+response.status);
               const metadata=await response.json();
               if (metadata.type!=='file' || !metadata.sha) throw new Error('Unexpected GitHub state file');
@@ -529,14 +711,34 @@ jobs:
               if (state.version!==1 || !state.items || Array.isArray(state.items) || typeof state.items!=='object') throw new Error('State damaged; refusing to resend');
               return state;
             }
-            async save(state,reason) {
-              const response=await this.request('PUT',{
-                message:`Red Packet delivery: ${reason} [skip ci]`, branch:this.env.GITHUB_REF_NAME,
-                content:Buffer.from(JSON.stringify(state)).toString('base64'), ...(this.sha ? {sha:this.sha} : {})});
-              if (!response.ok) throw new Error('GitHub state write: HTTP '+response.status+'; publishing stopped');
-              const result=await response.json();
-              if (!result.content?.sha) throw new Error('GitHub did not confirm state persistence; publishing stopped');
-              this.sha=result.content.sha;
+            async load() {
+              const state=await this.readLatest();this.base=cloneState(state);return state;
+            }
+            async save(state,reason,wait=WAIT) {
+              if(!this.base)throw new Error('GitHub state must be loaded before saving');
+              const base=cloneState(this.base),local=cloneState(state);
+              let pending=local;
+              for(let attempt=0;attempt<5;attempt++) {
+                const creating=this.sha===null;
+                const response=await this.request('PUT',{
+                  message:`Red Packet delivery: ${reason} [skip ci]`, branch:this.env.GITHUB_REF_NAME,
+                  content:Buffer.from(JSON.stringify(pending)).toString('base64'), ...(this.sha ? {sha:this.sha} : {})});
+                const result=await response.json().catch(()=>null);
+                if(response.ok) {
+                  if(!result?.content?.sha)throw new Error('GitHub did not confirm state persistence; publishing stopped');
+                  this.sha=result.content.sha;this.base=cloneState(pending);
+                  // Callers must see imported records before considering the next send.
+                  for(const key of Object.keys(state))delete state[key];
+                  Object.assign(state,cloneState(pending));return;
+                }
+                const conflict=response.status===409 || (creating && response.status===422 &&
+                  /sha.*(?:supplied|required)|already exists/i.test(String(result?.message||'')));
+                if(!conflict || attempt===4)throw new Error('GitHub state write: HTTP '+response.status+
+                  (conflict?' after 5 attempts':'')+'; publishing stopped');
+                console.log('GitHub state conflict: refreshing history, retry '+(attempt+1)+'/4');
+                await wait(250*2**attempt+Math.floor(Math.random()*200));
+                pending=mergeDeliveryState(base,local,await this.readLatest());
+              }
             }
           }
           function config(env) {
@@ -578,6 +780,8 @@ jobs:
             const authors=mergeAuthors(Array.isArray(state.authors)?state.authors:[],snapshot.packet_authors||[]);
             const authorsChanged=JSON.stringify(authors)!==JSON.stringify(state.authors||[]);
             state.authors=authors;
+            const markerChecksChanged=snapshot.keyword_checks!==undefined && JSON.stringify(snapshot.keyword_checks)!==JSON.stringify(state.keyword_checks||{});
+            if(snapshot.keyword_checks!==undefined)state.keyword_checks=snapshot.keyword_checks;
             // A preceding job may have reached Telegram before losing its acknowledgment.
             let recovered=false;
             for (const [key,item] of Object.entries(state.items)) {
@@ -588,7 +792,7 @@ jobs:
             }
             const allCandidates=mode==='telegram_test'
               ? [{key:'test:'+(env.GITHUB_RUN_ID||'local'),message:{text:'🧧 Бот Red Packet подключён.\nЭто тестовое сообщение. Автопубликация включается отдельным запуском publish.'}}]
-              : publishCandidates(snapshot).slice(0,100).map(item=>({...item,message:formatTelegramPost(item.post)}));
+              : orderDeliveryCandidates(publishCandidates(snapshot)).slice(0,100).map(item=>({...item,message:formatTelegramPost(item.post)}));
             let index=deliveryIndex(state,destination),identitiesChanged=false;
             // Extend old records when their posts reappear; never clear delivery history.
             for(const candidate of allCandidates) {
@@ -602,9 +806,10 @@ jobs:
             index=deliveryIndex(state,destination);
             // Also confirms that persistence works before any Telegram message is attempted.
             if (mode==='publish' || mode==='telegram_test' || Date.now()-(state.last_check_at||0)>86400000 ||
-                recovered || authorsChanged || identitiesChanged) {
+                recovered || authorsChanged || identitiesChanged || markerChecksChanged) {
               state.last_check_at=Date.now();await storage.save(state,'check and recover');
             }
+            index=deliveryIndex(state,destination);
             const ready=allCandidates.filter(candidate=>{
               return !deliveryBlocked(state,matchingDeliveries(index,candidate));
             });
@@ -615,13 +820,39 @@ jobs:
               if (attempted>=MAX_POSTS_PER_RUN) break;
               if (candidate.post && !isEligiblePost(candidate.post)) continue;
               if (candidate.post?.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()) continue;
+              index=deliveryIndex(state,destination);
               const matches=matchingDeliveries(index,candidate);
               if (deliveryBlocked(state,matches)) {stats.skipped++;continue;}
               const key=matches[0]||destination+':'+candidate.key;
-              state.items[key]={state:'sending',post_id:candidate.post?.post_id||null,
+              const claimId=randomUUID();
+              state.items[key]={state:'sending',claim_id:claimId,post_id:candidate.post?.post_id||null,
                 identity_keys:candidateIdentityKeys(candidate),updated_at:Date.now()};
               await storage.save(state,'claim before send');
               index=deliveryIndex(state,destination);
+              const claim=state.items[key];
+              if(claim?.state!=='sending' || claim.claim_id!==claimId) {stats.skipped++;continue;}
+              if(deliveryBlocked(state,matchingDeliveries(index,candidate).filter(other=>other!==key))) {
+                claim.state='queued';claim.retry_at=Date.now()+60000;claim.updated_at=Date.now();
+                await storage.save(state,'duplicate claim avoided');
+                index=deliveryIndex(state,destination);stats.skipped++;continue;
+              }
+              if(mode!=='telegram_test' && state.enabled_destination!==destination)
+                throw new Error('Telegram destination changed during state update; publishing stopped');
+              if(candidate.post?.kind==='live') {
+                try {
+                  const current=await refreshLive(candidate.post);
+                  if(!current) {
+                    state.items[key].state='queued';state.items[key].retry_at=Date.now()+60000;state.items[key].updated_at=Date.now();
+                    await storage.save(state,'live ended or badge hidden');stats.skipped++;continue;
+                  }
+                  candidate.post=current;candidate.message=formatTelegramPost(current);
+                } catch(error) {
+                  state.items[key].state='queued';state.items[key].retry_at=Date.now()+60000;
+                  state.items[key].error=redact(error,env);state.items[key].updated_at=Date.now();
+                  await storage.save(state,'live check failed before send');stats.skipped++;
+                  stats.live_check_error=redact(error,env);continue;
+                }
+              }
               // Persistence can take time; enforce freshness again immediately before Telegram.
               if (candidate.post && (!isEligiblePost(candidate.post) ||
                   (candidate.post.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()))) {
@@ -639,6 +870,7 @@ jobs:
               }
               // If this write fails, the persistent claim remains sending and is not resent.
               await storage.save(state,result.ok ? 'sent' : 'delivery not confirmed');
+              index=deliveryIndex(state,destination);
               if (!result.ok) break;
               if (attempted<MAX_POSTS_PER_RUN) await wait(1100);
             }
@@ -649,17 +881,18 @@ jobs:
           export async function main(env=process.env) {
             const mode=env.RUN_MODE||'preview';
             if (!['preview','telegram_test','publish','scheduled'].includes(mode)) throw new Error('Unknown run mode');
-            const snapshot=mode==='telegram_test' ? {reported_open:[],other_candidates:[]} : await scan();
-            if (mode!=='telegram_test') summary('## Binance Square\n\n'+snapshot.sources.map(s=>`${s.tag}: ${s.ok ? 'OK, posts '+s.posts_checked : s.error}`).join('\n\n'),env);
+            const snapshot=mode==='telegram_test' ? {reported_open:[],other_candidates:[]} : await scan(env);
+            if (mode!=='telegram_test') summary('## Binance Square\n\n'+snapshot.sources.map(s=>`${s.tag}: ${s.ok ? s.coverage==='disabled_by_configuration' ? 'отключено' : 'OK, posts '+s.posts_checked+(s.excluded_without_original!==undefined ? '; без оригинала исключено '+s.excluded_without_original+'; оригиналов проверено '+s.originals_checked : '') : s.error}`).join('\n\n'),env);
             if (mode!=='telegram_test') {
               const eligible=publishCandidates(snapshot),fromTelegram=eligible.filter(c=>c.post.discovery_kind==='telegram'||c.post.source_kind==='telegram').length;
-              summary(`\nКандидаты: самостоятельно в Square ${eligible.length-fromTelegram}; найдено через Telegram ${fromTelegram}. Приоритет отправки: 3 Square + 2 Telegram, свободные места заполняются остальными.`,env);
+              const live=eligible.filter(c=>c.post.kind==='live').length,marker=snapshot.sources.find(s=>s.local_processing);
+              summary(`\nКандидаты: посты Square ${eligible.length-fromTelegram-live}; эфиры со значком пакета ${live}; через Telegram с проверенным оригиналом ${fromTelegram}. Приоритет: 4 Square (включая один эфир) + 1 Telegram, свободные места заполняются остальными. Коды Telegram без оригинала исключены.\nПоиск в загруженных лентах: совпадений ${marker?.matched_posts||0}; проверено оригиналов ${marker?.posts_checked||0}; найдены пакеты/коды ${marker?.verified_packets_or_codes||0}. Ошибки глобального поиска указаны отдельно выше.`,env);
             }
             if (mode==='preview') {
               if(snapshot.all_sources_failed)throw new Error('Both Square feeds failed');
               const items=publishCandidates(snapshot);
               summary(`\nEligible candidates: ${items.length}. No messages sent.`,env);
-              for(const {post} of items.slice(0,5)) console.log(JSON.stringify({kind:post.kind,status:post.status,url:post.url,codes:post.published_codes,question:post.question,hint:post.hint}));
+              for(const {post} of orderDeliveryCandidates(items).slice(0,5)) console.log(JSON.stringify({kind:post.kind,status:post.status,url:post.url,codes:post.published_codes,question:post.question,hint:post.hint,title:post.title}));
               return;
             }
             const stats=await publish(snapshot,env,mode);
