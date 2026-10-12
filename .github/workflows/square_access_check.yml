@@ -13,6 +13,7 @@
 # Linked Telegram finds are enriched from Binance; competitor names/links are not published.
 # Delivery prefers 3 independently found Square posts and 2 Telegram discoveries per batch.
 # Cloudflare clock dispatches mode=scheduled; it never enables a different Telegram destination.
+# One delivery history across sources: post IDs, published codes and explicit packet IDs.
 name: Red Packets to Telegram
 run-name: ${{ (github.event_name == 'schedule' || inputs.mode == 'scheduled') && 'Red Packets · automatic' || format('Red Packets · {0}', inputs.mode) }}
 
@@ -102,6 +103,8 @@ jobs:
             const answerMatch = text.match(/(?:^|\n)\s*(?:ans(?:wer)?|ответ|respuesta)\s*[:：]\s*([^\n]{1,120})/i);
             return {
               post_id: String(post.id),
+              packet_id: envelope?.orderId == null || String(envelope.orderId)==='0' ? null : String(envelope.orderId),
+              packet_code: /^[A-Za-z0-9]{8}$/.test(String(envelope?.grabCode||'')) ? String(envelope.grabCode) : null,
               discovery_kind: tag.startsWith('telegram:') ? 'telegram' : 'square',
               author: post.authorName || post.displayName || post.username || "",
               author_id: post.squareAuthorId || post.squareUid || "",
@@ -411,14 +414,64 @@ jobs:
               } else if (post.kind === "code" && post.status === "unverified_code") {
                 for (const code of post.published_codes || []) {
                   // Same published code across different posts is sent once to this destination.
-                  const key = `code:${code}`;
+                  const key = `code:${code.toUpperCase()}`;
                   if (!unique.has(key)) unique.set(key, {key, post: {...post, published_codes: [code]}});
                 }
               } else if (['quiz_answer','packet_link'].includes(post.kind) && post.status==='unverified_link') {
                 unique.set(`post:${post.post_id}`,{key:`post:${post.post_id}`,post});
               }
             }
-            return [...unique.values()];
+            return deduplicateCandidates([...unique.values()]);
+          }
+          function canonicalIdentity(key) {
+            if (/^code:[A-Za-z0-9]{8}$/.test(key)) return key.toUpperCase().replace(/^CODE:/,'code:');
+            return /^(?:post:\d+|packet:[A-Za-z0-9_-]{1,128}|test:[A-Za-z0-9_-]+)$/.test(key) ? key : null;
+          }
+          export function candidateIdentityKeys(candidate) {
+            const post=candidate.post||{}, keys=[candidate.key,...(candidate.identity_keys||[])];
+            if (post.packet_id) keys.push('packet:'+post.packet_id);
+            for(const code of [post.packet_code,...(post.published_codes||[])]) {
+              if (/^[A-Za-z0-9]{8}$/.test(String(code||''))) keys.push('code:'+String(code));
+            }
+            return [...new Set(keys.map(canonicalIdentity).filter(Boolean))];
+          }
+          export function deduplicateCandidates(candidates) {
+            const groups=[];
+            const score=c=>Number(c.post?.discovery_kind!=='telegram' && c.post?.source_kind!=='telegram')*2+
+              Number(c.post?.status==='reported_open');
+            for(const candidate of candidates) {
+              const keys=candidateIdentityKeys(candidate), matches=[];
+              for(let i=0;i<groups.length;i++) if(groups[i].identity_keys.some(key=>keys.includes(key))) matches.push(i);
+              if(!matches.length) {groups.push({...candidate,identity_keys:keys});continue;}
+              const members=[...matches.map(i=>groups[i]),candidate];
+              const winner=members.reduce((best,c)=>score(c)>score(best)?c:best);
+              const aliases=[...new Set([...keys,...matches.flatMap(i=>groups[i].identity_keys)])];
+              groups[matches[0]]={...winner,identity_keys:aliases};
+              for(const i of matches.slice(1).reverse()) groups.splice(i,1);
+            }
+            return groups;
+          }
+          function deliveryIndex(state,destination) {
+            const index=new Map(),prefix=destination+':';
+            for(const [key,item] of Object.entries(state.items)) {
+              if(!key.startsWith(prefix))continue;
+              const aliases=[key.slice(prefix.length),...(item.identity_keys||[])];
+              for(const alias of aliases.map(canonicalIdentity).filter(Boolean)) {
+                if(!index.has(alias))index.set(alias,new Set());
+                index.get(alias).add(key);
+              }
+            }
+            return index;
+          }
+          function matchingDeliveries(index,candidate) {
+            const aliases=candidateIdentityKeys(candidate);
+            // An earlier whole-post card may have included this code. A single-code
+            // card does not reserve the whole post: other codes remain deliverable.
+            if(candidate.post?.kind==='code' && /^\d+$/.test(candidate.post.post_id)) aliases.push('post:'+candidate.post.post_id);
+            return [...new Set(aliases.flatMap(alias=>[...(index.get(alias)||[])]))];
+          }
+          function deliveryBlocked(state,keys,now=Date.now()) {
+            return keys.some(key=>state.items[key].state!=='queued' || state.items[key].retry_at>now);
           }
           export function orderDeliveryCandidates(candidates) {
             const telegram=candidates.filter(c=>c.post?.discovery_kind==='telegram'||c.post?.source_kind==='telegram');
@@ -533,17 +586,27 @@ jobs:
                 recovered=true;
               }
             }
-            // Also confirms that persistence works before any Telegram message is attempted.
-            if (mode==='publish' || mode==='telegram_test' || Date.now()-(state.last_check_at||0)>86400000 ||
-                recovered || authorsChanged) {
-              state.last_check_at=Date.now();await storage.save(state,'check and recover');
-            }
             const allCandidates=mode==='telegram_test'
               ? [{key:'test:'+(env.GITHUB_RUN_ID||'local'),message:{text:'🧧 Бот Red Packet подключён.\nЭто тестовое сообщение. Автопубликация включается отдельным запуском publish.'}}]
               : publishCandidates(snapshot).slice(0,100).map(item=>({...item,message:formatTelegramPost(item.post)}));
+            let index=deliveryIndex(state,destination),identitiesChanged=false;
+            // Extend old records when their posts reappear; never clear delivery history.
+            for(const candidate of allCandidates) {
+              for(const key of matchingDeliveries(index,candidate)) {
+                const item=state.items[key],aliases=[...new Set([...(item.identity_keys||[]),...candidateIdentityKeys(candidate)])];
+                if(JSON.stringify(aliases)!==JSON.stringify(item.identity_keys||[])) {
+                  item.identity_keys=aliases;identitiesChanged=true;
+                }
+              }
+            }
+            index=deliveryIndex(state,destination);
+            // Also confirms that persistence works before any Telegram message is attempted.
+            if (mode==='publish' || mode==='telegram_test' || Date.now()-(state.last_check_at||0)>86400000 ||
+                recovered || authorsChanged || identitiesChanged) {
+              state.last_check_at=Date.now();await storage.save(state,'check and recover');
+            }
             const ready=allCandidates.filter(candidate=>{
-              const old=state.items[destination+':'+candidate.key];
-              return !old || (old.state==='queued' && !(old.retry_at>Date.now()));
+              return !deliveryBlocked(state,matchingDeliveries(index,candidate));
             });
             stats.skipped+=allCandidates.length-ready.length;
             const candidates=orderDeliveryCandidates(ready);
@@ -552,10 +615,13 @@ jobs:
               if (attempted>=MAX_POSTS_PER_RUN) break;
               if (candidate.post && !isEligiblePost(candidate.post)) continue;
               if (candidate.post?.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()) continue;
-              const key=destination+':'+candidate.key, old=state.items[key];
-              if (old && (old.state!=='queued' || old.retry_at>Date.now())) {stats.skipped++;continue;}
-              state.items[key]={state:'sending',post_id:candidate.post?.post_id||null,updated_at:Date.now()};
+              const matches=matchingDeliveries(index,candidate);
+              if (deliveryBlocked(state,matches)) {stats.skipped++;continue;}
+              const key=matches[0]||destination+':'+candidate.key;
+              state.items[key]={state:'sending',post_id:candidate.post?.post_id||null,
+                identity_keys:candidateIdentityKeys(candidate),updated_at:Date.now()};
               await storage.save(state,'claim before send');
+              index=deliveryIndex(state,destination);
               // Persistence can take time; enforce freshness again immediately before Telegram.
               if (candidate.post && (!isEligiblePost(candidate.post) ||
                   (candidate.post.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()))) {
