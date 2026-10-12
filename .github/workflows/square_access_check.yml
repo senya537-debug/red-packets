@@ -9,6 +9,7 @@
 # Text codes and unverified Telegram links: last 10 minutes only.
 # Square quizzes/Claim: require open flags and a future expiry, regardless of post age.
 # Telegram public previews are optional sources; unavailable previews are reported.
+# Also reads a bounded latest-post feed and remembered packet authors without tags.
 name: Red Packets to Telegram
 
 on:
@@ -53,6 +54,9 @@ jobs:
           const TELEGRAM_SOURCES = ["SBCryptoz", "binance_red_packetz"];
           const ENDPOINT = "https://www.binance.com/bapi/composite/v4/friendly/pgc/content/queryByHashtag";
           const PAGE_SIZE = 50;
+          const LATEST_PAGES = 3;
+          const AUTHOR_LIMIT = 6;
+          const AUTHOR_MEMORY_LIMIT = 30;
           const MAX_POSTS_PER_RUN = 5;
           const POST_MAX_AGE_MS = 10 * 60 * 1000;
           
@@ -84,7 +88,8 @@ jobs:
           }
           export function normalize(post, tag, now = Date.now()) {
             if (!post || typeof post !== "object" || !/^\d+$/.test(String(post.id || ""))) return null;
-            const text = typeof post.content === "string" ? post.content : "";
+            let text = typeof post.bodyTextOnly==='string' ? post.bodyTextOnly : typeof post.content === "string" ? post.content : "";
+            try {const parsed=JSON.parse(text);if(typeof parsed?.richtext==='string')text=parsed.richtext;} catch {}
             const envelope = post.redEnvelop && typeof post.redEnvelop === "object" ? post.redEnvelop : null;
             const codes = codesFrom(text);
             if (!envelope && !codes.length) return null;
@@ -92,10 +97,10 @@ jobs:
             const answerMatch = text.match(/(?:^|\n)\s*(?:ans(?:wer)?|ответ|respuesta)\s*[:：]\s*([^\n]{1,120})/i);
             return {
               post_id: String(post.id),
-              author: post.authorName || post.username || "",
-              author_id: post.squareAuthorId || "",
+              author: post.authorName || post.displayName || post.username || "",
+              author_id: post.squareAuthorId || post.squareUid || "",
               url: `https://www.binance.com/en/square/post/${post.id}`,
-              published_at: iso(post.date),
+              published_at: iso(post.date ?? post.firstReleaseTime ?? post.createTime ?? post.latestReleaseTime),
               sources: [tag],
               kind: envelope ? (envelope.type === 1 || quiz ? "quiz" : "packet") : "code",
               status: packetState(envelope, now),
@@ -190,13 +195,65 @@ jobs:
             if (!response.ok) throw new Error('Telegram preview HTTP '+response.status);
             return parseTelegramPreview(await response.text(),channel);
           }
-          export async function scan() {
+          async function fetchLatest() {
+            const posts=[];
+            for (let page=1;page<=LATEST_PAGES;page++) {
+              const url=new URL('https://www.binance.com/bapi/composite/v3/friendly/pgc/content/article/list');
+              url.search=new URLSearchParams({pageIndex:String(page),pageSize:String(PAGE_SIZE),type:'2'});
+              const response=await fetch(url,{signal:AbortSignal.timeout(10000),headers:{Accept:'application/json',
+                'User-Agent':'Mozilla/5.0','clienttype':'web',Referer:'https://www.binance.com/en/square'}});
+              if(!response.ok)throw new Error('Square latest HTTP '+response.status);
+              const data=await response.json();
+              if(data.success!==true || !Array.isArray(data.data?.vos))throw new Error('Square latest response changed');
+              posts.push(...data.data.vos);
+              if(data.data.vos.length<PAGE_SIZE)break;
+            }
+            return posts;
+          }
+          async function fetchAuthor(uid) {
+            const url=new URL('https://www.binance.com/bapi/composite/v9/friendly/pgc/content/queryUserProfilePageContents');
+            url.search=new URLSearchParams({targetSquareUid:uid,timeOffset:'-1'});
+            const response=await fetch(url,{signal:AbortSignal.timeout(10000),headers:{Accept:'application/json',
+              'User-Agent':'Mozilla/5.0','clienttype':'web',Referer:'https://www.binance.com/en/square'}});
+            if(!response.ok)throw new Error('Square author HTTP '+response.status);
+            const data=await response.json();
+            if(data.success!==true || !Array.isArray(data.data?.contents))throw new Error('Square author response changed');
+            return data.data.contents;
+          }
+          export function mergeAuthors(...lists) {
+            const authors=new Map();
+            for(const item of lists.flat()) {
+              if(!item || !/^[A-Za-z0-9_-]{8,80}$/.test(item.uid||''))continue;
+              const old=authors.get(item.uid);
+              const stamp=Number(item.last_packet_at)||0;
+              authors.set(item.uid,{uid:item.uid,name:String((!old || stamp>=old.last_packet_at?item.name:old.name)||'').slice(0,80),
+                last_packet_at:Math.max(stamp,old?.last_packet_at||0),last_checked_at:Math.max(Number(item.last_checked_at)||0,old?.last_checked_at||0)});
+            }
+            return [...authors.values()].sort((a,b)=>b.last_packet_at-a.last_packet_at).slice(0,AUTHOR_MEMORY_LIMIT);
+          }
+          export function chooseAuthors(authors) {
+            const newest=authors.slice(0,2);
+            const others=authors.slice(2).sort((a,b)=>(a.last_checked_at||0)-(b.last_checked_at||0) || b.last_packet_at-a.last_packet_at);
+            return [...newest,...others].slice(0,AUTHOR_LIMIT);
+          }
+          export async function scan(env=process.env) {
             const now = Date.now();
-            const results = await Promise.allSettled(TAGS.map(fetchTag));
+            const results = await Promise.allSettled([...TAGS.map(fetchTag),fetchLatest()]);
             const posts = new Map();
             const sourceChecks = [];
+            const observedAuthors=[];
+            function ingest(post,source) {
+              const item=normalize(post,source,now);
+              if(!item)return;
+              if(item.author_id)observedAuthors.push({uid:item.author_id,name:item.author,last_packet_at:Date.parse(item.published_at)||0});
+              const previous=posts.get(item.post_id);
+              if(previous) {
+                if(['expired','run_out'].includes(item.status))previous.status=item.status;
+                previous.sources=[...new Set([...previous.sources,source])].sort();
+              } else posts.set(item.post_id,item);
+            }
             for (let i = 0; i < results.length; i++) {
-              const result = results[i], tag = TAGS[i];
+              const result = results[i], tag = TAGS[i] || 'square:latest';
               if (result.status !== "fulfilled") {
                 sourceChecks.push({tag, ok: false, error: String(result.reason?.message || result.reason)});
                 continue;
@@ -206,18 +263,25 @@ jobs:
               sourceChecks.push({tag, ok: true, posts_checked: feed.length,
                 newest_post_at: dates.length ? iso(Math.max(...dates)) : null,
                 oldest_post_at: dates.length ? iso(Math.min(...dates)) : null,
-                coverage: "first_latest_page_only", may_have_more: feed.length === PAGE_SIZE});
+                coverage: i===TAGS.length ? 'latest_first_3_pages_only' : "first_latest_page_only", may_have_more: feed.length >= PAGE_SIZE});
               for (const post of feed) {
-                const item = normalize(post, tag, now);
-                if (!item) continue;
-                const previous = posts.get(item.post_id);
-                if (previous) {
-                  // If source responses disagree, retain an observed ended state.
-                  const ended = ["expired", "run_out"];
-                  if (ended.includes(item.status)) previous.status = item.status;
-                  previous.sources = [...new Set([...previous.sources, tag])].sort();
-                } else posts.set(item.post_id, item);
+                ingest(post,tag);
               }
+            }
+            let remembered=[];
+            if(env.GITHUB_REPOSITORY && env.GITHUB_REF_NAME && env.GH_STATE_TOKEN) {
+              try {const memory=await new GitHubState(env).load();remembered=Array.isArray(memory.authors)?memory.authors:[];}
+              catch(error){sourceChecks.push({tag:'authors:memory',ok:false,error:redact(error,env)});}
+            }
+            const authors=chooseAuthors(mergeAuthors(observedAuthors,remembered));
+            const authorResults=await Promise.allSettled(authors.map(a=>fetchAuthor(a.uid)));
+            for(let i=0;i<authorResults.length;i++) {
+              const result=authorResults[i],source='author:'+authors[i].uid;
+              if(result.status!=='fulfilled') {
+                sourceChecks.push({tag:source,ok:false,error:String(result.reason?.message||result.reason)});continue;
+              }
+              sourceChecks.push({tag:source,author:authors[i].name,ok:true,posts_checked:result.value.length,coverage:'first_author_page_only'});
+              for(const post of result.value)ingest(post,source);
             }
             const telegramResults=await Promise.allSettled(TELEGRAM_SOURCES.map(fetchTelegram));
             for (let i=0;i<telegramResults.length;i++) {
@@ -242,10 +306,12 @@ jobs:
             return {checked_at: new Date(now).toISOString(), sources: sourceChecks,
               partial: sourceChecks.some(s => !s.ok), all_sources_failed: sourceChecks.every(s => !s.ok),
               total_unique_candidates: items.length, status_counts: statusCounts,
+              packet_authors: mergeAuthors(observedAuthors,remembered,authors.map(a=>({...a,last_checked_at:now}))),
               reported_open: items.filter(p => p.status === "reported_open"),
               other_candidates: items.filter(p => p.status !== "reported_open"),
               limitations: ["Discovery only; no reward claimed", "Hints are not verified answers",
                 "Public Square endpoint is undocumented and can change", "Only 50 latest posts per tag; incomplete during high traffic",
+                "Latest feed: first 3 pages; author feeds: first page of up to 6 known authors; this is not all Square",
                 "Telegram public previews may be unavailable; image-only answers and short links are not extracted"],
               storage_enabled: false};
           }
@@ -424,6 +490,9 @@ jobs:
             if (mode==='scheduled' && state.enabled_destination!==destination) return {...stats,disabled:true,reason:'Run publish manually once to enable this group'};
             if (mode!=='telegram_test' && snapshot.all_sources_failed) throw new Error('Both Square feeds failed; no messages sent');
             if (mode==='publish') state.enabled_destination=destination;
+            const authors=mergeAuthors(Array.isArray(state.authors)?state.authors:[],snapshot.packet_authors||[]);
+            const authorsChanged=JSON.stringify(authors)!==JSON.stringify(state.authors||[]);
+            state.authors=authors;
             // A preceding job may have reached Telegram before losing its acknowledgment.
             let recovered=false;
             for (const [key,item] of Object.entries(state.items)) {
@@ -434,7 +503,7 @@ jobs:
             }
             // Also confirms that persistence works before any Telegram message is attempted.
             if (mode==='publish' || mode==='telegram_test' || Date.now()-(state.last_check_at||0)>86400000 ||
-                recovered) {
+                recovered || authorsChanged) {
               state.last_check_at=Date.now();await storage.save(state,'check and recover');
             }
             const candidates=mode==='telegram_test'
