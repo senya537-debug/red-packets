@@ -607,6 +607,16 @@ jobs:
           function deliveryBlocked(state,keys,now=Date.now()) {
             return keys.some(key=>state.items[key].state!=='queued' || state.items[key].retry_at>now);
           }
+          export function deliverySkipReason(state,keys,now=Date.now()) {
+            const records=keys.map(key=>state.items[key]).filter(Boolean);
+            if(records.some(item=>item.state==='sent'))return 'already_sent';
+            if(records.some(item=>item.state==='uncertain'))return 'delivery_uncertain';
+            if(records.some(item=>item.state==='sending'))return 'claimed_by_run';
+            if(records.some(item=>item.state==='skipped_stale'))return 'previously_stale';
+            if(records.some(item=>item.state!=='queued'))return 'other_history_block';
+            if(records.some(item=>Number(item.retry_at)>now))return 'retry_cooldown';
+            return null;
+          }
           export function orderDeliveryCandidates(candidates) {
             const telegram=candidates.filter(c=>c.post?.discovery_kind==='telegram'||c.post?.source_kind==='telegram');
             const direct=candidates.filter(c=>!telegram.includes(c)),live=direct.filter(c=>c.post?.kind==='live');
@@ -773,7 +783,8 @@ jobs:
             const chatId=await resolveGroup(env);
             const destination=createHash('sha256').update(JSON.stringify([chatId,env.TG_THREAD_ID||''])).digest('hex');
             const storage=new GitHubState(env), state=await storage.load();
-            const stats={sent:0,skipped:0,uncertain:0,last_error:null};
+            const stats={sent:0,skipped:0,uncertain:0,last_error:null,skip_reasons:{}};
+            const skip=reason=>{stats.skipped++;stats.skip_reasons[reason]=(stats.skip_reasons[reason]||0)+1;};
             if (mode==='scheduled' && state.enabled_destination!==destination) return {...stats,disabled:true,reason:'Run publish manually once to enable this group'};
             if (mode!=='telegram_test' && snapshot.all_sources_failed) throw new Error('Both Square feeds failed; no messages sent');
             if (mode==='publish') state.enabled_destination=destination;
@@ -811,9 +822,9 @@ jobs:
             }
             index=deliveryIndex(state,destination);
             const ready=allCandidates.filter(candidate=>{
-              return !deliveryBlocked(state,matchingDeliveries(index,candidate));
+              const reason=deliverySkipReason(state,matchingDeliveries(index,candidate));
+              if(reason){skip(reason);return false;}return true;
             });
-            stats.skipped+=allCandidates.length-ready.length;
             const candidates=orderDeliveryCandidates(ready);
             let attempted=0;
             for (const candidate of candidates) {
@@ -822,7 +833,8 @@ jobs:
               if (candidate.post?.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()) continue;
               index=deliveryIndex(state,destination);
               const matches=matchingDeliveries(index,candidate);
-              if (deliveryBlocked(state,matches)) {stats.skipped++;continue;}
+              const blockedReason=deliverySkipReason(state,matches);
+              if (blockedReason) {skip(blockedReason);continue;}
               const key=matches[0]||destination+':'+candidate.key;
               const claimId=randomUUID();
               state.items[key]={state:'sending',claim_id:claimId,post_id:candidate.post?.post_id||null,
@@ -830,11 +842,11 @@ jobs:
               await storage.save(state,'claim before send');
               index=deliveryIndex(state,destination);
               const claim=state.items[key];
-              if(claim?.state!=='sending' || claim.claim_id!==claimId) {stats.skipped++;continue;}
+              if(claim?.state!=='sending' || claim.claim_id!==claimId) {skip('competing_claim');continue;}
               if(deliveryBlocked(state,matchingDeliveries(index,candidate).filter(other=>other!==key))) {
                 claim.state='queued';claim.retry_at=Date.now()+60000;claim.updated_at=Date.now();
                 await storage.save(state,'duplicate claim avoided');
-                index=deliveryIndex(state,destination);stats.skipped++;continue;
+                index=deliveryIndex(state,destination);skip('duplicate_identity');continue;
               }
               if(mode!=='telegram_test' && state.enabled_destination!==destination)
                 throw new Error('Telegram destination changed during state update; publishing stopped');
@@ -843,13 +855,13 @@ jobs:
                   const current=await refreshLive(candidate.post);
                   if(!current) {
                     state.items[key].state='queued';state.items[key].retry_at=Date.now()+60000;state.items[key].updated_at=Date.now();
-                    await storage.save(state,'live ended or badge hidden');stats.skipped++;continue;
+                    await storage.save(state,'live ended or badge hidden');skip('live_ended_or_badge_hidden');continue;
                   }
                   candidate.post=current;candidate.message=formatTelegramPost(current);
                 } catch(error) {
                   state.items[key].state='queued';state.items[key].retry_at=Date.now()+60000;
                   state.items[key].error=redact(error,env);state.items[key].updated_at=Date.now();
-                  await storage.save(state,'live check failed before send');stats.skipped++;
+                  await storage.save(state,'live check failed before send');skip('live_check_failed');
                   stats.live_check_error=redact(error,env);continue;
                 }
               }
@@ -857,7 +869,7 @@ jobs:
               if (candidate.post && (!isEligiblePost(candidate.post) ||
                   (candidate.post.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()))) {
                 state.items[key].state='skipped_stale';state.items[key].updated_at=Date.now();
-                await storage.save(state,'post became too old before send');stats.skipped++;continue;
+                await storage.save(state,'post became too old before send');skip('became_stale');continue;
               }
               attempted++;
               const result=await sendMessage(env,chatId,candidate.message);
@@ -876,6 +888,13 @@ jobs:
             }
             stats.enabled=state.enabled_destination===destination;
             stats.pending_uncertain=Object.entries(state.items).filter(([key,item])=>key.startsWith(destination+':')&&item.state==='uncertain').length;
+            stats.pending_uncertain_posts=Object.entries(state.items)
+              .filter(([key,item])=>key.startsWith(destination+':')&&item.state==='uncertain').slice(0,5)
+              .map(([key,item])=>({post_id:item.post_id||null,
+                url:/^\d+$/.test(String(item.post_id||'')) ?
+                  (key.slice(destination.length+1).startsWith('live:') ? 'https://www.binance.com/en/square/audio?id=' :
+                    'https://www.binance.com/en/square/post/')+item.post_id : null,
+                updated_at:iso(item.updated_at)}));
             return stats;
           }
           export async function main(env=process.env) {
