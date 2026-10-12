@@ -10,6 +10,8 @@
 # Square quizzes/Claim: require open flags and a future expiry, regardless of post age.
 # Telegram public previews are optional sources; unavailable previews are reported.
 # Also reads a bounded latest-post feed and remembered packet authors without tags.
+# Linked Telegram finds are enriched from Binance; competitor names/links are not published.
+# Delivery prefers 3 independently found Square posts and 2 Telegram discoveries per batch.
 name: Red Packets to Telegram
 
 on:
@@ -25,7 +27,7 @@ on:
           - telegram_test
           - publish
   schedule:
-    - cron: '2-59/5 * * * *'
+    - cron: '3/5 * * * *'
 
 permissions:
   contents: write
@@ -97,6 +99,7 @@ jobs:
             const answerMatch = text.match(/(?:^|\n)\s*(?:ans(?:wer)?|ответ|respuesta)\s*[:：]\s*([^\n]{1,120})/i);
             return {
               post_id: String(post.id),
+              discovery_kind: tag.startsWith('telegram:') ? 'telegram' : 'square',
               author: post.authorName || post.displayName || post.username || "",
               author_id: post.squareAuthorId || post.squareUid || "",
               url: `https://www.binance.com/en/square/post/${post.id}`,
@@ -220,6 +223,21 @@ jobs:
             if(data.success!==true || !Array.isArray(data.data?.contents))throw new Error('Square author response changed');
             return data.data.contents;
           }
+          export async function enrichTelegramCandidate(item,now=Date.now()) {
+            if(!/^\d+$/.test(item.post_id||''))return item;
+            if(!isFreshPost(item,now))return null;
+            const response=await fetch(`https://www.binance.com/bapi/composite/v3/friendly/pgc/content/${item.post_id}`,{
+              signal:AbortSignal.timeout(10000),headers:{Accept:'application/json','User-Agent':'Mozilla/5.0',
+                clienttype:'web',Referer:`https://www.binance.com/en/square/post/${item.post_id}`}});
+            if(!response.ok)throw new Error('Square post detail HTTP '+response.status);
+            const data=await response.json();
+            if(data.success!==true || String(data.data?.id)!==item.post_id)throw new Error('Square post detail response changed');
+            const original=normalize(data.data,item.sources?.[0]||'telegram:discovery',now);
+            if(!original)return null;
+            return {...original,source_kind:'square',discovery_kind:'telegram',
+              answer_claimed_in_post:item.answer_claimed_in_post||original.answer_claimed_in_post,
+              answer_published_at:item.published_at};
+          }
           export function mergeAuthors(...lists) {
             const authors=new Map();
             for(const item of lists.flat()) {
@@ -290,13 +308,24 @@ jobs:
                 sourceChecks.push({tag:'telegram:'+channel,ok:false,error:String(result.reason?.message||result.reason)});continue;
               }
               sourceChecks.push({tag:'telegram:'+channel,ok:true,posts_checked:result.value.length,coverage:'public_preview_only'});
-              for (const item of result.value) {
+              const fresh=result.value.filter(item=>isFreshPost(item,now)).sort((a,b)=>Date.parse(b.published_at)-Date.parse(a.published_at));
+              const candidates=[...fresh.filter(item=>!/^\d+$/.test(item.post_id)),...fresh.filter(item=>/^\d+$/.test(item.post_id)).slice(0,8)];
+              const verified=[];
+              for(let start=0;start<candidates.length;start+=4) {
+                const batch=candidates.slice(start,start+4);
+                const details=await Promise.allSettled(batch.map(item=>enrichTelegramCandidate(item,now)));
+                for(let j=0;j<details.length;j++) {
+                  if(details[j].status==='fulfilled') {if(details[j].value)verified.push(details[j].value);}
+                  else sourceChecks.push({tag:'square:detail:'+batch[j].post_id,ok:false,error:String(details[j].reason?.message||details[j].reason)});
+                }
+              }
+              for (const item of verified) {
+                if(item.author_id)observedAuthors.push({uid:item.author_id,name:item.author,last_packet_at:Date.parse(item.published_at)||0});
                 const previous=posts.get(item.post_id);
                 if (!previous) posts.set(item.post_id,item);
-                else if (!['expired','run_out'].includes(previous.status) && item.answer_claimed_in_post) {
-                  previous.answer_claimed_in_post=item.answer_claimed_in_post;
-                  previous.answer_source_url=item.source_url;
-                  previous.sources=[...new Set([...previous.sources,...item.sources])];
+                else if (!['expired','run_out'].includes(previous.status)) {
+                  const discovery=previous.discovery_kind||'square',sources=[...new Set([...previous.sources,...item.sources])];
+                  Object.assign(previous,item,{discovery_kind:discovery,sources});
                 }
               }
             }
@@ -325,8 +354,8 @@ jobs:
                 !/^https:\/\/t\.me\/(?:SBCryptoz|binance_red_packetz)\/\d+$/.test(post.url || "")) {
               throw new Error("Invalid source post URL");
             }
-            const lines = [`🧧 <b>Red Packet${post.currency ? " · " + escapeHtml(post.currency,24) : ""}</b>`,
-              `${post.source_kind==='telegram'?'📡 Источник: @':'👤 '}${escapeHtml(post.author || "Автор Square",80)}`];
+            const lines = [`🧧 <b>Red Packet${post.currency ? " · " + escapeHtml(post.currency,24) : ""}</b>`];
+            if(post.source_kind!=='telegram' && post.author)lines.push(`👤 ${escapeHtml(post.author,80)}`);
             if (post.kind === "quiz" || post.kind === "quiz_answer") {
               lines.push("", "📝 <b>Викторина</b>");
               if (post.question) lines.push(`❓ ${escapeHtml(post.question,400)}`);
@@ -338,7 +367,7 @@ jobs:
               if (!post.hint && !answer) lines.push("Ответ пока не найден.");
             }
             if (post.kind === 'packet') lines.push('', '🎁 <b>Пакет с кнопкой Claim</b>');
-            if (post.kind === 'packet_link') lines.push('', '🎁 <b>Ссылка на пакет из Telegram</b>');
+            if (post.kind === 'packet_link') lines.push('', '🎁 <b>Пакет</b>');
             if (post.published_codes?.length) {
               lines.push("", ...post.published_codes.slice(0,5).map(code => `🎟 Код: <code>${escapeHtml(code,24)}</code>`));
             }
@@ -347,21 +376,16 @@ jobs:
             } else lines.push("💰 Размер награды неизвестен");
             lines.push("", post.status === "reported_open"
               ? "По данным Square: пакет не истёк и не разобран."
-              : post.source_kind==='telegram' ? "Находка из Telegram; доступность награды не проверена."
-              : "Код опубликован в Square; работоспособность не проверена.");
+              : "Доступность награды не проверена.");
             if (post.kind === "quiz" || post.kind === "quiz_answer") lines.push("Подсказка и ответ ещё не проверены получением пакета.");
             if (post.expires_at) lines.push(`⌛ До: ${escapeHtml(post.expires_at.replace('T',' ').replace(/\.\d{3}Z$/, ' UTC'),40)}`);
             if (post.published_at) {
               lines.push(`🕒 ${escapeHtml(post.published_at.replace("T"," ").replace(/\.\d{3}Z$/, " UTC"),40)}`);
             }
             const isBinance=post.url.startsWith('https://www.binance.com/');
-            lines.push("", `<a href="${post.url}">${isBinance?'Открыть пост в Binance':'Открыть источник в Telegram'}</a>`);
-            const answerSource=post.answer_source_url;
-            if (/^https:\/\/t\.me\/(?:SBCryptoz|binance_red_packetz)\/\d+$/.test(answerSource||'')) {
-              lines.push(`<a href="${answerSource}">Источник опубликованного ответа</a>`);
-            }
+            if(isBinance)lines.push("", `<a href="${post.url}">Открыть пост в Binance</a>`);
             return {text: lines.join("\n"), parse_mode: "HTML", link_preview_options: {is_disabled: true},
-              reply_markup: {inline_keyboard: [[{text: isBinance ? (post.kind==='packet'?'🎁 Открыть пакет': '🧧 Открыть в Binance') : '📡 Открыть источник', url: post.url}]]}};
+              ...(isBinance?{reply_markup:{inline_keyboard:[[{text:post.kind==='packet'?'🎁 Открыть пакет':'🧧 Открыть в Binance',url:post.url}]]}}:{})};
           }
           export function isFreshPost(post, now = Date.now()) {
             const published = Date.parse(post?.published_at);
@@ -392,6 +416,11 @@ jobs:
               }
             }
             return [...unique.values()];
+          }
+          export function orderDeliveryCandidates(candidates) {
+            const telegram=candidates.filter(c=>c.post?.discovery_kind==='telegram'||c.post?.source_kind==='telegram');
+            const square=candidates.filter(c=>!telegram.includes(c));
+            return [...square.slice(0,3),...telegram.slice(0,2),...square.slice(3),...telegram.slice(2)];
           }
           
           import fs from 'node:fs';
@@ -506,9 +535,15 @@ jobs:
                 recovered || authorsChanged) {
               state.last_check_at=Date.now();await storage.save(state,'check and recover');
             }
-            const candidates=mode==='telegram_test'
+            const allCandidates=mode==='telegram_test'
               ? [{key:'test:'+(env.GITHUB_RUN_ID||'local'),message:{text:'🧧 Бот Red Packet подключён.\nЭто тестовое сообщение. Автопубликация включается отдельным запуском publish.'}}]
               : publishCandidates(snapshot).slice(0,100).map(item=>({...item,message:formatTelegramPost(item.post)}));
+            const ready=allCandidates.filter(candidate=>{
+              const old=state.items[destination+':'+candidate.key];
+              return !old || (old.state==='queued' && !(old.retry_at>Date.now()));
+            });
+            stats.skipped+=allCandidates.length-ready.length;
+            const candidates=orderDeliveryCandidates(ready);
             let attempted=0;
             for (const candidate of candidates) {
               if (attempted>=MAX_POSTS_PER_RUN) break;
@@ -547,7 +582,10 @@ jobs:
             if (!['preview','telegram_test','publish','scheduled'].includes(mode)) throw new Error('Unknown run mode');
             const snapshot=mode==='telegram_test' ? {reported_open:[],other_candidates:[]} : await scan();
             if (mode!=='telegram_test') summary('## Binance Square\n\n'+snapshot.sources.map(s=>`${s.tag}: ${s.ok ? 'OK, posts '+s.posts_checked : s.error}`).join('\n\n'),env);
-            if (mode!=='telegram_test') summary(`\nОтбор: коды/ссылки Telegram ≤10 минут; викторины/Claim Square — до окончания при открытом статусе. Подходящих находок: ${publishCandidates(snapshot).length}.`,env);
+            if (mode!=='telegram_test') {
+              const eligible=publishCandidates(snapshot),fromTelegram=eligible.filter(c=>c.post.discovery_kind==='telegram'||c.post.source_kind==='telegram').length;
+              summary(`\nКандидаты: самостоятельно в Square ${eligible.length-fromTelegram}; найдено через Telegram ${fromTelegram}. Приоритет отправки: 3 Square + 2 Telegram, свободные места заполняются остальными.`,env);
+            }
             if (mode==='preview') {
               if(snapshot.all_sources_failed)throw new Error('Both Square feeds failed');
               const items=publishCandidates(snapshot);
