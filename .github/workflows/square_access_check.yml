@@ -1,3 +1,195 @@
+# GitHub: replace .github/workflows/square_access_check.yml with this file.
+# Repository Secrets: TG_BOT_TOKEN, TG_CHAT_ID. Optional: TG_THREAD_ID.
+# Run telegram_test first. Run publish manually to enable automatic posting.
+# Preview and test never enable the schedule. No Binance account/API keys needed.
+# Deduplication state is saved in .redpacket/delivery.json before sending.
+# Public state contains hashed destination, post IDs and delivery status, no tokens.
+# Uncertain sends are not automatically repeated; check the group before resetting.
+# Standard Ubuntu runner in a public repository; schedule may be delayed/dropped.
+name: Red Packets to Telegram
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preview = findings; telegram_test = test bot; publish = enable posting"
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - telegram_test
+          - publish
+  schedule:
+    - cron: '2-59/5 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: square-telegram-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Find packets and post to Telegram
+        shell: bash
+        env:
+          RUN_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || inputs.mode }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          TG_THREAD_ID: ${{ secrets.TG_THREAD_ID }}
+          GH_STATE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node --input-type=module <<'JS'
+          const TAGS = ["redpacket", "redpacketgiveawaycampaign"];
+          const ENDPOINT = "https://www.binance.com/bapi/composite/v4/friendly/pgc/content/queryByHashtag";
+          const PAGE_SIZE = 20;
+          const MAX_POSTS_PER_RUN = 5;
+          const CODE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+          
+          function epoch(value) {
+            const n = Number(value);
+            return Number.isFinite(n) && n > 0 ? (n < 1e12 ? n * 1000 : n) : null;
+          }
+          function iso(value) { const n = epoch(value); return n ? new Date(n).toISOString() : null; }
+          function codesFrom(text) {
+            // Published candidates only; no guessing. All-letter codes are supported.
+            const candidates = new Set();
+            const label = /(?:red\s*packet\s*code|crypto\s*box\s*code|код(?:\s+(?:пакета|ред\s*пакета))?|c[oó]digo|code)\s*[:：=\-]\s*[`'"*]*(?![A-Za-z0-9]{9})([A-Za-z0-9]{8})\b/giu;
+            for (const m of text.matchAll(label)) candidates.add(m[1]);
+            if (/red\s*packet|crypto\s*box|红包|ред\s*пакет|sobre\s*rojo/i.test(text)) {
+              for (const line of text.split(/\r?\n/)) {
+                const m = line.trim().match(/^[`'"*]*([A-Za-z0-9]{8})[`'"*]*$/);
+                if (m) candidates.add(m[1]);
+              }
+            }
+            return [...candidates];
+          }
+          function packetState(envelope, now) {
+            if (!envelope) return "unverified_code";
+            if (envelope.isRunOut === true) return "run_out";
+            if (envelope.isExpired === true || (epoch(envelope.expiredTime) && epoch(envelope.expiredTime) <= now)) return "expired";
+            if (envelope.isExpired === false && envelope.isRunOut === false) return "reported_open";
+            return "unknown";
+          }
+          export function normalize(post, tag, now = Date.now()) {
+            if (!post || typeof post !== "object" || !/^\d+$/.test(String(post.id || ""))) return null;
+            const text = typeof post.content === "string" ? post.content : "";
+            const envelope = post.redEnvelop && typeof post.redEnvelop === "object" ? post.redEnvelop : null;
+            const codes = codesFrom(text);
+            if (!envelope && !codes.length) return null;
+            const quiz = envelope?.quiz || "";
+            const answerMatch = text.match(/(?:^|\n)\s*(?:ans(?:wer)?|ответ|respuesta)\s*[:：]\s*([^\n]{1,120})/i);
+            return {
+              post_id: String(post.id),
+              author: post.authorName || post.username || "",
+              author_id: post.squareAuthorId || "",
+              url: `https://www.binance.com/en/square/post/${post.id}`,
+              published_at: iso(post.date),
+              sources: [tag],
+              kind: envelope ? (envelope.type === 1 || quiz ? "quiz" : "packet") : "code",
+              status: packetState(envelope, now),
+              currency: envelope?.currency || null,
+              expires_at: iso(envelope?.expiredTime),
+              question: quiz,
+              hint: envelope?.answerHint || "",
+              answer_from_metadata: envelope?.answer ?? null,
+              answer_claimed_in_post: answerMatch ? answerMatch[1].trim() : null,
+              answer_verified: false,
+              published_codes: codes,
+              // null stays null: an unavailable reward amount is never treated as zero.
+              amount: envelope?.amount ?? null,
+              available_amount: envelope?.availableAmount ?? null,
+              available_receivers: envelope?.availableNumber ?? null,
+              eligibility: "not_checked",
+              excerpt: text.slice(0, 240),
+            };
+          }
+          async function fetchTag(tag) {
+            const url = new URL(ENDPOINT);
+            url.search = new URLSearchParams({hashtag: `#${tag}`, pageIndex: "1", pageSize: String(PAGE_SIZE), orderBy: "LATEST"});
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 10000);
+            try {
+              const response = await fetch(url, {
+                headers: {
+                  Accept: "application/json, text/plain, */*",
+                  "Accept-Language": "en-US,en;q=0.9",
+                  Referer: `https://www.binance.com/en/square/hashtag/${tag}`,
+                  clienttype: "web",
+                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+                },
+                signal: controller.signal,
+              });
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              const payload = await response.json();
+              if (payload.success !== true || !Array.isArray(payload.data?.feedData)) {
+                throw new Error("Square response changed or public access is unavailable");
+              }
+              return payload.data.feedData;
+            } finally { clearTimeout(timer); }
+          }
+          export async function scan() {
+            const now = Date.now();
+            const results = await Promise.allSettled(TAGS.map(fetchTag));
+            const posts = new Map();
+            const sourceChecks = [];
+            for (let i = 0; i < results.length; i++) {
+              const result = results[i], tag = TAGS[i];
+              if (result.status !== "fulfilled") {
+                sourceChecks.push({tag, ok: false, error: String(result.reason?.message || result.reason)});
+                continue;
+              }
+              const feed = result.value;
+              const dates = feed.map(p => epoch(p.date)).filter(Boolean);
+              sourceChecks.push({tag, ok: true, posts_checked: feed.length,
+                newest_post_at: dates.length ? iso(Math.max(...dates)) : null,
+                oldest_post_at: dates.length ? iso(Math.min(...dates)) : null,
+                coverage: "first_latest_page_only", may_have_more: feed.length === PAGE_SIZE});
+              for (const post of feed) {
+                const item = normalize(post, tag, now);
+                if (!item) continue;
+                const previous = posts.get(item.post_id);
+                if (previous) {
+                  // If source responses disagree, retain an observed ended state.
+                  const ended = ["expired", "run_out"];
+                  if (ended.includes(item.status)) previous.status = item.status;
+                  previous.sources = [...new Set([...previous.sources, tag])].sort();
+                } else posts.set(item.post_id, item);
+              }
+            }
+            const items = [...posts.values()].sort((a,b) => (Date.parse(b.published_at) || 0) - (Date.parse(a.published_at) || 0));
+            const statusCounts = {};
+            for (const p of items) statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
+            return {checked_at: new Date(now).toISOString(), sources: sourceChecks,
+              partial: sourceChecks.some(s => !s.ok), all_sources_failed: sourceChecks.every(s => !s.ok),
+              total_unique_candidates: items.length, status_counts: statusCounts,
+              reported_open: items.filter(p => p.status === "reported_open"),
+              other_candidates: items.filter(p => p.status !== "reported_open"),
+              limitations: ["Discovery only; no reward claimed", "Hints are not verified answers",
+                "Public Square endpoint is undocumented and can change", "Only 20 latest posts per tag; incomplete during high traffic"],
+              storage_enabled: false};
+          }
+          function clipped(value, limit) { return [...String(value ?? "")].slice(0, limit).join(""); }
+          function escapeHtml(value, limit = 300) {
+            return clipped(value, limit).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+              .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+          }
+          export function formatTelegramPost(post) {
+            if (!/^https:\/\/www\.binance\.com\/en\/square\/post\/\d+$/.test(post.url || "")) {
+              throw new Error("Invalid Square post URL");
+            }
+            const lines = [`🧧 <b>Red Packet${post.currency ? " · " + escapeHtml(post.currency,24) : ""}</b>`,
+              `👤 ${escapeHtml(post.author || "Автор Square",80)}`];
+            if (post.kind === "quiz") {
+              lines.push("", "📝 <b>Викторина</b>");
+              if (post.question) lines.push(`❓ ${escapeHtml(post.question,400)}`);
+              if (post.hint) lines.push(`💡 Подсказка: <code>${escapeHtml(post.hint,160)}</code>`);
               const answer = post.answer_from_metadata ?? post.answer_claimed_in_post;
               if (answer !== null && answer !== undefined && String(answer) !== "") {
                 lines.push(`📌 Указанный ответ: <code>${escapeHtml(answer,160)}</code> (не проверен)`);
@@ -158,3 +350,41 @@
               const key=destination+':'+candidate.key, old=state.items[key];
               if (old && (old.state!=='queued' || old.retry_at>Date.now())) {stats.skipped++;continue;}
               state.items[key]={state:'sending',post_id:candidate.post?.post_id||null,updated_at:Date.now()};
+              await storage.save(state,'claim before send');
+              attempted++;
+              const result=await sendMessage(env,chatId,candidate.message);
+              const item=state.items[key];item.updated_at=Date.now();
+              if (result.ok) {item.state='sent';item.message_id=result.message_id;stats.sent++;}
+              else {
+                item.state=result.uncertain ? 'uncertain' : 'queued';
+                item.retry_at=Date.now()+(result.retry_ms||300000);item.error=result.error;
+                stats.last_error=result.error;if(result.uncertain)stats.uncertain++;
+              }
+              // If this write fails, the persistent claim remains sending and is not resent.
+              await storage.save(state,result.ok ? 'sent' : 'delivery not confirmed');
+              if (!result.ok) break;
+              if (attempted<MAX_POSTS_PER_RUN) await wait(1100);
+            }
+            stats.enabled=state.enabled_destination===destination;
+            stats.pending_uncertain=Object.entries(state.items).filter(([key,item])=>key.startsWith(destination+':')&&item.state==='uncertain').length;
+            return stats;
+          }
+          export async function main(env=process.env) {
+            const mode=env.RUN_MODE||'preview';
+            if (!['preview','telegram_test','publish','scheduled'].includes(mode)) throw new Error('Unknown run mode');
+            const snapshot=mode==='telegram_test' ? {reported_open:[],other_candidates:[]} : await scan();
+            if (mode!=='telegram_test') summary('## Binance Square\n\n'+snapshot.sources.map(s=>`${s.tag}: ${s.ok ? 'OK, posts '+s.posts_checked : s.error}`).join('\n\n'),env);
+            if (mode==='preview') {
+              if(snapshot.all_sources_failed)throw new Error('Both Square feeds failed');
+              const items=publishCandidates(snapshot);
+              summary(`\nCandidates eligible for posts: ${items.length}. No messages sent.`,env);
+              for(const {post} of items.slice(0,5)) console.log(JSON.stringify({kind:post.kind,status:post.status,url:post.url,codes:post.published_codes,question:post.question,hint:post.hint}));
+              return;
+            }
+            const stats=await publish(snapshot,env,mode);
+            summary('\n## Telegram\n\n'+JSON.stringify(stats,null,2),env);
+            if(stats.last_error)process.exitCode=1;
+          }
+          
+          await main().catch(error=>{summary('ERROR: '+redact(error,process.env),process.env);process.exitCode=1;});
+          JS
