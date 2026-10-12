@@ -12,13 +12,15 @@
 # Also reads a bounded latest-post feed and remembered packet authors without tags.
 # Linked Telegram finds are enriched from Binance; competitor names/links are not published.
 # Delivery prefers 3 independently found Square posts and 2 Telegram discoveries per batch.
+# Cloudflare clock dispatches mode=scheduled; it never enables a different Telegram destination.
 name: Red Packets to Telegram
+run-name: ${{ (github.event_name == 'schedule' || inputs.mode == 'scheduled') && 'Red Packets · automatic' || format('Red Packets · {0}', inputs.mode) }}
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "preview = findings; telegram_test = test bot; publish = enable posting"
+        description: "preview = findings; telegram_test = test bot; publish = enable posting; scheduled = timer only"
         required: true
         default: preview
         type: choice
@@ -26,6 +28,7 @@ on:
           - preview
           - telegram_test
           - publish
+          - scheduled
   schedule:
     - cron: '3/5 * * * *'
 
