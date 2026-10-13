@@ -10,11 +10,9 @@
 # Standard Ubuntu runner in a public repository; schedule may be delayed/dropped.
 # Text codes: last 10 minutes of the original Square post only.
 # Square quizzes/Claim: require open flags and a future expiry, regardless of post age.
-# Telegram is a fallback: only numeric Binance originals, never standalone competitor codes.
-# Optional repository Variable TELEGRAM_DISCOVERY_ENABLED=false disables Telegram discovery.
 # Also reads a bounded latest-post feed and remembered packet authors without tags.
-# Linked Telegram finds are enriched from Binance; competitor names/links are not published.
-# Delivery prefers 4 independently found Square posts and 1 verified Telegram discovery per batch.
+# Discovery uses Binance Square only. Telegram is the delivery destination.
+# Delivery reserves the first place for a verified live badge, then Square posts (up to 5 per run).
 # Cloudflare clock dispatches mode=scheduled; it never enables a different Telegram destination.
 # One delivery history across sources: post IDs, published codes and explicit packet IDs.
 # Keyword API failures are reported; matching feed posts are also checked via original details.
@@ -60,11 +58,9 @@ jobs:
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           TG_THREAD_ID: ${{ secrets.TG_THREAD_ID }}
           GH_STATE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TELEGRAM_DISCOVERY_ENABLED: ${{ vars.TELEGRAM_DISCOVERY_ENABLED || 'true' }}
         run: |
           node --input-type=module <<'JS'
           const TAGS = ["redpacket", "redpacketgiveawaycampaign", "cryptobox", "binanceredpacket", "redpacketmission"];
-          const TELEGRAM_SOURCES = ["SBCryptoz", "binance_red_packetz"];
           const SEARCH_TERMS = ['Red Packet Quiz','Red Packet','🧧','🎁'];
           const LIVE_HOST_UIDS = ['CeJ9rMnk2XCPrWM2j3Cz2w'];
           const SEARCH_DETAIL_LIMIT = 12;
@@ -184,7 +180,8 @@ jobs:
               post_id: String(post.id),
               packet_id: envelope?.orderId == null || String(envelope.orderId)==='0' ? null : String(envelope.orderId),
               packet_code: /^[A-Za-z0-9]{8}$/.test(String(envelope?.grabCode||'')) ? String(envelope.grabCode) : null,
-              discovery_kind: tag.startsWith('telegram:') ? 'telegram' : 'square',
+              discovery_kind: 'square',
+              source_kind: 'square',
               author: post.authorName || post.displayName || post.username || "",
               author_id: post.squareAuthorId || post.squareUid || "",
               url: `https://www.binance.com/en/square/post/${post.id}`,
@@ -232,57 +229,6 @@ jobs:
               return payload.data.feedData;
             } finally { clearTimeout(timer); }
           }
-          function decodeHtml(text) {
-            return String(text).replace(/&#(x[0-9a-f]+|\d+);/gi,(_,n) => {
-              const value=n[0].toLowerCase()==='x' ? parseInt(n.slice(1),16) : Number(n);
-              return value>0 && value<=0x10ffff ? String.fromCodePoint(value) : '';
-            }).replace(/&(?:amp|lt|gt|quot|apos|nbsp);/g,s=>({'&amp;':'&','&lt;':'<','&gt;':'>','&quot;':'"','&apos;':"'",'&nbsp;':' '}[s]));
-          }
-          function squareLinkFrom(html) {
-            for (const m of html.matchAll(/href="([^"]+)"/g)) {
-              try {
-                const url=new URL(decodeHtml(m[1]));
-                if (url.protocol!=='https:' || !['www.binance.com','binance.com','app.binance.com'].includes(url.hostname)) continue;
-                const id=url.pathname.match(/\/(?:square\/post|uni-qr\/cpos)\/(\d+)(?:\/|$)/)?.[1];
-                if (id) return {id,url:`https://www.binance.com/en/square/post/${id}`};
-              } catch {}
-            }
-            return null;
-          }
-          export function parseTelegramPreview(html, channel) {
-            if (!/tgme_widget_message/.test(html)) throw new Error('Public Telegram preview unavailable or no messages visible');
-            const chunks=html.split(/(?=<div\b[^>]*\bdata-post=")/);
-            const found=[];
-            for (const chunk of chunks) {
-              const ref=chunk.match(/\bdata-post="([A-Za-z0-9_]+)\/(\d+)"/);
-              if (!ref || ref[1].toLowerCase()!==channel.toLowerCase()) continue;
-              const stamp=chunk.match(/<time\b[^>]*\bdatetime="([^"]+)"/)?.[1];
-              if (!stamp || !Number.isFinite(Date.parse(stamp))) continue;
-              const body=chunk.match(/<div\b[^>]*class="[^"]*tgme_widget_message_text[^"\n]*"[^>]*>([\s\S]*?)<\/div>/)?.[1];
-              if (!body) continue;
-              const text=decodeHtml(body.replace(/<br\s*\/?\s*>/gi,'\n').replace(/<[^>]*>/g,''));
-              const link=squareLinkFrom(body);
-              const answer=text.match(/(?:^|\n)\s*(?:ans(?:wer)?|ответ)\s*[:：]\s*([^\n]{1,160})/i)?.[1]?.trim();
-              const common={author:channel,source_kind:'telegram',source_url:`https://t.me/${channel}/${ref[2]}`,
-                published_at:new Date(stamp).toISOString(),sources:['telegram:'+channel],currency:null,expires_at:null,
-                question:'',hint:'',answer_from_metadata:null,answer_claimed_in_post:answer||null,answer_verified:false,
-                amount:null,published_codes:[],excerpt:text.slice(0,240)};
-              if (link) found.push({...common,post_id:link.id,url:link.url,
-                kind:answer?'quiz_answer':'packet_link',status:'unverified_link'});
-              else if (!answer) {
-                const codes=codesFrom('Red Packet\n'+text);
-                if (codes.length) found.push({...common,post_id:`tg_${channel}_${ref[2]}`,url:common.source_url,
-                  kind:'code',status:'unverified_code',published_codes:codes});
-              }
-            }
-            return found;
-          }
-          async function fetchTelegram(channel) {
-            const response=await fetch(`https://t.me/s/${channel}`,{redirect:'follow',signal:AbortSignal.timeout(10000),
-              headers:{'User-Agent':'Mozilla/5.0','Accept':'text/html'}});
-            if (!response.ok) throw new Error('Telegram preview HTTP '+response.status);
-            return parseTelegramPreview(await response.text(),channel);
-          }
           async function fetchLatest() {
             const posts=[];
             for (let page=1;page<=LATEST_PAGES;page++) {
@@ -307,15 +253,6 @@ jobs:
             const data=await response.json();
             if(data.success!==true || !Array.isArray(data.data?.contents))throw new Error('Square author response changed');
             return data.data.contents;
-          }
-          export async function enrichTelegramCandidate(item,now=Date.now()) {
-            if(!/^\d+$/.test(item.post_id||''))return null;
-            if(!isFreshPost(item,now))return null;
-            const original=normalize(await fetchOriginal(item.post_id),item.sources?.[0]||'telegram:discovery',now);
-            if(!original)return null;
-            return {...original,source_kind:'square',discovery_kind:'telegram',
-              answer_claimed_in_post:item.answer_claimed_in_post||original.answer_claimed_in_post,
-              answer_published_at:item.published_at};
           }
           export function mergeAuthors(...lists) {
             const authors=new Map();
@@ -493,43 +430,11 @@ jobs:
               sourceChecks.push({tag:'square:live:'+id,ok:true,posts_checked:1,live:item!==null,coverage:'public_badge_and_live_status'});
               if(item){liveItems.push(item);if(item.author_id)observedAuthors.push({uid:item.author_id,name:item.author,last_packet_at:Date.parse(item.published_at)||0});}
             }
-            const telegramSources=String(env.TELEGRAM_DISCOVERY_ENABLED||'true').trim().toLowerCase()==='false' ? [] : TELEGRAM_SOURCES;
-            if(!telegramSources.length)sourceChecks.push({tag:'telegram:disabled',ok:true,posts_checked:0,coverage:'disabled_by_configuration'});
-            const telegramResults=await Promise.allSettled(telegramSources.map(fetchTelegram));
-            for (let i=0;i<telegramResults.length;i++) {
-              const result=telegramResults[i],channel=telegramSources[i];
-              if (result.status!=='fulfilled') {
-                sourceChecks.push({tag:'telegram:'+channel,ok:false,error:String(result.reason?.message||result.reason)});continue;
-              }
-              const fresh=result.value.filter(item=>isFreshPost(item,now)).sort((a,b)=>Date.parse(b.published_at)-Date.parse(a.published_at));
-              const linked=fresh.filter(item=>/^\d+$/.test(item.post_id));
-              sourceChecks.push({tag:'telegram:'+channel,ok:true,posts_checked:result.value.length,coverage:'public_preview_linked_originals_only',
-                excluded_without_original:fresh.length-linked.length,originals_checked:Math.min(linked.length,8)});
-              const candidates=linked.slice(0,8);
-              const verified=[];
-              for(let start=0;start<candidates.length;start+=4) {
-                const batch=candidates.slice(start,start+4);
-                const details=await Promise.allSettled(batch.map(item=>enrichTelegramCandidate(item,now)));
-                for(let j=0;j<details.length;j++) {
-                  if(details[j].status==='fulfilled') {if(details[j].value)verified.push(details[j].value);}
-                  else sourceChecks.push({tag:'square:detail:'+batch[j].post_id,ok:false,error:String(details[j].reason?.message||details[j].reason)});
-                }
-              }
-              for (const item of verified) {
-                if(item.author_id)observedAuthors.push({uid:item.author_id,name:item.author,last_packet_at:Date.parse(item.published_at)||0});
-                const previous=posts.get(item.post_id);
-                if (!previous) posts.set(item.post_id,item);
-                else if (!['expired','run_out'].includes(previous.status)) {
-                  const discovery=previous.discovery_kind||'square',sources=[...new Set([...previous.sources,...item.sources])];
-                  Object.assign(previous,item,{discovery_kind:discovery,sources});
-                }
-              }
-            }
             const items = [...posts.values()].sort((a,b) => (Date.parse(b.published_at) || 0) - (Date.parse(a.published_at) || 0));
             const statusCounts = {};
             for (const p of items) statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
             return {checked_at: new Date(now).toISOString(), sources: sourceChecks,
-              partial: sourceChecks.some(s => !s.ok), all_sources_failed: sourceChecks.filter(s=>s.coverage!=='disabled_by_configuration' && !s.local_processing).every(s => !s.ok),
+              partial: sourceChecks.some(s => !s.ok), all_sources_failed: sourceChecks.filter(s=>!s.local_processing).every(s => !s.ok),
               total_unique_candidates: items.length+liveItems.length, status_counts: {...statusCounts,live_badge:liveItems.length},
               packet_authors: mergeAuthors(observedAuthors,remembered,authors.map(a=>({...a,last_checked_at:now}))),
               following_sync:following.progress,
@@ -544,8 +449,7 @@ jobs:
                 "Following list: 4 public pages of 20 authors per run; saved cursor; full rotation can take hours and miss short-lived packets",
                 "Global keyword API can reject anonymous requests; feed keyword fallback checks up to 12 originals, not all Square",
                 "Live discovery: public recommendation list, feed badges and known hosts; at most 8 room checks; badge does not verify claimability",
-                "Telegram is a fallback: standalone codes are excluded; linked originals require Square metadata or a fresh original code",
-                "Telegram public previews may be unavailable; image-only answers and short links are not extracted"],
+              ],
               storage_enabled: false};
           }
           function clipped(value, limit) { return [...String(value ?? "")].slice(0, limit).join(""); }
@@ -565,12 +469,11 @@ jobs:
               return {text:lines.join('\n'),parse_mode:'HTML',link_preview_options:{is_disabled:true},
                 reply_markup:{inline_keyboard:[[{text:'🔴 Открыть эфир',url:post.url}]]}};
             }
-            if (!/^https:\/\/www\.binance\.com\/en\/square\/post\/\d+$/.test(post.url || "") &&
-                !/^https:\/\/t\.me\/(?:SBCryptoz|binance_red_packetz)\/\d+$/.test(post.url || "")) {
+            if (!/^https:\/\/www\.binance\.com\/en\/square\/post\/\d+$/.test(post.url || "")) {
               throw new Error("Invalid source post URL");
             }
             const lines = [`🧧 <b>Red Packet${post.currency ? " · " + escapeHtml(post.currency,24) : ""}</b>`];
-            if(post.source_kind!=='telegram' && post.author)lines.push(`👤 ${escapeHtml(post.author,80)}`);
+            if(post.author)lines.push(`👤 ${escapeHtml(post.author,80)}`);
             if (post.kind === "quiz" || post.kind === "quiz_answer") {
               lines.push("", "📝 <b>Викторина</b>");
               if (post.question) lines.push(`❓ ${escapeHtml(post.question,400)}`);
@@ -607,8 +510,9 @@ jobs:
             return Number.isFinite(published) && published <= now + 60000 && now - published <= POST_MAX_AGE_MS;
           }
           export function isEligiblePost(post, now=Date.now()) {
-            if(post?.source_kind==='telegram' || post?.status==='unverified_link')return false;
-            if(post?.discovery_kind==='telegram' && (post.source_kind!=='square' || !/^\d+$/.test(post.post_id||'')))return false;
+            if(post?.source_kind && post.source_kind!=='square')return false;
+            if(post?.discovery_kind && post.discovery_kind!=='square')return false;
+            if(post?.status==='unverified_link')return false;
             if(post?.kind==='live') {
               const checked=Date.parse(post.live_checked_at);
               return post.status==='live_badge' && post.live_badge===true && /^\d+$/.test(post.live_id||'') &&
@@ -652,8 +556,7 @@ jobs:
           }
           export function deduplicateCandidates(candidates) {
             const groups=[];
-            const score=c=>Number(c.post?.discovery_kind!=='telegram' && c.post?.source_kind!=='telegram')*2+
-              Number(c.post?.status==='reported_open');
+            const score=c=>Number(c.post?.status==='reported_open');
             for(const candidate of candidates) {
               const keys=candidateIdentityKeys(candidate), matches=[];
               for(let i=0;i<groups.length;i++) if(groups[i].identity_keys.some(key=>keys.includes(key))) matches.push(i);
@@ -699,10 +602,9 @@ jobs:
             return null;
           }
           export function orderDeliveryCandidates(candidates) {
-            const telegram=candidates.filter(c=>c.post?.discovery_kind==='telegram'||c.post?.source_kind==='telegram');
-            const direct=candidates.filter(c=>!telegram.includes(c)),live=direct.filter(c=>c.post?.kind==='live');
-            const square=[...live.slice(0,1),...direct.filter(c=>c.post?.kind!=='live'),...live.slice(1)];
-            return [...square.slice(0,4),...telegram.slice(0,1),...square.slice(4),...telegram.slice(1)];
+            const live=candidates.filter(c=>c.post?.kind==='live');
+            const posts=candidates.filter(c=>c.post?.kind!=='live');
+            return [...live.slice(0,1),...posts,...live.slice(1)];
           }
           
           import fs from 'node:fs';
@@ -879,7 +781,7 @@ jobs:
             const stats={sent:0,skipped:0,uncertain:0,last_error:null,skip_reasons:{}};
             const skip=reason=>{stats.skipped++;stats.skip_reasons[reason]=(stats.skip_reasons[reason]||0)+1;};
             if (mode==='scheduled' && state.enabled_destination!==destination) return {...stats,disabled:true,reason:'Run publish manually once to enable this group'};
-            if (mode!=='telegram_test' && snapshot.all_sources_failed) throw new Error('Both Square feeds failed; no messages sent');
+            if (mode!=='telegram_test' && snapshot.all_sources_failed) throw new Error('All Square sources failed; no messages sent');
             if (mode==='publish') state.enabled_destination=destination;
             const authors=mergeAuthors(Array.isArray(state.authors)?state.authors:[],snapshot.packet_authors||[]);
             const authorsChanged=JSON.stringify(authors)!==JSON.stringify(state.authors||[]);
@@ -999,16 +901,16 @@ jobs:
             const snapshot=mode==='telegram_test' ? {reported_open:[],other_candidates:[]} : await scan(env);
             if (mode!=='telegram_test') summary('## Binance Square\n\n'+snapshot.sources.map(s=>`${s.tag}: ${s.ok ? s.coverage==='disabled_by_configuration' ? 'отключено' : 'OK, posts '+s.posts_checked+(s.excluded_without_original!==undefined ? '; без оригинала исключено '+s.excluded_without_original+'; оригиналов проверено '+s.originals_checked : '') : s.error}`).join('\n\n'),env);
             if (mode!=='telegram_test') {
-              const eligible=publishCandidates(snapshot),fromTelegram=eligible.filter(c=>c.post.discovery_kind==='telegram'||c.post.source_kind==='telegram').length;
+              const eligible=publishCandidates(snapshot);
               const live=eligible.filter(c=>c.post.kind==='live').length,marker=snapshot.sources.find(s=>s.tag==='square:feed-keywords');
               if(snapshot.following_sync) {
                 const sync=snapshot.following_sync;
                 summary(`\nПодписки @${sync.username}: получено уникальных авторов ${sync.uids.length} из заявленных ${sync.reported_total??'неизвестно'}; следующая страница ${sync.next_page}; обход публичных страниц ${sync.completed_at?'завершён':'не завершён'}. Профили проверяются по очереди: до ${AUTHOR_LIMIT} за запуск, включая до 8 известных распространителей пакетов. Полный обход базы может занимать часы.`,env);
               }
-              summary(`\nКандидаты: посты Square ${eligible.length-fromTelegram-live}; эфиры со значком пакета ${live}; через Telegram с проверенным оригиналом ${fromTelegram}. Приоритет: 4 Square (включая один эфир) + 1 Telegram, свободные места заполняются остальными. Коды Telegram без оригинала исключены.\nПоиск в загруженных лентах: совпадений ${marker?.matched_posts||0}; проверено оригиналов ${marker?.posts_checked||0}; найдены пакеты/коды ${marker?.verified_packets_or_codes||0}. Ошибки глобального поиска указаны отдельно выше.`,env);
+              summary(`\nКандидаты: посты Square ${eligible.length-live}; эфиры со значком пакета ${live}. Источник находок — только Binance Square. Отправка: до 5 находок за запуск; один эфир получает первое место, остальные места занимают посты Square.\nПоиск в загруженных лентах: совпадений ${marker?.matched_posts||0}; проверено оригиналов ${marker?.posts_checked||0}; найдены пакеты/коды ${marker?.verified_packets_or_codes||0}. Ошибки глобального поиска указаны отдельно выше.`,env);
             }
             if (mode==='preview') {
-              if(snapshot.all_sources_failed)throw new Error('Both Square feeds failed');
+              if(snapshot.all_sources_failed)throw new Error('All Square sources failed');
               const items=publishCandidates(snapshot);
               summary(`\nEligible candidates: ${items.length}. No messages sent.`,env);
               for(const {post} of orderDeliveryCandidates(items).slice(0,5)) console.log(JSON.stringify({kind:post.kind,status:post.status,url:post.url,codes:post.published_codes,question:post.question,hint:post.hint,title:post.title}));
