@@ -63,6 +63,8 @@ jobs:
           node --input-type=module <<'JS'
           const TAGS = ["redpacket", "redpacketgiveawaycampaign", "cryptobox", "binanceredpacket", "redpacketmission", "redpacketquiz", "redpacketcode"];
           const SEARCH_TERMS = ['Red Packet Quiz','Red Packet','🧧','🎁'];
+          // Remote keyword API is separate from marker matching in loaded feeds.
+          const REMOTE_KEYWORD_SEARCH_ENABLED = false;
           const LIVE_HOST_UIDS = ['CeJ9rMnk2XCPrWM2j3Cz2w'];
           const SEARCH_DETAIL_LIMIT = 48;
           const LIVE_DETAIL_LIMIT = 8;
@@ -122,9 +124,13 @@ jobs:
               term==='Red Packet' ? /red\s*packet|crypto\s*box|红包|красн\S*\s+(?:пакет|конверт)|ред\s*пакет/i.test(text) : text.includes(term));
           }
           export async function fetchKeyword(term) {
+            const trace=globalThis.crypto.randomUUID();
             const response=await fetch('https://www.binance.com/bapi/composite/v2/friendly/pgc/feed/search/list',{
-              method:'POST',signal:AbortSignal.timeout(10000),headers:{Accept:'application/json','Content-Type':'application/json',
-                'User-Agent':'Mozilla/5.0',clienttype:'web',versioncode:'2.61.0',Referer:'https://www.binance.com/en/square/search?s='+encodeURIComponent(term)},
+              method:'POST',signal:AbortSignal.timeout(10000),
+              headers:{Accept:'*/*','Accept-Language':'en-US,en;q=0.9','Content-Type':'application/json',
+                Origin:'https://www.binance.com',Referer:'https://www.binance.com/en/square/search?s='+encodeURIComponent(term),
+                'User-Agent':'Mozilla/5.0',clienttype:'web',versioncode:'2.61.0',lang:'en',
+                'bnc-uuid':globalThis.crypto.randomUUID(),'x-trace-id':trace,'x-ui-request-trace':trace},
               body:JSON.stringify({scene:'web',pageIndex:1,pageSize:20,searchContent:term,type:1})});
             const data=await response.json().catch(()=>null);
             if(!response.ok || data?.success!==true)throw new Error('Square search HTTP '+response.status+'; '+String(data?.message||'request failed').slice(0,100));
@@ -393,11 +399,14 @@ jobs:
               ...[1,2].flatMap(type=>Array.from({length:LATEST_PAGES},(_,i)=>({tag:'square:global:type'+type+':page'+(i+1),
                 coverage:'public_feed_type_'+type+'_page_'+(i+1),run:()=>fetchLatest(type,i+1)}))),
               {tag:'square:discover',coverage:'public_recommendations_first_page',run:fetchRecommended},
-              ...SEARCH_TERMS.map(term=>({tag:'square:search:'+term,coverage:'first_search_page_only',run:()=>fetchKeyword(term)})),
+              ...(REMOTE_KEYWORD_SEARCH_ENABLED ? SEARCH_TERMS.map(term=>({tag:'square:search:'+term,coverage:'first_search_page_only',run:()=>fetchKeyword(term)})) : []),
               {tag:'square:live:catalog',coverage:'recommended_live_rooms_only',run:fetchLiveCatalog}];
             const posts = new Map();
             const markerPosts=new Map(),liveSeeds=new Map(),globalPostIds=new Set();
             const sourceChecks = [];
+            if(!REMOTE_KEYWORD_SEARCH_ENABLED)sourceChecks.push({tag:'square:search',ok:true,posts_checked:0,
+              local_processing:true,coverage:'disabled_by_configuration',
+              reason:'Remote keyword requests disabled after HTTP 400; marker matching in loaded feeds remains enabled'});
             const observedAuthors=[];
             const memoryPromise=env.GITHUB_REPOSITORY && env.GITHUB_REF_NAME && env.GH_STATE_TOKEN ?
               Promise.resolve().then(()=>new GitHubState(env).load()).catch(error=>{sourceChecks.push({tag:'authors:memory',ok:false,error:redact(error,env)});return {};}) : Promise.resolve({});
@@ -527,7 +536,7 @@ jobs:
                 "Global feed types 1 and 2: first 3 pages each plus public recommendations; duplicates merged",
                 "Up to 48 author profiles per run plus known live hosts; 16 slots each for packet publishers, global discoveries and following, with vacant slots reused",
                 "Following list: 4 public pages of 20 authors per run; saved cursor; full rotation can take hours and miss short-lived packets",
-                "Global keyword API can reject anonymous requests; feed keyword fallback checks up to 48 originals, prioritizing fresh posts, not all Square",
+                "Remote keyword API is disabled after anonymous HTTP 400; marker matching remains enabled and checks up to 48 originals, not all Square",
                 "Scan budget: 150 seconds, 8 simultaneous requests; remaining checks deferred if the budget is exhausted",
                 "Live discovery: public recommendation list, feed badges and known hosts; at most 8 room checks; badge does not verify claimability",
               ],
@@ -1007,6 +1016,7 @@ jobs:
             const snapshot=mode==='telegram_test' ? {reported_open:[],other_candidates:[]} : await scan(env);
             if (mode!=='telegram_test') summary('## Binance Square\n\n'+snapshot.sources.map(s=>`${s.tag}: ${s.ok ? s.coverage==='disabled_by_configuration' ? 'отключено' : 'OK, posts '+s.posts_checked+(s.excluded_without_original!==undefined ? '; без оригинала исключено '+s.excluded_without_original+'; оригиналов проверено '+s.originals_checked : '') : s.error}`).join('\n\n'),env);
             if (mode!=='telegram_test') {
+              if(!REMOTE_KEYWORD_SEARCH_ENABLED)summary('\nГлобальный API поиска по словам отключён после HTTP 400. Маркеры Red Packet Quiz, Red Packet, 🧧 и 🎁 продолжают проверяться в загруженных лентах. Ленты покрывают только просмотренные страницы и не заменяют полный поиск Square.',env);
               const eligible=publishCandidates(snapshot);
               const live=eligible.filter(c=>c.post.kind==='live').length,marker=snapshot.sources.find(s=>s.tag==='square:feed-keywords');
               if(snapshot.following_sync) {
