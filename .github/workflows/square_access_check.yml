@@ -538,6 +538,24 @@ jobs:
             return clipped(value, limit).replace(/&/g,"&amp;").replace(/</g,"&lt;")
               .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
           }
+          // Reward split among receivers is random (set by Square, not the author), so only the average is shown.
+          const BIG_AVG_USD = 1;
+          const USD_STABLE = new Set(['USDT','USDC','FDUSD','USD1','BUSD','TUSD']);
+          function averagePerPerson(post) {
+            const amount=Number(post.available_amount), places=Number(post.available_receivers);
+            if(post.available_amount===null || post.available_amount===undefined || post.available_receivers===null || post.available_receivers===undefined)return null;
+            if(!Number.isFinite(amount) || !Number.isFinite(places) || amount<=0 || places<=0)return null;
+            return {avg:amount/places, places};
+          }
+          function placesWord(n) {
+            const last=n%10, tens=n%100;
+            if(last===1 && tens!==11)return 'место';
+            if(last>=2 && last<=4 && (tens<12 || tens>14))return 'места';
+            return 'мест';
+          }
+          function formatAverage(value) {
+            return value>=1 ? String(Number(value.toFixed(2))) : String(Number(value.toFixed(6)));
+          }
           export function formatTelegramPost(post) {
             if(post.kind==='live') {
               if(!/^https:\/\/www\.binance\.com\/en\/square\/audio\?id=\d+$/.test(post.url||''))throw new Error('Invalid live URL');
@@ -570,8 +588,12 @@ jobs:
             if (post.published_codes?.length) {
               lines.push("", ...post.published_codes.slice(0,5).map(code => `🎟 Код: <code>${escapeHtml(code,24)}</code>`));
             }
-            if (post.amount !== null && post.amount !== undefined) {
-              lines.push(`💰 Общая сумма пакета: ${escapeHtml(post.amount,40)} ${escapeHtml(post.currency || "",24)}`);
+            const average=averagePerPerson(post);
+            if (average) {
+              const currency=String(post.currency||'').toUpperCase(), isUsd=USD_STABLE.has(currency);
+              const unit=isUsd ? '$' : escapeHtml(post.currency || '',24);
+              lines.push(`💰 В среднем ≈ ${formatAverage(average.avg)}${unit ? ' '+unit : ''} на человека, осталось ${average.places} ${placesWord(average.places)}`);
+              if (isUsd && average.avg>=BIG_AVG_USD) lines.push('💎 <b>Крупный пакет</b>');
             } else lines.push("💰 Размер награды неизвестен");
             lines.push("", post.status === "reported_open"
               ? "По данным Square: пакет не истёк и не разобран."
