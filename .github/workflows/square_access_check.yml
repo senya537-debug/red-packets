@@ -13,7 +13,7 @@
 # Reads both public feed types, recommendations, 7 hashtags and discovered authors outside the loaded following list.
 # Discovery uses Binance Square only. Telegram is the delivery destination.
 # Profile budget: 16 packet publishers + 16 global discoveries + 16 following, vacant slots reused; 150-second scan budget.
-# Delivery reserves the first place for a verified live badge, then Square posts (up to 5 per run).
+# Delivery sends packet/quiz/code posts first, then verified live alerts as Telegram messages (up to 5 total per run).
 # Cloudflare clock dispatches mode=scheduled; it never enables a different Telegram destination.
 # One delivery history across sources: post IDs, published codes and explicit packet IDs.
 # Keyword API failures are reported; matching feed posts are also checked via original details.
@@ -716,7 +716,7 @@ jobs:
           export function orderDeliveryCandidates(candidates) {
             const live=candidates.filter(c=>c.post?.kind==='live');
             const posts=candidates.filter(c=>c.post?.kind!=='live');
-            return [...live.slice(0,1),...posts,...live.slice(1)];
+            return [...posts,...live];
           }
           
           import fs from 'node:fs';
@@ -1027,7 +1027,7 @@ jobs:
                 const d=snapshot.discovery_stats,r=d.profiles_by_reason;
                 summary(`\nПоиск новых авторов: просмотрено уникальных постов общих лент ${d.global_posts_checked}; авторов с пакетами или признаками раздачи ${d.authors_seen}; новых в базе ${d.new_authors}, из них вне загруженного списка подписок ${d.new_authors_outside_loaded_following}. Проверено профилей ${d.profiles_checked}: распространителей пакетов ${r.packet_publisher||0}, найденных в общих лентах ${r.discovery||0}, подписок ${r.following||0}, дополнительных по очереди ${r.rotation||0}, известных ведущих эфиров ${r.live_host||0}. До ${AUTHOR_LIMIT} профилей за запуск плюс известные ведущие; отдельный бюджет по 16 мест для распространителей, новых находок и подписок. Полный охват Square не гарантирован.`,env);
               }
-              summary(`\nКандидаты: посты Square ${eligible.length-live}; эфиры со значком пакета ${live}. Источник находок — только Binance Square. Отправка: до 5 находок за запуск; один эфир получает первое место, остальные места занимают посты Square.\nПоиск в загруженных лентах: совпадений ${marker?.matched_posts||0}; проверено оригиналов ${marker?.posts_checked||0}; найдены пакеты/коды ${marker?.verified_packets_or_codes||0}. Ошибки глобального поиска указаны отдельно выше.`,env);
+              summary(`\nКандидаты: посты Square ${eligible.length-live}; эфиры со значком пакета ${live}. Источник находок — только Binance Square. Отправка: до 5 находок за запуск; сначала посты с пакетами, кодами и викторинами, затем найденные эфиры отдельными сообщениями в Telegram. Место для эфира не резервируется.\nПоиск в загруженных лентах: совпадений ${marker?.matched_posts||0}; проверено оригиналов ${marker?.posts_checked||0}; найдены пакеты/коды ${marker?.verified_packets_or_codes||0}. Ошибки глобального поиска указаны отдельно выше.`,env);
             }
             if (mode==='preview') {
               if(snapshot.all_sources_failed)throw new Error('All Square sources failed');
