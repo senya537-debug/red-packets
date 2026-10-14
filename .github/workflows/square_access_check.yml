@@ -12,8 +12,10 @@
 # Square quizzes/Claim: require open flags and a future expiry, regardless of post age.
 # Reads both public feed types, recommendations, 7 hashtags and discovered authors outside the loaded following list.
 # Discovery uses Binance Square only. Telegram is the delivery destination.
-# Author worker: 16 packet publishers + 16 global discoveries + 16 following; 150-second scan budget per worker.
-# Two concurrent public requests per search worker; failures do not cancel the other search jobs.
+# Author worker: up to 192 profiles; 128 recent packet publishers + 32 discoveries + 32 following.
+# Recent publishers become due every 2 minutes; vacant slots are reused; 150-second scan budget.
+# Four profile requests at a time in the author worker; other workers use two.
+# Search reads the checked-out state snapshot; the publisher uses conditional GitHub reads.
 # Four parallel search jobs: posts, codes, authors/following, live. One serialized Telegram publisher.
 # Durable outbox in the existing delivery state: max 200 findings per category.
 # Publisher consumes ready results for up to 200 seconds without waiting for all search jobs.
@@ -23,6 +25,8 @@
 # The publisher rechecks each original and every live badge/room immediately before sending.
 # Cloudflare clock dispatches mode=scheduled; it never enables a different Telegram destination.
 # One delivery history across sources: post IDs, published codes and explicit packet IDs.
+# Missing identity in anonymous original details is not treated as a changed packet.
+# Unsent stale rejections can be revalidated; sent and uncertain records remain blocked.
 # Keyword API failures are reported; matching feed posts are also checked via original details.
 # Live alerts require the public liveRedEnvelopeInfo.isDisplay badge and a currently live room.
 # A live badge does not verify the reward amount or eligibility. No Binance login is used.
@@ -63,11 +67,17 @@ jobs:
       group: square-search-${{ matrix.worker }}
       cancel-in-progress: false
     steps:
+      - name: Read repository state snapshot
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
       - name: Search Square and enqueue findings
         shell: bash
         env:
           RUN_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || inputs.mode }}
           WORKER_ROLE: ${{ matrix.worker }}
+          SQUARE_STATE_SNAPSHOT: .redpacket/delivery.json
           GH_STATE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: &square_runtime |
           node --input-type=module <<'JS'
@@ -81,9 +91,15 @@ jobs:
           const LIVE_CHECK_MAX_AGE_MS = 90 * 1000;
           const ENDPOINT = "https://www.binance.com/bapi/composite/v4/friendly/pgc/content/queryByHashtag";
           const PAGE_SIZE = 50;
-          const LATEST_PAGES = 3;
-          const TAG_PAGES = 2;
+          const LATEST_PAGES = 4;
+          const TAG_PAGES = 3;
+          const RECOMMENDATION_PAGES = 2;
           const AUTHOR_LIMIT = 48;
+          const FAST_AUTHOR_LIMIT = 192;
+          const ACTIVE_AUTHOR_SLOTS = 128;
+          const FAST_DISCOVERY_SLOTS = 32;
+          const FAST_FOLLOWING_SLOTS = 32;
+          const ACTIVE_AUTHOR_INTERVAL_MS = 2 * 60 * 1000;
           const PACKET_AUTHOR_SLOTS = 16;
           const DISCOVERY_AUTHOR_SLOTS = 16;
           const FOLLOWING_AUTHOR_SLOTS = 16;
@@ -267,11 +283,11 @@ jobs:
             if(data.success!==true || !Array.isArray(data.data?.vos))throw new Error('Square latest response changed');
             return data.data.vos;
           }
-          export async function fetchRecommended() {
+          export async function fetchRecommended(page=1) {
             const response=await fetch('https://www.binance.com/bapi/composite/v9/friendly/pgc/feed/feed-recommend/list',{
               method:'POST',signal:AbortSignal.timeout(10000),headers:{Accept:'application/json','Content-Type':'application/json',
                 'User-Agent':'Mozilla/5.0',clienttype:'web',versioncode:'web',Referer:'https://www.binance.com/en/square'},
-              body:JSON.stringify({pageIndex:1,pageSize:20,scene:'web-homepage',contentIds:[]})});
+              body:JSON.stringify({pageIndex:page,pageSize:20,scene:'web-homepage',contentIds:[]})});
             const data=await response.json().catch(()=>null);
             if(!response.ok || data?.success!==true || !Array.isArray(data.data?.vos))throw new Error('Square discover feed HTTP '+response.status+'; '+String(data?.message||'response changed').slice(0,100));
             return data.data.vos;
@@ -336,6 +352,46 @@ jobs:
             take(following,FOLLOWING_AUTHOR_SLOTS,'following');
             take(authors.slice().sort(byCheck),AUTHOR_LIMIT-selected.length,'rotation');
             return selected;
+          }
+          export function chooseFastAuthors(authors,now=Date.now()) {
+            const byCheck=(a,b)=>(a.last_checked_at||0)-(b.last_checked_at||0) ||
+              (b.last_packet_at||0)-(a.last_packet_at||0) || a.uid.localeCompare(b.uid);
+            const active=a=>a.last_packet_at>=now-2*86400000;
+            const due=a=>!active(a) || !a.last_checked_at || a.last_checked_at<=now-ACTIVE_AUTHOR_INTERVAL_MS;
+            const pool=authors.filter(due),selected=[],used=new Set();
+            function take(items,count,reason) {
+              let added=0;
+              for(const author of items)if(!used.has(author.uid) && added<count && selected.length<FAST_AUTHOR_LIMIT) {
+                used.add(author.uid);selected.push({...author,scan_reason:reason});added++;
+              }
+              return added;
+            }
+            take(pool.filter(active).sort(byCheck),ACTIVE_AUTHOR_SLOTS,'active_packet_publisher');
+            const discovery=pool.filter(a=>a.discovered || a.last_marker_at>0);
+            const fresh=discovery.filter(a=>!a.last_checked_at).sort((a,b)=>(b.first_discovered_at||0)-(a.first_discovered_at||0) ||
+              (b.last_marker_at||0)-(a.last_marker_at||0) || byCheck(a,b));
+            let added=take(fresh,FAST_DISCOVERY_SLOTS/2,'discovery');
+            added+=take(discovery.filter(a=>a.last_checked_at).sort(byCheck),FAST_DISCOVERY_SLOTS/2,'discovery');
+            take([...fresh,...discovery.sort(byCheck)],FAST_DISCOVERY_SLOTS-added,'discovery');
+            take(pool.filter(a=>a.followed).sort(byCheck),FAST_FOLLOWING_SLOTS,'following');
+            take(pool.slice().sort(byCheck),FAST_AUTHOR_LIMIT-selected.length,'rotation');
+            // Spread active publishers through the batches. Exploration starts in the first
+            // batch and keeps making progress even when a source is slow or the budget ends.
+            const hot=selected.filter(a=>a.scan_reason==='active_packet_publisher'),other=selected.filter(a=>a.scan_reason!=='active_packet_publisher');
+            const ordered=[];
+            while(hot.length || other.length) {
+              ordered.push(...hot.splice(0,2),...other.splice(0,2));
+            }
+            return ordered;
+          }
+          export async function loadScanMemory(env) {
+            if(env.SQUARE_STATE_SNAPSHOT) {
+              if(!fs.existsSync(env.SQUARE_STATE_SNAPSHOT))return {version:1,items:{},enabled_destination:null};
+              const state=JSON.parse(fs.readFileSync(env.SQUARE_STATE_SNAPSHOT,'utf8'));
+              if(state.version!==1 || !state.items || Array.isArray(state.items) || typeof state.items!=='object')throw new Error('State snapshot damaged');
+              return state;
+            }
+            return new GitHubState(env).load();
           }
           export function chooseMarkerPosts(posts,checks={},now=Date.now()) {
             const stamp=p=>epoch(p.date??p.firstReleaseTime??p.createTime)||0;
@@ -410,8 +466,7 @@ jobs:
           export async function scan(env=process.env,worker='all') {
             if(worker!=='all' && !WORKER_ROLES.includes(worker))throw new Error('Unknown search worker');
             const legacy=worker==='all',scanProfiles=legacy || worker==='authors',scanLive=legacy || worker==='live';
-            // Two requests per worker: at most eight across the four parallel search jobs.
-            const concurrency=legacy ? REQUEST_CONCURRENCY : 2;
+            const concurrency=legacy ? REQUEST_CONCURRENCY : worker==='authors' ? 4 : 2;
             const now = Date.now(),deadline=now+SCAN_BUDGET_MS;
             const hasBudget=(reserve=0)=>Date.now()+10000+reserve<=deadline;
             const workerTags=legacy ? TAGS : worker==='posts' ? TAGS.filter(tag=>!['cryptobox','redpacketcode'].includes(tag)) :
@@ -421,7 +476,8 @@ jobs:
                 tag:i ? tag+':page'+(i+1) : tag,coverage:'public_hashtag_page_'+(i+1),run:()=>fetchTag(tag,i+1)}))),
               ...[1,2].flatMap(type=>Array.from({length:feedPages},(_,i)=>({tag:'square:global:type'+type+':page'+(i+1),
                 coverage:'public_feed_type_'+type+'_page_'+(i+1),run:()=>fetchLatest(type,i+1)}))),
-              ...(legacy || ['posts','live'].includes(worker) ? [{tag:'square:discover',coverage:'public_recommendations_first_page',run:fetchRecommended}] : []),
+              ...(legacy || ['posts','live'].includes(worker) ? Array.from({length:worker==='live'?1:RECOMMENDATION_PAGES},(_,i)=>({
+                tag:i?'square:discover:page'+(i+1):'square:discover',coverage:'public_recommendations_page_'+(i+1),run:()=>fetchRecommended(i+1)})) : []),
               ...(REMOTE_KEYWORD_SEARCH_ENABLED && (legacy || worker==='posts') ? SEARCH_TERMS.map(term=>({tag:'square:search:'+term,coverage:'first_search_page_only',run:()=>fetchKeyword(term)})) : []),
               ...(scanLive ? [{tag:'square:live:catalog',coverage:'recommended_live_rooms_only',run:fetchLiveCatalog}] : [])];
             const posts = new Map();
@@ -432,7 +488,7 @@ jobs:
               reason:'Remote keyword requests disabled after HTTP 400; marker matching in loaded feeds remains enabled'});
             const observedAuthors=[];
             const memoryPromise=env.GITHUB_REPOSITORY && env.GITHUB_REF_NAME && env.GH_STATE_TOKEN ?
-              Promise.resolve().then(()=>new GitHubState(env).load()).catch(error=>{sourceChecks.push({tag:'authors:memory',ok:false,error:redact(error,env)});return {};}) : Promise.resolve({});
+              Promise.resolve().then(()=>loadScanMemory(env)).catch(error=>{sourceChecks.push({tag:'authors:memory',ok:false,error:redact(error,env)});return {};}) : Promise.resolve({});
             const results = await settledBatches(feeds,feed=>feed.run(),concurrency);
             function ingest(post,source) {
               const id=String(post?.id||post?.contentId||'');
@@ -487,7 +543,7 @@ jobs:
             const followed=new Set(following.progress.uids);
             remembered=mergeAuthors(FOLLOWING_BOOTSTRAP.authors.map(a=>({...a,followed:true})),remembered,following.authors);
             const registry=mergeAuthors(observedAuthors,remembered).map(a=>followed.has(a.uid)?{...a,followed:true}:a);
-            const authors=scanProfiles ? chooseAuthors(registry,now) : [];
+            const authors=scanProfiles ? legacy ? chooseAuthors(registry,now) : chooseFastAuthors(registry,now) : [];
             if(scanLive) {
               const hosts=[...new Set([...LIVE_HOST_UIDS,...registry.filter(a=>a.live_host).sort((a,b)=>(a.last_checked_at||0)-(b.last_checked_at||0)).map(a=>a.uid)])].slice(0,LIVE_DETAIL_LIMIT);
               for(const uid of hosts)if(!authors.some(a=>a.uid===uid))authors.push({uid,name:'Live host',last_packet_at:0,last_checked_at:0,live_host:true,scan_reason:'live_host'});
@@ -543,7 +599,7 @@ jobs:
             const newAuthors=discovered.filter(a=>!knownBefore.has(a.uid));
             const discoveryStats={global_posts_checked:globalPostIds.size,authors_seen:discovered.length,
               new_authors:newAuthors.length,new_authors_outside_loaded_following:newAuthors.filter(a=>!followed.has(a.uid)).length,
-              profiles_checked:checkedAuthors.length,profiles_by_reason:{}};
+              profiles_planned:authors.length,profiles_checked:checkedAuthors.length,profiles_by_reason:{}};
             for(const author of checkedAuthors)discoveryStats.profiles_by_reason[author.scan_reason]=(discoveryStats.profiles_by_reason[author.scan_reason]||0)+1;
             sourceChecks.push({tag:'square:discovery',ok:true,local_processing:true,posts_checked:globalPostIds.size,
               new_authors:discoveryStats.new_authors,coverage:'global_feeds_and_hashtags_independent_of_following'});
@@ -559,12 +615,12 @@ jobs:
               keyword_checks:Object.fromEntries(Object.entries(keywordChecks).filter(([id,stamp])=>/^\d+$/.test(id) &&
                 Number.isFinite(Number(stamp)) && Number(stamp)>now-86400000).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,1000)),
               limitations: ["Discovery only; no reward claimed", "Hints are not verified answers",
-                "Public Square endpoint is undocumented and can change", "Hashtags: up to 2 pages of 50 posts across 7 tags; bounded coverage",
-                "Global feed types 1 and 2: first 3 pages each plus public recommendations; duplicates merged",
-                "Up to 48 author profiles per run plus known live hosts; 16 slots each for packet publishers, global discoveries and following, with vacant slots reused",
+                "Public Square endpoint is undocumented and can change", "Hashtags: up to 3 pages of 50 posts across 7 tags; bounded coverage",
+                "Global feed types 1 and 2: first 4 pages each plus 2 recommendation pages; duplicates merged",
+                "Author worker: up to 192 profiles; 128 recent publishers, 32 discoveries, 32 following; active publishers due every 2 minutes; vacant slots reused",
                 "Following list: 4 public pages of 20 authors per run; saved cursor; full rotation can take hours and miss short-lived packets",
                 "Remote keyword API is disabled after anonymous HTTP 400; marker matching remains enabled and checks up to 48 originals, not all Square",
-                "Scan budget: 150 seconds, 8 simultaneous requests; remaining checks deferred if the budget is exhausted",
+                "Scan budget per worker: 150 seconds; four parallel profile requests in the author worker and two requests per other worker; remaining checks deferred",
                 "Live discovery: public recommendation list, feed badges and known hosts; at most 8 room checks; badge does not verify claimability",
               ],
               storage_enabled: false};
@@ -768,6 +824,7 @@ jobs:
           }
           const cloneState = value => JSON.parse(JSON.stringify(value));
           const sameState = (a,b) => JSON.stringify(a)===JSON.stringify(b);
+          const STATE_READ_CACHE = new Map();
           export function deliveryQueue(candidate) {
             return candidate.post?.kind==='live' ? 'live' : candidate.post?.kind==='code' ? 'codes' : 'posts';
           }
@@ -812,10 +869,10 @@ jobs:
               else if(index && matchingDeliveries(index,candidate).some(key=>state.items[key]?.state==='sent'))reason='already_sent';
               else if(state.outbox?.[candidate.key]) {
                 const blocked=index ? deliverySkipReason(state,matchingDeliveries(index,candidate),now) : null;
-                reason=blocked || 'queued';
+                reason=blocked==='previously_stale' ? 'needs_original_recheck' : blocked || 'queued';
               } else reason='not_retained_in_queue';
               reasons[reason]=(reasons[reason]||0)+1;
-              if(reason==='queued')byQueue[deliveryQueue(candidate)]++;
+              if(['queued','needs_original_recheck'].includes(reason))byQueue[deliveryQueue(candidate)]++;
             }
             return {eligible_candidates:candidates.length,queue_reasons:reasons,ready_by_queue:byQueue};
           }
@@ -926,19 +983,26 @@ jobs:
               }
               this.env=env; this.sha=null;this.base=null;
               this.url=`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/contents/${STATE_PATH}`;
+              this.cacheKey=this.url+':'+env.GITHUB_REF_NAME+':'+createHash('sha256').update(env.GH_STATE_TOKEN).digest('hex');
             }
-            async request(method,body,accept='application/vnd.github.object+json') {
+            async request(method,body,accept='application/vnd.github.object+json',extraHeaders={}) {
               const url = method==='GET' ? this.url+'?ref='+encodeURIComponent(this.env.GITHUB_REF_NAME) : this.url;
               return fetch(url, {method, redirect:'error', signal:AbortSignal.timeout(20000),
                 headers:{Accept:accept,Authorization:'Bearer '+this.env.GH_STATE_TOKEN,
                   'X-GitHub-Api-Version':'2026-03-10','User-Agent':'SquareTelegramPublisher','Content-Type':'application/json',
-                  'Cache-Control':'no-cache'},
+                  'Cache-Control':'no-cache',...extraHeaders},
                 ...(body ? {body:JSON.stringify(body)} : {})});
             }
             async readLatest() {
-              const response=await this.request('GET');
+              const cached=STATE_READ_CACHE.get(this.cacheKey);
+              const response=await this.request('GET',null,'application/vnd.github.object+json',cached?.etag?{'If-None-Match':cached.etag}:{});
+              if(response.status===304) {
+                if(!cached)throw new Error('Unexpected unchanged response without cached state');
+                this.sha=cached.sha;return cloneState(cached.state);
+              }
               if (response.status===404) {
-                if(this.sha!==null)throw new Error('GitHub delivery history disappeared; publishing stopped');
+                STATE_READ_CACHE.delete(this.cacheKey);
+                if(this.sha!==null || cached?.sha)throw new Error('GitHub delivery history disappeared; publishing stopped');
                 this.sha=null;return {version:1,items:{},enabled_destination:null};
               }
               if (!response.ok) throw new Error('GitHub state read: HTTP '+response.status);
@@ -954,6 +1018,9 @@ jobs:
               } else throw new Error('Unexpected GitHub state encoding');
               const state=JSON.parse(content);
               if (state.version!==1 || !state.items || Array.isArray(state.items) || typeof state.items!=='object') throw new Error('State damaged; refusing to resend');
+              const etag=response.headers.get('etag');
+              if(etag)STATE_READ_CACHE.set(this.cacheKey,{etag,sha:this.sha,state:cloneState(state)});
+              else STATE_READ_CACHE.delete(this.cacheKey);
               return state;
             }
             async load() {
@@ -972,6 +1039,7 @@ jobs:
                 if(response.ok) {
                   if(!result?.content?.sha)throw new Error('GitHub did not confirm state persistence; publishing stopped');
                   this.sha=result.content.sha;this.base=cloneState(pending);
+                  STATE_READ_CACHE.delete(this.cacheKey);
                   // Callers must see imported records before considering the next send.
                   for(const key of Object.keys(state))delete state[key];
                   Object.assign(state,cloneState(pending));return;
@@ -1067,7 +1135,7 @@ jobs:
             index=deliveryIndex(state,destination);
             const ready=allCandidates.filter(candidate=>{
               const reason=deliverySkipReason(state,matchingDeliveries(index,candidate));
-              if(reason){skip(reason);return false;}return true;
+              if(reason && !(budget?.verify_originals && reason==='previously_stale')){skip(reason);return false;}return true;
             });
             const candidates=orderDeliveryCandidates(ready);
             stats.new_candidates=candidates.length;
@@ -1085,7 +1153,7 @@ jobs:
               index=deliveryIndex(state,destination);
               const matches=matchingDeliveries(index,candidate);
               const blockedReason=deliverySkipReason(state,matches);
-              if (blockedReason) {skip(blockedReason);continue;}
+              if (blockedReason && !(budget?.verify_originals && blockedReason==='previously_stale')) {skip(blockedReason);continue;}
               const key=matches[0]||destination+':'+candidate.key;
               // Durable queues can outlive a scan. Check the original again before claiming.
               if(budget?.verify_originals && candidate.post?.kind!=='live') {
@@ -1100,16 +1168,21 @@ jobs:
                 const matchesCode=!code || [current?.packet_code,...(current?.published_codes||[])].some(c=>String(c).toUpperCase()===code.toUpperCase());
                 if(!current || !isEligiblePost(current) || !matchesCode || (code && !isFreshPost(current)) ||
                     (!code && !['packet','quiz'].includes(current.kind)) ||
-                    (candidate.post.packet_id && current.packet_id!==candidate.post.packet_id)) {
+                    (candidate.post.packet_id && current.packet_id && current.packet_id!==candidate.post.packet_id) ||
+                    (candidate.post.packet_code && current.packet_code && current.packet_code.toUpperCase()!==candidate.post.packet_code.toUpperCase())) {
                   state.items[key]={state:'skipped_stale',post_id:candidate.post.post_id,identity_keys:candidateIdentityKeys(candidate),updated_at:Date.now()};
                   await storage.save(state,'original no longer eligible');skip('original_no_longer_eligible');continue;
                 }
                 candidate.identity_keys=candidateIdentityKeys(candidate);
-                candidate.post={...current,...(current.kind==='code' ? {published_codes:[code]} : {})};
+                // Anonymous details can omit the packet identity while still confirming
+                // this exact post, open flags and expiry. Missing identity is not a change.
+                candidate.post={...current,packet_id:current.packet_id??candidate.post.packet_id,
+                  packet_code:current.packet_code??candidate.post.packet_code,
+                  ...(current.kind==='code' ? {published_codes:[code]} : {})};
                 candidate.message=formatTelegramPost(candidate.post);
                 index=deliveryIndex(state,destination);
                 const refreshedReason=deliverySkipReason(state,matchingDeliveries(index,candidate));
-                if(refreshedReason){skip(refreshedReason);continue;}
+                if(refreshedReason && refreshedReason!=='previously_stale'){skip(refreshedReason);continue;}
               }
               const claimId=randomUUID();
               state.items[key]={state:'sending',claim_id:claimId,post_id:candidate.post?.post_id||null,
@@ -1118,7 +1191,9 @@ jobs:
               index=deliveryIndex(state,destination);
               const claim=state.items[key];
               if(claim?.state!=='sending' || claim.claim_id!==claimId) {skip('competing_claim');continue;}
-              if(deliveryBlocked(state,matchingDeliveries(index,candidate).filter(other=>other!==key))) {
+              const otherClaims=matchingDeliveries(index,candidate).filter(other=>other!==key);
+              const otherReason=deliverySkipReason(state,otherClaims);
+              if(otherReason && !(budget?.verify_originals && otherReason==='previously_stale')) {
                 claim.state='queued';claim.retry_at=Date.now()+60000;claim.updated_at=Date.now();
                 await storage.save(state,'duplicate claim avoided');
                 index=deliveryIndex(state,destination);skip('duplicate_identity');continue;
@@ -1187,7 +1262,7 @@ jobs:
           }
           export async function runSearchWorker(env,worker,mode) {
             if(mode==='scheduled') {
-              const state=await new GitHubState(env).load();
+              const state=await loadScanMemory(env);
               if(!state.enabled_destination) {summary('Автопубликация не включена: сначала запустите publish.',env);return {disabled:true};}
             }
             let snapshot;
@@ -1231,7 +1306,8 @@ jobs:
               const queueIndex=deliveryIndex(latest,latest.enabled_destination||'');
               for(const candidate of candidates) {
                 found.add(candidate.key);
-                if(!deliverySkipReason(latest,matchingDeliveries(queueIndex,candidate)))fresh.add(candidate.key);
+                const reason=deliverySkipReason(latest,matchingDeliveries(queueIndex,candidate));
+                if(!reason || reason==='previously_stale')fresh.add(candidate.key);
               }
               const nextSignature=JSON.stringify(candidates.map(c=>[c.key,latest.outbox?.[c.key]?.observed_at]));
               const usable=candidates.some(c=>(budget.used[deliveryQueue(c)]||0)<budget.limits[deliveryQueue(c)]);
@@ -1263,7 +1339,8 @@ jobs:
             for(const candidate of outboxSnapshot(latest).queued_candidates) {
               const queue=deliveryQueue(candidate);
               totals.queue_remaining[queue]++;
-              if(budget.used[queue]>=budget.limits[queue] && !deliverySkipReason(latest,matchingDeliveries(index,candidate)))
+              const reason=deliverySkipReason(latest,matchingDeliveries(index,candidate));
+              if(budget.used[queue]>=budget.limits[queue] && (!reason || reason==='previously_stale'))
                 totals.deferred_by_queue[queue]++;
             }
             totals.deferred_by_limit=Object.values(totals.deferred_by_queue).reduce((a,b)=>a+b,0);
