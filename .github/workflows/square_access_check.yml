@@ -803,10 +803,27 @@ jobs:
             const candidates=deduplicateCandidates(entries.map(entry=>entry.candidate));
             return {reported_open:[],other_candidates:[],live_candidates:[],queued_candidates:candidates};
           }
+          export function enqueueDiagnostics(candidates,state,now=Date.now()) {
+            const index=state.enabled_destination ? deliveryIndex(state,state.enabled_destination) : null;
+            const reasons={},byQueue={posts:0,codes:0,live:0};
+            for(const candidate of candidates) {
+              let reason;
+              if(!isEligiblePost(candidate.post,now))reason='became_ineligible';
+              else if(index && matchingDeliveries(index,candidate).some(key=>state.items[key]?.state==='sent'))reason='already_sent';
+              else if(state.outbox?.[candidate.key]) {
+                const blocked=index ? deliverySkipReason(state,matchingDeliveries(index,candidate),now) : null;
+                reason=blocked || 'queued';
+              } else reason='not_retained_in_queue';
+              reasons[reason]=(reasons[reason]||0)+1;
+              if(reason==='queued')byQueue[deliveryQueue(candidate)]++;
+            }
+            return {eligible_candidates:candidates.length,queue_reasons:reasons,ready_by_queue:byQueue};
+          }
           export async function enqueueSnapshot(snapshot,env,worker,status='done',error=null,wait=WAIT) {
             if(!WORKER_ROLES.includes(worker))throw new Error('Unknown search worker');
             const storage=new GitHubState(env),state=await storage.load(),now=Date.now();
-            const additions=Object.fromEntries(publishCandidates(snapshot).map(candidate=>[candidate.key,
+            const candidates=publishCandidates(snapshot,now);
+            const additions=Object.fromEntries(candidates.map(candidate=>[candidate.key,
               {candidate,worker,observed_at:now}]));
             const combined=mergeOutbox(state.outbox,additions);
             extendOutboxHistoryAliases(state,combined);
@@ -816,11 +833,12 @@ jobs:
             state.keyword_checks=compactKeywordChecks(Object.fromEntries([...Object.entries(state.keyword_checks||{}),...Object.entries(snapshot.keyword_checks||{})]
               .reduce((map,[key,stamp])=>map.set(key,Math.max(map.get(key)||0,Number(stamp)||0)),new Map())),now);
             const run=String(env.GITHUB_RUN_ID||'local')+':'+String(env.GITHUB_RUN_ATTEMPT||'1');
+            const diagnostics=enqueueDiagnostics(candidates,state,now);
             state.worker_runs=mergeWorkerRuns({[run]:{[worker]:{
-              status,updated_at:now,candidates:publishCandidates(snapshot).length,
+              status,updated_at:now,candidates:candidates.length,...diagnostics,
               partial:!!snapshot.partial,discovery:snapshot.discovery_stats||null,...(error ? {error:redact(error,env)} : {})}}},state.worker_runs);
             await storage.save(state,'enqueue '+worker,wait);
-            return {worker,status,eligible_candidates:publishCandidates(snapshot).length,queued:Object.keys(state.outbox||{}).length};
+            return {worker,status,...enqueueDiagnostics(candidates,state),queued:Object.keys(state.outbox||{}).length};
           }
           function mergeWorkerRuns(local,remote) {
             const runs={};
