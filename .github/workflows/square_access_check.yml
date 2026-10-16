@@ -39,6 +39,7 @@
 # Live alerts require the public liveRedEnvelopeInfo.isDisplay badge and a currently live room.
 # Live queue retention: 10 minutes; badge and room rechecked immediately before every send.
 # Reward coins are displayed as metadata-derived hashtags; live alerts use #LIVE and #ПРЯМОЙ_ЭФИР.
+# public_feed retains eligible findings for the web/Telegram Mini App independently of Telegram delivery.
 # A live badge does not verify the reward amount or eligibility. No Binance login is used.
 name: Red Packets to Telegram · parallel search
 run-name: ${{ (github.event_name == 'schedule' || inputs.mode == 'scheduled') && 'Red Packets · automatic' || format('Red Packets · {0}', inputs.mode) }}
@@ -1007,6 +1008,14 @@ jobs:
             const counts={posts:0,codes:0,live:0};
             return Object.fromEntries(entries.filter(([,entry])=>++counts[deliveryQueue(entry.candidate)]<=OUTBOX_LIMIT/3));
           }
+          export function compactPublicFeed(feed,now=Date.now()) {
+            const counts={posts:0,codes:0,live:0};
+            return Object.fromEntries(Object.entries(feed||{}).filter(([key,entry])=>
+              key===entry?.candidate?.key && canonicalIdentity(key) && isEligiblePost(entry.candidate.post,now) &&
+              Number.isFinite(Number(entry.observed_at)) && Number(entry.observed_at)<=now+60000)
+              .sort((a,b)=>Number(b[1].observed_at)-Number(a[1].observed_at))
+              .filter(([,entry])=>++counts[deliveryQueue(entry.candidate)]<=200));
+          }
           export function mergeOutbox(...maps) {
             const result={};
             for(const map of maps)for(const [key,entry] of Object.entries(map||{})) {
@@ -1057,6 +1066,7 @@ jobs:
             const candidates=publishCandidates(snapshot,now);
             const additions=Object.fromEntries(candidates.map(candidate=>[candidate.key,
               {candidate,worker,observed_at:now}]));
+            state.public_feed=compactPublicFeed(mergeOutbox(state.public_feed,additions),now);
             const combined=mergeOutbox(state.outbox,additions);
             extendOutboxHistoryAliases(state,combined);
             state.outbox=compactOutbox(combined,state,now);
@@ -1109,7 +1119,7 @@ jobs:
             // Only apply our changes to fields that the other writer left alone.
             // Conflicting destination changes keep the latest persisted setting.
             for(const [key,value] of Object.entries(local)) {
-              if(['items','authors','keyword_checks','last_check_at','following_sync','outbox','worker_runs'].includes(key))continue;
+              if(['items','authors','keyword_checks','last_check_at','following_sync','outbox','public_feed','worker_runs'].includes(key))continue;
               if(!sameState(value,base[key]) && sameState(remote[key],base[key]))merged[key]=cloneState(value);
             }
             merged.items={};
@@ -1149,6 +1159,8 @@ jobs:
               merged.worker_runs=mergeWorkerRuns(local.worker_runs,remote.worker_runs);
               merged.keyword_checks=compactKeywordChecks(merged.keyword_checks);
             }
+            if(local.public_feed || remote.public_feed)
+              merged.public_feed=compactPublicFeed(mergeOutbox(remote.public_feed,local.public_feed));
             return merged;
           }
           export class GitHubState {
