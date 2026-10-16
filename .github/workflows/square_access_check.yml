@@ -20,14 +20,15 @@
 # Recent publishers become due every 2 minutes; vacant slots are reused; 150-second scan budget.
 # Four requests at a time per worker; feed/profile budgets reserve time for original and live checks.
 # Search reads the checked-out state snapshot; the publisher uses conditional GitHub reads.
-# Five parallel search jobs: posts, codes, authors/following, live, community. One serialized Telegram publisher.
+# Five read-only search jobs export run-scoped artifacts; only the serialized publisher writes delivery.json.
+# Publisher imports all available worker artifacts even if another search job failed.
 # Community sources: public Islamic-topic hashtags and Arabic feeds; no author religion is inferred.
 # Arabic/Urdu packet and code labels are recognized in any feed; eligibility rules stay the same.
 # Durable outbox in the existing delivery state: max 200 findings per category.
-# Publisher consumes ready results for up to 240 seconds without waiting for all search jobs.
+# Publisher starts after the searches; imports their artifacts, then consumes the durable queue for up to 240 seconds.
 # Independent per-run quotas: 15 packet/quiz posts, 15 codes, 5 verified live alerts.
 # Queue rounds: one packet/quiz, one code, one live alert; keep all categories moving.
-# Findings are queued during the scan (up to once per 30 seconds) and at its end.
+# Search checkpoints stay local; final/partial results are uploaded even after a failed search.
 # Deferred findings remain queued; codes still require an original post from the last 10 minutes.
 # The publisher rechecks each original and every live badge/room immediately before sending.
 # Cloudflare clock dispatches mode=scheduled; it never enables a different Telegram destination.
@@ -63,7 +64,13 @@ on:
     - cron: '3/5 * * * *'
 
 permissions:
-  contents: write
+  contents: read
+
+# Queue new cycles before they start, so replacing a pending run cannot strand
+# already-produced artifacts behind a busy publisher. Searches within a cycle stay parallel.
+concurrency:
+  group: square-pipeline-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   search:
@@ -85,13 +92,13 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
-      - name: Search Square and enqueue findings
+      - name: Search Square and save local findings
         shell: bash
         env:
           RUN_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || inputs.mode }}
           WORKER_ROLE: ${{ matrix.worker }}
           SQUARE_STATE_SNAPSHOT: .redpacket/delivery.json
-          GH_STATE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SQUARE_RESULT_DIR: redpacket-results
         run: &square_runtime |
           node --input-type=module <<'JS'
           const TAGS = ["redpacket", "redpacketgiveawaycampaign", "cryptobox", "binanceredpacket", "redpacketmission", "redpacketquiz", "redpacketcode", "红包"];
@@ -563,7 +570,7 @@ jobs:
               try {await onProgress(snapshot);lastProgressSignature=signature;}
               catch(error){sourceChecks.push({tag:'queue:checkpoint',ok:false,local_processing:true,error:redact(error,env)});}
             }
-            const memoryPromise=env.GITHUB_REPOSITORY && env.GITHUB_REF_NAME && env.GH_STATE_TOKEN ?
+            const memoryPromise=env.SQUARE_STATE_SNAPSHOT || (env.GITHUB_REPOSITORY && env.GITHUB_REF_NAME && env.GH_STATE_TOKEN) ?
               Promise.resolve().then(()=>loadScanMemory(env)).catch(error=>{sourceChecks.push({tag:'authors:memory',ok:false,error:redact(error,env)});return {};}) : Promise.resolve({});
             function ingest(post,source) {
               const id=String(post?.id||post?.contentId||'');
@@ -1210,7 +1217,8 @@ jobs:
                   'Cache-Control':'no-cache',...extraHeaders},
                 ...(body ? {body:JSON.stringify(body)} : {})});
             }
-            async readLatest() {
+            async readLatest(fresh=false) {
+              if(fresh)STATE_READ_CACHE.delete(this.cacheKey);
               const cached=STATE_READ_CACHE.get(this.cacheKey);
               const {response,body:metadata}=await readApiWithRetry('GitHub state GET',()=>
                 this.request('GET',null,'application/vnd.github.object+json',cached?.etag?{'If-None-Match':cached.etag}:{}),this.env,this.wait);
@@ -1262,7 +1270,7 @@ jobs:
                   await wait(1000*2**(networkFailures-1));
                   // The server may have committed despite a lost response. A fresh SHA
                   // and three-way merge preserve any committed or competing claim.
-                  pending=mergeDeliveryState(base,local,await this.readLatest());continue;
+                  pending=mergeDeliveryState(base,local,await this.readLatest(true));continue;
                 }
                 const result=await response.json().catch(()=>null);
                 if(response.ok) {
@@ -1279,7 +1287,7 @@ jobs:
                   (conflict?' after 5 attempts':'')+'; publishing stopped');
                 console.log('GitHub state conflict: refreshing history, retry '+(attempt+1)+'/4');
                 await wait(250*2**attempt+Math.floor(Math.random()*200));
-                pending=mergeDeliveryState(base,local,await this.readLatest());
+                pending=mergeDeliveryState(base,local,await this.readLatest(true));
               }
             }
           }
@@ -1497,16 +1505,58 @@ jobs:
             for(const candidate of publishCandidates(snapshot))counts[deliveryQueue(candidate)]++;
             summary('Находки по очередям: '+JSON.stringify(counts)+'. Только Binance Square; авторы из общих лент сохраняются независимо от подписок.',env);
           }
+          export function writeSearchResult(snapshot,env,worker,status='done',error=null) {
+            if(!WORKER_ROLES.includes(worker))throw new Error('Unknown search worker');
+            if(!env.SQUARE_RESULT_DIR)throw new Error('SQUARE_RESULT_DIR is required for read-only search output');
+            const directory=env.SQUARE_RESULT_DIR.replace(/\/$/,'');
+            fs.mkdirSync(directory,{recursive:true});
+            const file=directory+'/'+worker+'.json',temporary=file+'.tmp';
+            const result={version:1,run_id:String(env.GITHUB_RUN_ID||'local'),run_attempt:String(env.GITHUB_RUN_ATTEMPT||'1'),
+              worker,status,updated_at:Date.now(),snapshot,...(error?{error:redact(error,env)}:{})};
+            fs.writeFileSync(temporary,JSON.stringify(result));fs.renameSync(temporary,file);
+            return {worker,status,eligible_candidates:publishCandidates(snapshot).length,local_result:true};
+          }
+          export async function importSearchResults(env,wait=WAIT) {
+            if(!env.SQUARE_RESULT_DIR)return {imported:[],errors:[]};
+            const imported=[],errors=[],directory=env.SQUARE_RESULT_DIR.replace(/\/$/,'');
+            for(const worker of WORKER_ROLES) {
+              let result;
+              try {
+                const file=directory+'/'+worker+'.json',stat=fs.lstatSync(file);
+                if(!stat.isFile() || stat.size>25*1024*1024)throw new Error('Invalid search result file');
+                result=JSON.parse(fs.readFileSync(file,'utf8'));
+                const currentAttempt=Number(env.GITHUB_RUN_ATTEMPT||1),attempt=Number(result.run_attempt);
+                if(result.version!==1 || result.worker!==worker || result.run_id!==String(env.GITHUB_RUN_ID||'local') ||
+                  !Number.isSafeInteger(attempt) || attempt<1 || attempt>currentAttempt ||
+                  !['done','failed'].includes(result.status) || !result.snapshot || typeof result.snapshot!=='object' || Array.isArray(result.snapshot))
+                  throw new Error('Search result does not match this workflow run');
+                for(const field of ['reported_open','other_candidates','live_candidates','packet_authors'])
+                  if(result.snapshot[field]!==undefined && !Array.isArray(result.snapshot[field]))throw new Error('Invalid search result '+field);
+              } catch(error) {
+                const message=redact(error,env);errors.push({worker,error:message});
+                summary('Результат поиска '+worker+' недоступен: '+message,env);
+                // A missing artifact must not prevent the other workers or an older
+                // durable queue from being processed, or leave the publisher waiting.
+                await enqueueSnapshot({reported_open:[],other_candidates:[]},env,worker,'failed','Search artifact unavailable: '+message,wait);
+                continue;
+              }
+              const queued=await enqueueSnapshot(result.snapshot,env,worker,result.status,result.error||null,wait);
+              imported.push(worker);summary('Импорт результата: '+JSON.stringify(queued),env);
+            }
+            return {imported,errors};
+          }
           export async function runSearchWorker(env,worker,mode) {
+            if(mode!=='preview' && !env.SQUARE_RESULT_DIR)throw new Error('SQUARE_RESULT_DIR is required for read-only search');
             if(mode==='scheduled') {
               const state=await loadScanMemory(env);
               if(!state.enabled_destination) {summary('Автопубликация не включена: сначала запустите publish.',env);return {disabled:true};}
             }
-            let snapshot;
+            let snapshot,lastPartial;
             try {
               snapshot=await scan(env,worker,mode==='preview' ? null : async partial=>{
-                const result=await enqueueSnapshot(partial,env,worker,'running');
-                summary('Промежуточная очередь: '+JSON.stringify(result),env);
+                lastPartial=partial;
+                const result=writeSearchResult(partial,env,worker,'running');
+                summary('Локальная находка: '+JSON.stringify(result),env);
               });
               workerSummary(snapshot,env);
               if(mode==='preview') {
@@ -1516,13 +1566,13 @@ jobs:
                   kind:candidate.post.kind,url:candidate.post.url,codes:candidate.post.published_codes}));
                 return snapshot;
               }
-              const result=await enqueueSnapshot(snapshot,env,worker,snapshot.all_sources_failed?'failed':'done');
-              summary('Очередь: '+JSON.stringify(result),env);
+              const result=writeSearchResult(snapshot,env,worker,snapshot.all_sources_failed?'failed':'done');
+              summary('Результат для отправителя: '+JSON.stringify(result),env);
               if(snapshot.all_sources_failed)throw new Error('All worker sources failed; other workers continue');
               return result;
             } catch(error) {
               if(mode!=='preview') {
-                try {await enqueueSnapshot(snapshot||{reported_open:[],other_candidates:[]},env,worker,'failed',error);}
+                try {writeSearchResult(snapshot||lastPartial||{reported_open:[],other_candidates:[]},env,worker,'failed',error);}
                 catch(saveError){summary('Не удалось сохранить статус задачи: '+redact(saveError,env),env);}
               }
               throw error;
@@ -1533,9 +1583,10 @@ jobs:
             const started=Date.now(),deadline=started+windowMs;
             const initial=await publish({reported_open:[],other_candidates:[]},env,mode,wait);
             if(initial.disabled)return initial;
+            const artifactResults=await importSearchResults(env,wait);
             const budget={limits:{...QUEUE_LIMITS},used:{posts:0,codes:0,live:0},deadline,verify_originals:true};
             const totals={...initial,queue_limits:{...QUEUE_LIMITS},sent_by_queue:{posts:0,codes:0,live:0},
-              attempted_by_queue:budget.used,pumps:0};
+              attempted_by_queue:budget.used,pumps:0,search_artifacts:artifactResults};
             const run=String(env.GITHUB_RUN_ID||'local')+':'+String(env.GITHUB_RUN_ATTEMPT||'1');
             let signature=null,latest,enabledDestination;
             const found=new Set(),fresh=new Set();
@@ -1601,21 +1652,42 @@ jobs:
           }
           await main().catch(error=>{summary('ERROR: '+redact(error,process.env),process.env);process.exitCode=1;});
           JS
+      - name: Upload search result
+        if: ${{ !cancelled() && inputs.mode != 'preview' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: square-result-${{ github.run_id }}-${{ matrix.worker }}
+          path: redpacket-results/${{ matrix.worker }}.json
+          if-no-files-found: warn
+          retention-days: 1
+          overwrite: true
 
   publish:
     name: Telegram · publisher
-    if: github.ref_name == github.event.repository.default_branch && (github.event_name == 'schedule' || inputs.mode != 'preview')
+    needs: search
+    if: ${{ !cancelled() && github.ref_name == github.event.repository.default_branch && (github.event_name == 'schedule' || inputs.mode != 'preview') }}
     runs-on: ubuntu-latest
     timeout-minutes: 6
+    permissions:
+      contents: write
     concurrency:
       group: square-telegram-publisher
       cancel-in-progress: false
     steps:
+      - name: Download results from this workflow run
+        if: ${{ inputs.mode != 'telegram_test' }}
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: square-result-${{ github.run_id }}-*
+          path: redpacket-results
+          merge-multiple: true
       - name: Publish ready queue entries
         shell: bash
         env:
           RUN_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || inputs.mode }}
           WORKER_ROLE: publisher
+          SQUARE_RESULT_DIR: redpacket-results
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           TG_THREAD_ID: ${{ secrets.TG_THREAD_ID }}
