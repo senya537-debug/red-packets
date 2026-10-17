@@ -1,5 +1,6 @@
 # GitHub: replace .github/workflows/square_access_check.yml with this file.
-# Repository Secrets: TG_BOT_TOKEN, TG_CHAT_ID. Optional: TG_THREAD_ID.
+# Repository Secrets: TG_BOT_TOKEN, TG_CHAT_ID. Optional: TG_THREAD_ID (legacy), TG_RU_THREAD_ID and TG_EN_THREAD_ID (both for RU/EN topics).
+# RU keeps the existing delivery history; EN has a separate receipt namespace. Questions, answers and codes stay original.
 # Run telegram_test first. Run publish manually to enable automatic posting.
 # Preview and test never enable the schedule. No Binance account/API keys needed.
 # Deduplication history stays in .redpacket/delivery.json; it is never reset. Claims are persisted before sending.
@@ -26,7 +27,8 @@
 # Arabic/Urdu packet and code labels are recognized in any feed; eligibility rules stay the same.
 # Durable outbox in the existing delivery state: max 200 findings per category.
 # Publisher starts after the searches; imports their artifacts, then consumes the durable queue for up to 240 seconds.
-# Independent per-run quotas: 15 packet/quiz posts, 15 codes, 5 verified live alerts.
+# Independent per-language quotas: 15 packet/quiz posts, 15 codes, 5 verified live alerts. RU/EN batches alternate.
+# After setting both topic secrets, run telegram_test to check the two topics, then publish to enable this configuration.
 # Queue rounds: one packet/quiz, one code, one live alert; keep all categories moving.
 # Search checkpoints stay local; final/partial results are uploaded even after a failed search.
 # Artifact transfers retry up to 3 times with 10/30-second pauses; only the publisher writes repository state.
@@ -762,66 +764,68 @@ jobs:
           function formatAverage(value) {
             return value>=1 ? String(Number(value.toFixed(2))) : String(Number(value.toFixed(6)));
           }
-          export function formatTelegramPost(post) {
+          export function formatTelegramPost(post,language='ru') {
+            const t=(ru,en)=>language==='en'?en:ru;
             if(post.kind==='live') {
               if(!/^https:\/\/www\.binance\.com\/en\/square\/audio\?id=\d+$/.test(post.url||''))throw new Error('Invalid live URL');
               const coin=currencySymbol(post.currency);
-              const lines=['🔴🔴 <b>ПРЯМОЙ ЭФИР · 🧧 РАЗДАЧА</b>',
-                '#ПРЯМОЙ_ЭФИР #LIVE #RedPacket'+(coin?' #'+coin:'')];
-              if(coin)lines.push('🪙 Монета пакета: <b>#'+coin+'</b>');
+              const lines=[t('🔴🔴 <b>ПРЯМОЙ ЭФИР · 🧧 РАЗДАЧА</b>','🔴🔴 <b>LIVE STREAM · 🧧 GIVEAWAY</b>'),
+                t('#ПРЯМОЙ_ЭФИР #LIVE #RedPacket','#LIVE #RedPacket')+(coin?' #'+coin:'')];
+              if(coin)lines.push(t('🪙 Монета пакета: <b>#','🪙 Reward coin: <b>#')+coin+'</b>');
               if(post.author)lines.push('👤 '+escapeHtml(post.author,80));
               if(post.title)lines.push('',escapeHtml(post.title,500));
-              lines.push('','Square показывает значок красного пакета.','Доступность награды для вас не проверена.');
-              if(post.published_at)lines.push('🕒 Начало: '+escapeHtml(post.published_at.replace('T',' ').replace(/\.\d{3}Z$/,' UTC'),40));
-              lines.push('',`<a href="${post.url}">Открыть эфир в Binance</a>`);
+              lines.push('',t('Square показывает значок красного пакета.','Square displays a red packet badge.'),t('Доступность награды для вас не проверена.','Your eligibility for the reward has not been verified.'));
+              if(post.published_at)lines.push(t('🕒 Начало: ','🕒 Started: ')+escapeHtml(post.published_at.replace('T',' ').replace(/\.\d{3}Z$/,' UTC'),40));
+              lines.push('',`<a href="${post.url}">${t('Открыть эфир в Binance','Open live stream on Binance')}</a>`);
               return {text:lines.join('\n'),parse_mode:'HTML',link_preview_options:{is_disabled:true},
-                reply_markup:{inline_keyboard:[[{text:'🔴 Открыть эфир',url:post.url}]]}};
+                reply_markup:{inline_keyboard:[[{text:t('🔴 Открыть эфир','🔴 Open live stream'),url:post.url}]]}};
             }
             if (!/^https:\/\/www\.binance\.com\/en\/square\/post\/\d+$/.test(post.url || "")) {
               throw new Error("Invalid source post URL");
             }
             const coin=currencySymbol(post.currency);
             const lines = [`🧧 <b>Red Packet${coin ? ' · #'+coin : ''}</b>`];
-            lines.push(coin ? `🪙 Монета пакета: <b>#${coin}</b>` : '🪙 Монета пакета не указана');
+            lines.push(coin ? `🪙 ${t('Монета пакета','Reward coin')}: <b>#${coin}</b>` : t('🪙 Монета пакета не указана','🪙 Reward coin not specified'));
             if(post.author)lines.push(`👤 ${escapeHtml(post.author,80)}`);
             if (post.kind === "quiz" || post.kind === "quiz_answer") {
-              lines.push("", "📝 <b>Викторина</b>");
+              lines.push("", t('📝 <b>Викторина</b>','📝 <b>Quiz</b>'));
               if (post.question) lines.push(`❓ ${escapeHtml(post.question,400)}`);
-              if (post.hint) lines.push(`💡 Подсказка: <code>${escapeHtml(post.hint,160)}</code>`);
+              if (post.hint) lines.push(`💡 ${t('Подсказка','Hint')}: <code>${escapeHtml(post.hint,160)}</code>`);
               const answer = post.answer_from_metadata ?? post.answer_claimed_in_post;
               if (answer !== null && answer !== undefined && String(answer) !== "") {
-                lines.push(`📌 Указанный ответ: <code>${escapeHtml(answer,160)}</code> (не проверен)`);
+                lines.push(`📌 ${t('Указанный ответ','Stated answer')}: <code>${escapeHtml(answer,160)}</code> (${t('не проверен','unverified')})`);
               }
-              if (!post.hint && !answer) lines.push("Ответ пока не найден.");
+              if (!post.hint && !answer) lines.push(t('Ответ пока не найден.','No answer found yet.'));
             }
-            if (post.kind === 'packet') lines.push('', '🎁 <b>Пакет с кнопкой Claim</b>');
-            if (post.kind === 'packet_link') lines.push('', '🎁 <b>Пакет</b>');
+            if (post.kind === 'packet') lines.push('', t('🎁 <b>Пакет с кнопкой Claim</b>','🎁 <b>Packet with Claim button</b>'));
+            if (post.kind === 'packet_link') lines.push('', t('🎁 <b>Пакет</b>','🎁 <b>Packet</b>'));
             // Only authored standalone codes are displayed. Envelope grabCode is retained
             // for internal identity matching and is not presented as a redeemable code.
             const visibleCodes=post.kind==='code' ? [...new Map([...(post.published_codes||[])]
               .filter(code=>/^[A-Za-z0-9]{8}$/.test(String(code||''))).map(code=>[String(code).toUpperCase(),code])).values()] : [];
             if (visibleCodes.length) {
-              lines.push("", ...visibleCodes.slice(0,5).map(code => `🎟 Код: <code>${escapeHtml(code,24)}</code>`));
+              lines.push("", ...visibleCodes.slice(0,5).map(code => `🎟 ${t('Код','Code')}: <code>${escapeHtml(code,24)}</code>`));
             }
             const average=averagePerPerson(post);
             if (average) {
               const currency=String(post.currency||'').toUpperCase(), isUsd=USD_STABLE.has(currency);
               const unit=isUsd ? '$' : escapeHtml(post.currency || '',24);
-              lines.push(`💰 В среднем ≈ ${formatAverage(average.avg)}${unit ? ' '+unit : ''} на человека, осталось ${average.places} ${placesWord(average.places)}`);
-              if (isUsd && average.avg>=BIG_AVG_USD) lines.push('💎 <b>Крупный пакет</b>');
-            } else lines.push("💰 Размер награды неизвестен");
+              lines.push(language==='en'?`💰 Average ≈ ${formatAverage(average.avg)}${unit?' '+unit:''} per person, ${average.places} spots remaining`:
+                `💰 В среднем ≈ ${formatAverage(average.avg)}${unit ? ' '+unit : ''} на человека, осталось ${average.places} ${placesWord(average.places)}`);
+              if (isUsd && average.avg>=BIG_AVG_USD) lines.push(t('💎 <b>Крупный пакет</b>','💎 <b>Large packet</b>'));
+            } else lines.push(t('💰 Размер награды неизвестен','💰 Reward amount unknown'));
             lines.push("", post.status === "reported_open"
-              ? "По данным Square: пакет не истёк и не разобран."
-              : "Доступность награды не проверена.");
-            if (post.kind === "quiz" || post.kind === "quiz_answer") lines.push("Подсказка и ответ ещё не проверены получением пакета.");
-            if (post.expires_at) lines.push(`⌛ До: ${escapeHtml(post.expires_at.replace('T',' ').replace(/\.\d{3}Z$/, ' UTC'),40)}`);
+              ? t('По данным Square: пакет не истёк и не разобран.','Square reports that the packet has not expired or run out.')
+              : t('Доступность награды не проверена.','Reward availability has not been verified.'));
+            if (post.kind === "quiz" || post.kind === "quiz_answer") lines.push(t('Подсказка и ответ ещё не проверены получением пакета.','The hint and answer have not been verified by claiming the packet.'));
+            if (post.expires_at) lines.push(`⌛ ${t('До','Expires')}: ${escapeHtml(post.expires_at.replace('T',' ').replace(/\.\d{3}Z$/, ' UTC'),40)}`);
             if (post.published_at) {
               lines.push(`🕒 ${escapeHtml(post.published_at.replace("T"," ").replace(/\.\d{3}Z$/, " UTC"),40)}`);
             }
             const isBinance=post.kind!=='code' && post.url.startsWith('https://www.binance.com/');
-            if(isBinance)lines.push("", `<a href="${post.url}">Открыть пост в Binance</a>`);
+            if(isBinance)lines.push("", `<a href="${post.url}">${t('Открыть пост в Binance','Open post on Binance')}</a>`);
             return {text: lines.join("\n"), parse_mode: "HTML", link_preview_options: {is_disabled: true},
-              ...(isBinance?{reply_markup:{inline_keyboard:[[{text:post.kind==='packet'?'🎁 Открыть пакет':'🧧 Открыть в Binance',url:post.url}]]}}:{})};
+              ...(isBinance?{reply_markup:{inline_keyboard:[[{text:post.kind==='packet'?t('🎁 Открыть пакет','🎁 Open packet'):t('🧧 Открыть в Binance','🧧 Open on Binance'),url:post.url}]]}}:{})};
           }
           export function isFreshPost(post, now = Date.now()) {
             const published = Date.parse(post?.published_at);
@@ -1036,12 +1040,17 @@ jobs:
           export function deliveryQueue(candidate) {
             return candidate.post?.kind==='live' ? 'live' : candidate.post?.kind==='code' ? 'codes' : 'posts';
           }
+          export function deliveryDestinations(state) {
+            if(!state.enabled_destination)return [];
+            return [...new Set([state.enabled_destination,...(Array.isArray(state.delivery_destinations)?
+              state.delivery_destinations.filter(d=>typeof d==='string' && /^[a-f0-9]{64}$/.test(d)):[])])];
+          }
           export function compactOutbox(outbox,state={},now=Date.now()) {
-            const index=state.enabled_destination ? deliveryIndex({items:state.items||{}},state.enabled_destination) : null;
+            const indices=deliveryDestinations(state).map(d=>deliveryIndex({items:state.items||{}},d));
             const entries=Object.entries(outbox||{}).filter(([key,entry])=>{
               if(key!==entry?.candidate?.key || !canonicalIdentity(key) || !isEligiblePost(entry.candidate.post,now))return false;
               if(!Number.isFinite(Number(entry.observed_at)) || Number(entry.observed_at)>now+60000)return false;
-              return !index || !matchingDeliveries(index,entry.candidate).some(k=>state.items[k]?.state==='sent');
+              return !indices.length || !indices.every(index=>matchingDeliveries(index,entry.candidate).some(k=>state.items[k]?.state==='sent'));
             }).sort((a,b)=>Number(b[1].observed_at)-Number(a[1].observed_at));
             const counts={posts:0,codes:0,live:0};
             return Object.fromEntries(entries.filter(([,entry])=>++counts[deliveryQueue(entry.candidate)]<=OUTBOX_LIMIT/3));
@@ -1063,10 +1072,10 @@ jobs:
           }
           function extendOutboxHistoryAliases(state,outbox) {
             if(!state.enabled_destination)return;
-            const index=deliveryIndex(state,state.enabled_destination);
+            const indices=deliveryDestinations(state).map(d=>deliveryIndex(state,d));
             for(const entry of Object.values(outbox||{})) {
               if(!entry?.candidate || !canonicalIdentity(entry.candidate.key))continue;
-              for(const key of matchingDeliveries(index,entry.candidate)) {
+              for(const key of new Set(indices.flatMap(index=>matchingDeliveries(index,entry.candidate)))) {
                 state.items[key].identity_keys=[...new Set([...(state.items[key].identity_keys||[]),...candidateIdentityKeys(entry.candidate)])];
               }
             }
@@ -1078,11 +1087,12 @@ jobs:
           }
           export function enqueueDiagnostics(candidates,state,now=Date.now()) {
             const index=state.enabled_destination ? deliveryIndex(state,state.enabled_destination) : null;
+            const indices=deliveryDestinations(state).map(d=>deliveryIndex(state,d));
             const reasons={},byQueue={posts:0,codes:0,live:0},alreadySent=[];
             for(const candidate of candidates) {
               let reason;const matches=index ? matchingDeliveries(index,candidate) : [];
               if(!isEligiblePost(candidate.post,now))reason='became_ineligible';
-              else if(matches.some(key=>state.items[key]?.state==='sent')) {
+              else if(indices.length && indices.every(i=>matchingDeliveries(i,candidate).some(key=>state.items[key]?.state==='sent'))) {
                 reason='already_sent';
                 if(alreadySent.length<3) {
                   const item=state.items[matches.find(key=>state.items[key]?.state==='sent')];
@@ -1090,7 +1100,8 @@ jobs:
                 }
               }
               else if(state.outbox?.[candidate.key]) {
-                const blocked=index ? deliverySkipReason(state,matchingDeliveries(index,candidate),now) : null;
+                const blocks=indices.map(i=>deliverySkipReason(state,matchingDeliveries(i,candidate),now));
+                const blocked=blocks.some(b=>!b)?null:blocks.find(b=>b==='previously_stale')||blocks[0]||null;
                 reason=blocked==='previously_stale' ? 'needs_original_recheck' : blocked || 'queued';
               } else reason='not_retained_in_queue';
               reasons[reason]=(reasons[reason]||0)+1;
@@ -1292,18 +1303,34 @@ jobs:
               }
             }
           }
+          export function telegramTargets(env,chatId) {
+            const ru=env.TG_RU_THREAD_ID||'',en=env.TG_EN_THREAD_ID||'';
+            if(!!ru!==!!en)throw new Error('Set both TG_RU_THREAD_ID and TG_EN_THREAD_ID, or leave both empty');
+            for(const id of [ru,en])if(id && (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))))throw new Error('Topic IDs must be positive integers');
+            if(ru && ru===en)throw new Error('RU and EN must use different Telegram topics');
+            const base=createHash('sha256').update(JSON.stringify([chatId,env.TG_THREAD_ID||''])).digest('hex');
+            const targets=[{language:'ru',thread_id:ru||env.TG_THREAD_ID||'',destination:base}];
+            if(en)targets.push({language:'en',thread_id:en,
+              destination:createHash('sha256').update(JSON.stringify([chatId,'en',en])).digest('hex')});
+            return {base,targets,signature:ru?createHash('sha256').update(JSON.stringify([chatId,ru,en])).digest('hex'):null};
+          }
+          function targetEnabled(state,configuration) {
+            return state.enabled_destination===configuration.base &&
+              (state.enabled_topic_signature||null)===configuration.signature;
+          }
           function config(env) {
             if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(env.TG_BOT_TOKEN || '')) throw new Error('Add repository Secret TG_BOT_TOKEN from BotFather');
             if (!/^(?:-\d+|@[A-Za-z][A-Za-z0-9_]{4,})$/.test(env.TG_CHAT_ID || '')) throw new Error('Add repository Secret TG_CHAT_ID: group ID or public @username');
             if (env.TG_THREAD_ID && !/^[1-9]\d*$/.test(env.TG_THREAD_ID)) throw new Error('TG_THREAD_ID must be a positive integer');
           }
           export async function resolveGroup(env,wait=WAIT) {
-            const cacheKey=createHash('sha256').update(JSON.stringify([env.TG_BOT_TOKEN,env.TG_CHAT_ID])).digest('hex');
+            const cacheKey=createHash('sha256').update(JSON.stringify([env.TG_BOT_TOKEN,env.TG_CHAT_ID,!!(env.TG_RU_THREAD_ID||env.TG_EN_THREAD_ID)])).digest('hex');
             if(GROUP_CACHE.has(cacheKey))return GROUP_CACHE.get(cacheKey);
             const {response,body}=await readApiWithRetry('Telegram getChat',()=>fetch(`https://api.telegram.org/bot${env.TG_BOT_TOKEN}/getChat`,{
               method:'POST',redirect:'error',signal:AbortSignal.timeout(10000),
               headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:env.TG_CHAT_ID})}),env,wait);
             if (!response.ok || !body?.ok) throw new Error('Telegram getChat: HTTP '+response.status+'; '+redact(body?.description||'invalid response',env));
+            if((env.TG_RU_THREAD_ID || env.TG_EN_THREAD_ID) && !body.result?.is_forum)throw new Error('Enable Topics in the Telegram group before configuring RU/EN topic IDs');
             if (!['group','supergroup'].includes(body.result?.type) || !/^-\d+$/.test(String(body.result.id))) throw new Error('TG_CHAT_ID must identify a Telegram group or supergroup');
             const chatId=String(body.result.id);GROUP_CACHE.set(cacheKey,chatId);return chatId;
           }
@@ -1320,19 +1347,25 @@ jobs:
               return {ok:false,uncertain:true,error:'Telegram did not confirm delivery; check group manually'};
             } catch(error) {return {ok:false,uncertain:true,error:'Telegram sendMessage: '+networkCause(error,env)+'; check group before retrying'};}
           }
-          export async function publish(snapshot,env,mode,wait=WAIT,budget=null) {
+          export async function publish(snapshot,env,mode,wait=WAIT,budget=null,language='ru') {
             config(env);
             const chatId=await resolveGroup(env,wait);
-            const destination=createHash('sha256').update(JSON.stringify([chatId,env.TG_THREAD_ID||''])).digest('hex');
+            const configuration=telegramTargets(env,chatId),target=configuration.targets.find(t=>t.language===language);
+            if(!target)throw new Error('Telegram language destination is not configured');
+            const destination=target.destination,sendEnv={...env,TG_THREAD_ID:target.thread_id};
             const storage=new GitHubState(env,wait), state=await storage.load();
             const stats={sent:0,skipped:0,uncertain:0,last_error:null,skip_reasons:{},candidates_found:0,new_candidates:0,
               max_posts_per_run:MAX_POSTS_PER_RUN,deferred_by_limit:0};
             if(budget)Object.assign(stats,{queue_limits:{...budget.limits},attempted_by_queue:{posts:0,codes:0,live:0},
               sent_by_queue:{posts:0,codes:0,live:0},deferred_by_queue:{posts:0,codes:0,live:0}});
             const skip=reason=>{stats.skipped++;stats.skip_reasons[reason]=(stats.skip_reasons[reason]||0)+1;};
-            if (mode==='scheduled' && state.enabled_destination!==destination) return {...stats,disabled:true,reason:'Run publish manually once to enable this group'};
+            if (mode==='scheduled' && !targetEnabled(state,configuration)) return {...stats,disabled:true,reason:'Run publish manually once to enable this group and topic configuration'};
             if (mode!=='telegram_test' && snapshot.all_sources_failed) throw new Error('All Square sources failed; no messages sent');
-            if (mode==='publish') state.enabled_destination=destination;
+            if (mode==='publish') {
+              state.enabled_destination=configuration.base;
+              state.delivery_destinations=configuration.targets.map(t=>t.destination);
+              state.enabled_topic_signature=configuration.signature;
+            }
             const authors=mergeAuthors(Array.isArray(state.authors)?state.authors:[],snapshot.packet_authors||[]);
             const authorsChanged=JSON.stringify(authors)!==JSON.stringify(state.authors||[]);
             state.authors=authors;
@@ -1350,10 +1383,12 @@ jobs:
               }
             }
             const allCandidates=mode==='telegram_test'
-              ? [{key:'test:'+(env.GITHUB_RUN_ID||'local'),message:{text:'🧧 Бот Red Packet подключён.\nЭто тестовое сообщение. Автопубликация включается отдельным запуском publish.'}}]
+              ? [{key:'test:'+(env.GITHUB_RUN_ID||'local'),message:{text:language==='en'?
+                '🧧 Red Packet Radar connected.\nThis is a test message. Run publish separately to enable automatic posting.':
+                '🧧 Бот Red Packet подключён.\nЭто тестовое сообщение. Автопубликация включается отдельным запуском publish.'}}]
               : orderDeliveryCandidates(snapshot.queued_candidates ? deduplicateCandidates(snapshot.queued_candidates.filter(c=>isEligiblePost(c.post))) :
                 publishCandidates(snapshot)).filter((item,index,all)=>budget ? all.slice(0,index+1).filter(c=>deliveryQueue(c)===deliveryQueue(item)).length<=100 : index<100)
-                .map(item=>({...item,message:formatTelegramPost(item.post)}));
+                .map(item=>({...item,message:formatTelegramPost(item.post,language)}));
             stats.candidates_found=allCandidates.length;
             let index=deliveryIndex(state,destination),identitiesChanged=false;
             // Extend old records when their posts reappear; never clear delivery history.
@@ -1380,6 +1415,8 @@ jobs:
             stats.new_candidates=candidates.length;
             let attempted=0;
             for (const [candidateIndex,candidate] of candidates.entries()) {
+              if(budget?.considered?.has(candidate.key))continue;
+              if(budget?.batch_size && attempted>=budget.batch_size)break;
               const queue=deliveryQueue(candidate);
               if(budget) {
                 if(Date.now()+15000>budget.deadline) {stats.deferred_by_limit+=candidates.length-candidateIndex;break;}
@@ -1389,6 +1426,7 @@ jobs:
               } else if (attempted>=MAX_POSTS_PER_RUN) {stats.deferred_by_limit=candidates.length-candidateIndex;break;}
               if (candidate.post && !isEligiblePost(candidate.post)) continue;
               if (candidate.post?.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()) continue;
+              budget?.considered?.add(candidate.key);
               index=deliveryIndex(state,destination);
               const matches=matchingDeliveries(index,candidate);
               const blockedReason=deliverySkipReason(state,matches);
@@ -1420,7 +1458,7 @@ jobs:
                   expires_at:null,amount:null,available_amount:null,available_receivers:null} :
                   {...current,currency:current.currency??currencySymbol(candidate.post.currency),
                     packet_id:current.packet_id??candidate.post.packet_id,packet_code:current.packet_code??candidate.post.packet_code};
-                candidate.message=formatTelegramPost(candidate.post);
+                candidate.message=formatTelegramPost(candidate.post,language);
                 index=deliveryIndex(state,destination);
                 const refreshedReason=deliverySkipReason(state,matchingDeliveries(index,candidate));
                 if(refreshedReason && refreshedReason!=='previously_stale'){skip(refreshedReason);continue;}
@@ -1439,7 +1477,7 @@ jobs:
                 await storage.save(state,'duplicate claim avoided');
                 index=deliveryIndex(state,destination);skip('duplicate_identity');continue;
               }
-              if(mode!=='telegram_test' && state.enabled_destination!==destination)
+              if(mode!=='telegram_test' && !targetEnabled(state,configuration))
                 throw new Error('Telegram destination changed during state update; publishing stopped');
               if(candidate.post?.kind==='live') {
                 try {
@@ -1448,7 +1486,7 @@ jobs:
                     state.items[key].state='queued';state.items[key].retry_at=Date.now()+60000;state.items[key].updated_at=Date.now();
                     await storage.save(state,'live ended or badge hidden');skip('live_ended_or_badge_hidden');continue;
                   }
-                  candidate.post=current;candidate.message=formatTelegramPost(current);
+                  candidate.post=current;candidate.message=formatTelegramPost(current,language);
                 } catch(error) {
                   state.items[key].state='queued';state.items[key].retry_at=Date.now()+60000;
                   state.items[key].error=redact(error,env);state.items[key].updated_at=Date.now();
@@ -1465,7 +1503,7 @@ jobs:
               }
               attempted++;
               if(budget){budget.used[queue]=(budget.used[queue]||0)+1;stats.attempted_by_queue[queue]++;}
-              const result=await sendMessage(env,chatId,candidate.message);
+              const result=await sendMessage(sendEnv,chatId,candidate.message);
               const item=state.items[key];item.updated_at=Date.now();
               if (result.ok) {item.state='sent';item.message_id=result.message_id;stats.sent++;if(budget)stats.sent_by_queue[queue]++;}
               else {
@@ -1477,9 +1515,9 @@ jobs:
               await storage.save(state,result.ok ? 'sent' : 'delivery not confirmed');
               index=deliveryIndex(state,destination);
               if (!result.ok) break;
-              if (budget || attempted<MAX_POSTS_PER_RUN) await wait(1100);
+              if (budget || attempted<MAX_POSTS_PER_RUN) await wait(budget?.send_delay_ms||1100);
             }
-            stats.enabled=state.enabled_destination===destination;
+            stats.enabled=targetEnabled(state,configuration);
             stats.pending_uncertain=Object.entries(state.items).filter(([key,item])=>key.startsWith(destination+':')&&item.state==='uncertain').length;
             stats.pending_uncertain_posts=Object.entries(state.items)
               .filter(([key,item])=>key.startsWith(destination+':')&&item.state==='uncertain').slice(0,5)
@@ -1580,65 +1618,96 @@ jobs:
             }
           }
           export async function runQueuePublisher(env,mode,wait=WAIT,windowMs=PUBLISH_WINDOW_MS) {
-            if(mode==='telegram_test')return publish({reported_open:[],other_candidates:[]},env,mode,wait);
+            if(mode==='telegram_test') {
+              const configuration=telegramTargets(env,await resolveGroup(env,wait)),tests=[];
+              for(const target of configuration.targets) {
+                const result=await publish({reported_open:[],other_candidates:[]},env,mode,wait,null,target.language);
+                tests.push({language:target.language,...result});
+                if(result.last_error)break;
+                if(configuration.targets.length>1)await wait(3100);
+              }
+              return {sent:tests.reduce((n,t)=>n+t.sent,0),tests,last_error:tests.find(t=>t.last_error)?.last_error||null,
+                enabled:tests.every(t=>t.enabled)};
+            }
             const started=Date.now(),deadline=started+windowMs;
             const initial=await publish({reported_open:[],other_candidates:[]},env,mode,wait);
             if(initial.disabled)return initial;
+            const configuration=telegramTargets(env,await resolveGroup(env,wait)),targets=configuration.targets;
             const artifactResults=await importSearchResults(env,wait);
-            const budget={limits:{...QUEUE_LIMITS},used:{posts:0,codes:0,live:0},deadline,verify_originals:true};
-            const totals={...initial,queue_limits:{...QUEUE_LIMITS},sent_by_queue:{posts:0,codes:0,live:0},
-              attempted_by_queue:budget.used,pumps:0,search_artifacts:artifactResults};
+            const budgets=Object.fromEntries(targets.map(target=>[target.language,{limits:{...QUEUE_LIMITS},
+              used:{posts:0,codes:0,live:0},deadline,verify_originals:true,considered:new Set(),
+              ...(targets.length>1?{batch_size:3,send_delay_ms:3100}:{})}]));
+            const totals={...initial,queue_limits_per_language:{...QUEUE_LIMITS},queue_limits:{...QUEUE_LIMITS},
+              sent_by_queue:{posts:0,codes:0,live:0},sent_by_language:Object.fromEntries(targets.map(t=>[t.language,0])),
+              attempted_by_queue:{posts:0,codes:0,live:0},pumps:0,search_artifacts:artifactResults};
             const run=String(env.GITHUB_RUN_ID||'local')+':'+String(env.GITHUB_RUN_ATTEMPT||'1');
-            let signature=null,latest,enabledDestination;
+            let latest;
             const found=new Set(),fresh=new Set();
+            const available=(state,target,candidates)=>{
+              const index=deliveryIndex(state,target.destination),budget=budgets[target.language];
+              return candidates.filter(candidate=>{
+                const reason=deliverySkipReason(state,matchingDeliveries(index,candidate));
+                return !budget.considered.has(candidate.key) && (budget.used[deliveryQueue(candidate)]||0)<budget.limits[deliveryQueue(candidate)] &&
+                  (!reason || reason==='previously_stale');
+              });
+            };
             while(Date.now()+15000<deadline) {
-              latest=await new GitHubState(env,wait).load();
-              enabledDestination??=latest.enabled_destination;
-              const snapshot=outboxSnapshot(latest),candidates=snapshot.queued_candidates;
-              const queueIndex=deliveryIndex(latest,latest.enabled_destination||'');
-              for(const candidate of candidates) {
-                found.add(candidate.key);
-                const reason=deliverySkipReason(latest,matchingDeliveries(queueIndex,candidate));
-                if(!reason || reason==='previously_stale')fresh.add(candidate.key);
-              }
-              const nextSignature=JSON.stringify(candidates.map(c=>[c.key,latest.outbox?.[c.key]?.observed_at]));
-              const usable=candidates.some(c=>(budget.used[deliveryQueue(c)]||0)<budget.limits[deliveryQueue(c)]);
-              if(usable && (nextSignature!==signature || totals.pumps===0)) {
-                signature=nextSignature;
-                const result=await publish(snapshot,env,'scheduled',wait,budget);
+              let progressed=false;
+              for(const target of targets) {
+                latest=await new GitHubState(env,wait).load();
+                if(!targetEnabled(latest,configuration)){totals.disabled=true;totals.reason='Telegram topic configuration changed';break;}
+                const snapshot=outboxSnapshot(latest),candidates=snapshot.queued_candidates;
+                for(const candidate of candidates)found.add(candidate.key);
+                const ready=available(latest,target,candidates);
+                for(const candidate of ready)fresh.add(candidate.key);
+                if(!ready.length)continue;
+                const result=await publish(snapshot,env,'scheduled',wait,budgets[target.language],target.language);
                 if(result.disabled){totals.disabled=true;totals.reason=result.reason;break;}
-                totals.pumps++;
+                totals.pumps++;progressed=true;
                 totals.sent+=result.sent;totals.skipped+=result.skipped;totals.uncertain+=result.uncertain;
+                totals.sent_by_language[target.language]+=result.sent;
                 totals.last_error=result.last_error;
-                totals.pending_uncertain=result.pending_uncertain;totals.pending_uncertain_posts=result.pending_uncertain_posts;
                 for(const [reason,n] of Object.entries(result.skip_reasons))totals.skip_reasons[reason]=(totals.skip_reasons[reason]||0)+n;
                 for(const queue of Object.keys(QUEUE_LIMITS))totals.sent_by_queue[queue]+=result.sent_by_queue[queue];
-                summary('Telegram · готовая часть очереди: '+JSON.stringify({sent:result.sent,sent_by_queue:result.sent_by_queue,
-                  skipped:result.skipped,skip_reasons:result.skip_reasons,last_error:result.last_error}),env);
+                summary('Telegram · '+target.language.toUpperCase()+': '+JSON.stringify({sent:result.sent,
+                  sent_by_queue:result.sent_by_queue,skip_reasons:result.skip_reasons,last_error:result.last_error}),env);
                 if(result.last_error)break;
               }
+              if(totals.disabled || totals.last_error)break;
+              latest=await new GitHubState(env,wait).load();
+              const candidates=outboxSnapshot(latest).queued_candidates;
               const workers=latest.worker_runs?.[run]||{};
-              if(WORKER_ROLES.every(worker=>['done','failed'].includes(workers[worker]?.status)))break;
-              if(Object.keys(QUEUE_LIMITS).every(queue=>budget.used[queue]>=budget.limits[queue]))break;
-              await wait(Math.min(PUBLISH_POLL_MS,Math.max(0,deadline-Date.now()-15000)));
+              const done=WORKER_ROLES.every(worker=>['done','failed'].includes(workers[worker]?.status));
+              const pending=targets.some(target=>available(latest,target,candidates).length>0);
+              if(done && !pending)break;
+              if(targets.every(t=>Object.keys(QUEUE_LIMITS).every(q=>budgets[t.language].used[q]>=budgets[t.language].limits[q])))break;
+              if(!progressed || !pending)await wait(Math.min(PUBLISH_POLL_MS,Math.max(0,deadline-Date.now()-15000)));
             }
             latest=await new GitHubState(env,wait).load();
             totals.workers=latest.worker_runs?.[run]||{};
             totals.candidates_found=found.size;totals.new_candidates=fresh.size;
-            totals.queue_remaining={posts:0,codes:0,live:0};
-            totals.deferred_by_queue={posts:0,codes:0,live:0};
-            const index=deliveryIndex(latest,latest.enabled_destination||'');
+            totals.queue_remaining={posts:0,codes:0,live:0};totals.deferred_by_queue={posts:0,codes:0,live:0};
+            totals.pending_uncertain=0;totals.pending_uncertain_posts=[];
+            for(const target of targets) {
+              const prefix=target.destination+':';
+              for(const [key,item] of Object.entries(latest.items))if(key.startsWith(prefix)&&item.state==='uncertain') {
+                totals.pending_uncertain++;
+                if(totals.pending_uncertain_posts.length<5)totals.pending_uncertain_posts.push({language:target.language,
+                  post_id:item.post_id||null,updated_at:iso(item.updated_at)});
+              }
+              for(const queue of Object.keys(QUEUE_LIMITS))totals.attempted_by_queue[queue]+=budgets[target.language].used[queue];
+            }
             for(const candidate of outboxSnapshot(latest).queued_candidates) {
-              const queue=deliveryQueue(candidate);
-              totals.queue_remaining[queue]++;
-              const reason=deliverySkipReason(latest,matchingDeliveries(index,candidate));
-              if(budget.used[queue]>=budget.limits[queue] && (!reason || reason==='previously_stale'))
-                totals.deferred_by_queue[queue]++;
+              const queue=deliveryQueue(candidate);totals.queue_remaining[queue]++;
+              if(targets.some(target=>{
+                const reason=deliverySkipReason(latest,matchingDeliveries(deliveryIndex(latest,target.destination),candidate));
+                return budgets[target.language].used[queue]>=budgets[target.language].limits[queue] && (!reason||reason==='previously_stale');
+              }))totals.deferred_by_queue[queue]++;
             }
             totals.deferred_by_limit=Object.values(totals.deferred_by_queue).reduce((a,b)=>a+b,0);
             totals.waited_seconds=Math.round((Date.now()-started)/1000);
             totals.worker_window_finished=!WORKER_ROLES.every(worker=>['done','failed'].includes(totals.workers[worker]?.status));
-            totals.enabled=initial.enabled && !totals.disabled && latest.enabled_destination===enabledDestination;
+            totals.enabled=initial.enabled && !totals.disabled && targetEnabled(latest,configuration);
             return totals;
           }
           export async function main(env=process.env) {
@@ -1742,5 +1811,7 @@ jobs:
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
           TG_THREAD_ID: ${{ secrets.TG_THREAD_ID }}
+          TG_RU_THREAD_ID: ${{ secrets.TG_RU_THREAD_ID }}
+          TG_EN_THREAD_ID: ${{ secrets.TG_EN_THREAD_ID }}
           GH_STATE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: *square_runtime
