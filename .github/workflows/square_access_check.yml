@@ -27,6 +27,7 @@
 # Arabic/Urdu packet and code labels are recognized in any feed; eligibility rules stay the same.
 # Durable outbox in the existing delivery state: max 200 findings per category.
 # Publisher starts after the searches; imports their artifacts, then consumes the durable queue for up to 240 seconds.
+# Affiliate message after every 10 confirmed new giveaways per language; durable receipts prevent repeats.
 # Independent per-language quotas: 15 packet/quiz posts, 15 codes, 5 verified live alerts. RU/EN batches alternate.
 # After setting both topic secrets, run telegram_test to check the two topics, then publish to enable this configuration.
 # Queue rounds: one packet/quiz, one code, one live alert; keep all categories moving.
@@ -154,7 +155,7 @@ jobs:
           const PUBLISH_WINDOW_MS = 240000;
           const PUBLISH_POLL_MS = 5000;
           const POST_MAX_AGE_MS = 10 * 60 * 1000;
-
+          
           function epoch(value) {
             const n = Number(value);
             return Number.isFinite(n) && n > 0 ? (n < 1e12 ? n * 1000 : n) : null;
@@ -962,10 +963,10 @@ jobs:
               for(const queue of [posts,codes,live])if(queue.length)ordered.push(queue.shift());
             return ordered;
           }
-
+          
           import fs from 'node:fs';
           import {createHash,randomUUID} from 'node:crypto';
-
+          
           const STATE_PATH = '.redpacket/delivery.json';
           const WAIT = ms => new Promise(resolve => setTimeout(resolve,ms));
           function redact(value,env,limit=300) {
@@ -1347,6 +1348,73 @@ jobs:
               return {ok:false,uncertain:true,error:'Telegram did not confirm delivery; check group manually'};
             } catch(error) {return {ok:false,uncertain:true,error:'Telegram sendMessage: '+networkCause(error,env)+'; check group before retrying'};}
           }
+          export const AFFILIATE_LINKS={
+            binance:'https://www.binance.com/register?ref=1052543841',
+            bitunix:'https://www.bitunix.com/u-link/referral/invitee?inviteCode=q8KxNk&t_act=-1',
+            traderpro:'https://trader-pro.org/ru/?ref=REF1AC1106D'
+          };
+          export const AFFILIATE_INTERVAL=10;
+          export function formatAffiliateMessage(language='ru') {
+            const en=language==='en';
+            return {text:en ? [
+              '🤝 <b>Red Packet Radar · Affiliate offers</b>',
+              '',
+              '<b>Binance</b> — create an account to use Binance and Square.',
+              '<b>Bitunix</b> — advertised offer: trading from <b>0.01 USDT</b>* and <b>10,000+ USDT</b> in newcomer rewards, subject to campaign tasks and eligibility.',
+              '<b>Trader Pro</b> — advertised partner offer: <b>1 month of VIP access free</b>*.',
+              '',
+              '* The 0.01 USDT threshold and free VIP month have not been independently confirmed. Check availability, order minimums and activation requirements with the platform before registering. Rewards are not a guaranteed cash payment.',
+              '',
+              'These are affiliate links. The project may receive a commission.'
+            ].join('\n') : [
+              '🤝 <b>Red Packet Radar · Партнёрские предложения</b>',
+              '',
+              '<b>Binance</b> — регистрация для работы с Binance и Square.',
+              '<b>Bitunix</b> — заявленное предложение: торговля от <b>0,01 USDT</b>* и <b>10 000+ USDT</b> в бонусах новичкам при выполнении заданий и условий акции.',
+              '<b>Trader Pro</b> — заявленное партнёрское предложение: <b>1 месяц VIP-доступа бесплатно</b>*.',
+              '',
+              '* Порог 0,01 USDT и бесплатный месяц VIP независимо не подтверждены. До регистрации уточните у платформы доступность, минимальный ордер и условия активации. Бонусы не являются гарантированной выплатой деньгами.',
+              '',
+              'Это партнёрские ссылки. Проект может получить комиссию.'
+            ].join('\n'),reply_markup:{inline_keyboard:[
+              [{text:en?'Binance · Register':'Binance · Регистрация',url:AFFILIATE_LINKS.binance}],
+              [{text:en?'Bitunix · View offer':'Bitunix · Смотреть условия',url:AFFILIATE_LINKS.bitunix}],
+              [{text:en?'Trader Pro · VIP offer':'Trader Pro · Предложение VIP',url:AFFILIATE_LINKS.traderpro}]
+            ]}};
+          }
+          export function affiliateProgress(state,destination,now=Date.now()) {
+            // Only new, confirmed giveaway receipts count. Existing history and test
+            // messages have no marker, so installing this version starts at zero.
+            const count=Object.entries(state.items).filter(([key,item])=>key.startsWith(destination+':') &&
+              item.state==='sent' && item.affiliate_counted===true && item.kind!=='affiliate').length;
+            const milestones=Math.floor(count/AFFILIATE_INTERVAL);
+            for(let sequence=1;sequence<=milestones;sequence++) {
+              const key=destination+':affiliate:'+sequence,item=state.items[key];
+              // An ambiguous send consumes this milestone; it is never retried blindly.
+              if(item && ['sent','uncertain','sending'].includes(item.state))continue;
+              if(item?.retry_at>now)return {count,due:null};
+              return {count,due:{key,sequence}};
+            }
+            return {count,due:null};
+          }
+          async function publishAffiliate(state,storage,sendEnv,chatId,configuration,destination,language,wait,budget,stats) {
+            const due=affiliateProgress(state,destination).due;
+            if(!due || (budget && Date.now()+15000>budget.deadline))return;
+            if(!targetEnabled(state,configuration))throw new Error('Telegram destination changed before affiliate send');
+            const claimId=randomUUID();
+            state.items[due.key]={kind:'affiliate',sequence:due.sequence,state:'sending',claim_id:claimId,updated_at:Date.now()};
+            await storage.save(state,'affiliate claim before send');
+            const claim=state.items[due.key];
+            if(claim?.state!=='sending' || claim.claim_id!==claimId)return;
+            if(!targetEnabled(state,configuration))throw new Error('Telegram destination changed during affiliate claim');
+            const result=await sendMessage(sendEnv,chatId,formatAffiliateMessage(language));
+            Object.assign(claim,{state:result.ok?'sent':result.uncertain?'uncertain':'queued',updated_at:Date.now(),
+              ...(result.ok?{message_id:result.message_id}:{error:result.error,retry_at:Date.now()+(result.retry_ms||300000)})});
+            await storage.save(state,result.ok?'affiliate sent':'affiliate delivery not confirmed');
+            if(result.ok)stats.affiliate_sent++;
+            else {stats.last_error=result.error;stats.affiliate_error=result.error;if(result.uncertain)stats.uncertain++;}
+            await wait(budget?.send_delay_ms||3100);
+          }
           export async function publish(snapshot,env,mode,wait=WAIT,budget=null,language='ru') {
             config(env);
             const chatId=await resolveGroup(env,wait);
@@ -1355,7 +1423,7 @@ jobs:
             const destination=target.destination,sendEnv={...env,TG_THREAD_ID:target.thread_id};
             const storage=new GitHubState(env,wait), state=await storage.load();
             const stats={sent:0,skipped:0,uncertain:0,last_error:null,skip_reasons:{},candidates_found:0,new_candidates:0,
-              max_posts_per_run:MAX_POSTS_PER_RUN,deferred_by_limit:0};
+              max_posts_per_run:MAX_POSTS_PER_RUN,deferred_by_limit:0,affiliate_sent:0};
             if(budget)Object.assign(stats,{queue_limits:{...budget.limits},attempted_by_queue:{posts:0,codes:0,live:0},
               sent_by_queue:{posts:0,codes:0,live:0},deferred_by_queue:{posts:0,codes:0,live:0}});
             const skip=reason=>{stats.skipped++;stats.skip_reasons[reason]=(stats.skip_reasons[reason]||0)+1;};
@@ -1413,8 +1481,10 @@ jobs:
             });
             const candidates=orderDeliveryCandidates(ready);
             stats.new_candidates=candidates.length;
+            if(mode!=='telegram_test')await publishAffiliate(state,storage,sendEnv,chatId,configuration,destination,language,wait,budget,stats);
             let attempted=0;
             for (const [candidateIndex,candidate] of candidates.entries()) {
+              if(stats.last_error)break;
               if(budget?.considered?.has(candidate.key))continue;
               if(budget?.batch_size && attempted>=budget.batch_size)break;
               const queue=deliveryQueue(candidate);
@@ -1505,7 +1575,7 @@ jobs:
               if(budget){budget.used[queue]=(budget.used[queue]||0)+1;stats.attempted_by_queue[queue]++;}
               const result=await sendMessage(sendEnv,chatId,candidate.message);
               const item=state.items[key];item.updated_at=Date.now();
-              if (result.ok) {item.state='sent';item.message_id=result.message_id;stats.sent++;if(budget)stats.sent_by_queue[queue]++;}
+              if (result.ok) {item.state='sent';item.message_id=result.message_id;if(mode!=='telegram_test')item.affiliate_counted=true;stats.sent++;if(budget)stats.sent_by_queue[queue]++;}
               else {
                 item.state=result.uncertain ? 'uncertain' : 'queued';
                 item.retry_at=Date.now()+(result.retry_ms||300000);item.error=result.error;
@@ -1515,7 +1585,8 @@ jobs:
               await storage.save(state,result.ok ? 'sent' : 'delivery not confirmed');
               index=deliveryIndex(state,destination);
               if (!result.ok) break;
-              if (budget || attempted<MAX_POSTS_PER_RUN) await wait(budget?.send_delay_ms||1100);
+              if (budget || attempted<MAX_POSTS_PER_RUN || affiliateProgress(state,destination).due) await wait(budget?.send_delay_ms||3100);
+              if(mode!=='telegram_test')await publishAffiliate(state,storage,sendEnv,chatId,configuration,destination,language,wait,budget,stats);
             }
             stats.enabled=targetEnabled(state,configuration);
             stats.pending_uncertain=Object.entries(state.items).filter(([key,item])=>key.startsWith(destination+':')&&item.state==='uncertain').length;
@@ -1631,7 +1702,7 @@ jobs:
             }
             const started=Date.now(),deadline=started+windowMs;
             const initial=await publish({reported_open:[],other_candidates:[]},env,mode,wait);
-            if(initial.disabled)return initial;
+            if(initial.disabled || initial.last_error)return initial;
             const configuration=telegramTargets(env,await resolveGroup(env,wait)),targets=configuration.targets;
             const artifactResults=await importSearchResults(env,wait);
             const budgets=Object.fromEntries(targets.map(target=>[target.language,{limits:{...QUEUE_LIMITS},
@@ -1660,17 +1731,17 @@ jobs:
                 for(const candidate of candidates)found.add(candidate.key);
                 const ready=available(latest,target,candidates);
                 for(const candidate of ready)fresh.add(candidate.key);
-                if(!ready.length)continue;
+                if(!ready.length && !affiliateProgress(latest,target.destination).due)continue;
                 const result=await publish(snapshot,env,'scheduled',wait,budgets[target.language],target.language);
                 if(result.disabled){totals.disabled=true;totals.reason=result.reason;break;}
                 totals.pumps++;progressed=true;
-                totals.sent+=result.sent;totals.skipped+=result.skipped;totals.uncertain+=result.uncertain;
+                totals.sent+=result.sent;totals.skipped+=result.skipped;totals.uncertain+=result.uncertain;totals.affiliate_sent+=result.affiliate_sent;
                 totals.sent_by_language[target.language]+=result.sent;
                 totals.last_error=result.last_error;
                 for(const [reason,n] of Object.entries(result.skip_reasons))totals.skip_reasons[reason]=(totals.skip_reasons[reason]||0)+n;
                 for(const queue of Object.keys(QUEUE_LIMITS))totals.sent_by_queue[queue]+=result.sent_by_queue[queue];
                 summary('Telegram · '+target.language.toUpperCase()+': '+JSON.stringify({sent:result.sent,
-                  sent_by_queue:result.sent_by_queue,skip_reasons:result.skip_reasons,last_error:result.last_error}),env);
+                  sent_by_queue:result.sent_by_queue,affiliate_sent:result.affiliate_sent,skip_reasons:result.skip_reasons,last_error:result.last_error}),env);
                 if(result.last_error)break;
               }
               if(totals.disabled || totals.last_error)break;
@@ -1678,7 +1749,7 @@ jobs:
               const candidates=outboxSnapshot(latest).queued_candidates;
               const workers=latest.worker_runs?.[run]||{};
               const done=WORKER_ROLES.every(worker=>['done','failed'].includes(workers[worker]?.status));
-              const pending=targets.some(target=>available(latest,target,candidates).length>0);
+              const pending=targets.some(target=>available(latest,target,candidates).length>0 || affiliateProgress(latest,target.destination).due);
               if(done && !pending)break;
               if(targets.every(t=>Object.keys(QUEUE_LIMITS).every(q=>budgets[t.language].used[q]>=budgets[t.language].limits[q])))break;
               if(!progressed || !pending)await wait(Math.min(PUBLISH_POLL_MS,Math.max(0,deadline-Date.now()-15000)));
