@@ -1356,7 +1356,7 @@ jobs:
           export const AFFILIATE_INTERVAL=10;
           export function formatAffiliateMessage(language='ru') {
             const en=language==='en';
-            return {text:en ? [
+            return {parse_mode:'HTML',link_preview_options:{is_disabled:true},text:en ? [
               '🤝 <b>Red Packet Radar · Affiliate offers</b>',
               '',
               '<b>Binance</b> — create an account to use Binance and Square.',
