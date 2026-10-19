@@ -16,7 +16,10 @@
 # Envelope grabCode is an internal identity, never a displayed standalone code.
 # Square quizzes/Claim: require open flags and a future expiry, regardless of post age.
 # Reads both public feed types, recommendations, 8 hashtags and discovered authors outside the loaded following list.
-# Discovery uses Binance Square only. Telegram is the delivery destination.
+# Discovery uses Binance Square plus public Gate Live countdowns. Telegram is the delivery destination.
+# Gate packets stay queued until the final 5 minutes before start_at; already-open packets are skipped.
+# Gate rechecks room, packet ID and countdown before sending; no Gate credentials or claims.
+# GitHub scheduling/startup delays mean a delivery time cannot be guaranteed.
 # Author worker: up to 256 profiles; 128 recent packet publishers + 64 discoveries + 64 following.
 # Recent publishers become due every 2 minutes; vacant slots are reused; 150-second scan budget.
 # Four requests at a time per worker; feed/profile budgets reserve time for original and live checks.
@@ -100,6 +103,7 @@ jobs:
         shell: bash
         env:
           RUN_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || inputs.mode }}
+          ENABLE_GATE_LIVE: "1"
           WORKER_ROLE: ${{ matrix.worker }}
           SQUARE_STATE_SNAPSHOT: .redpacket/delivery.json
           SQUARE_RESULT_DIR: redpacket-results
@@ -524,8 +528,97 @@ jobs:
             }
             return {progress,authors:mergeAuthors(authors),pages_checked:pages,error};
           }
+          export const GATE_ALERT_WINDOW_MS=5*60*1000;
+          const GATE_RECHECK_MAX_AGE_MS=90*1000;
+          const GATE_ID=/^[a-f0-9]{32}$/;
+          const GATE_ORDER=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+          export async function fetchGateJSON(path,wait=WAIT) {
+            if(!path.startsWith('/apiw/v2/live/'))throw new Error('Unsupported Gate read path');
+            const {response,body}=await readApiWithRetry('Gate live GET',()=>fetch('https://www.gate.com'+path,{
+              method:'GET',redirect:'error',signal:AbortSignal.timeout(10000),
+              headers:{Accept:'application/json','User-Agent':'RedPacketRadar','Cache-Control':'no-cache','X-Gate-AppLang':'en'}}),{},wait);
+            if(!response.ok || body?.code!==200)throw new Error('Gate live read: HTTP '+response.status+'; '+String(body?.message||'unexpected response'));
+            return body.data;
+          }
+          export function normalizeGatePacket(room,packet,now=Date.now()) {
+            if(!room || !packet || !GATE_ID.test(String(room.id||'')) || room.status!=='streaming' || room.is_redpacket!==true ||
+              room.disabled===true || room.subscription_required===true || (room.room_mode!==undefined && Number(room.room_mode)!==1) ||
+              !GATE_ORDER.test(String(packet.order_id||'')) || !['0','3'].includes(String(packet.type)))return null;
+            const unlock=Number(packet.start_at)*1000,created=Number(packet.created_at)*1000;
+            // Keep future packets in the durable queue, but never advertise already-open
+            // or undated packets. The official UI uses start_at - Date.now()/1000.
+            if(!Number.isFinite(unlock) || unlock<=now || unlock>now+2*3600000 ||
+              !Number.isFinite(created) || created<=0 || created>now+60000 || created>unlock)return null;
+            return {kind:'live',discovery_kind:'gate',exchange:'gate',status:'gate_countdown',live_badge:true,
+              live_id:room.id,gate_order_id:packet.order_id,gate_follower_only:String(packet.type)==='3',
+              gate_unlock_at:new Date(unlock).toISOString(),expires_at:new Date(unlock).toISOString(),
+              live_checked_at:new Date(now).toISOString(),published_at:new Date(created).toISOString(),
+              author:String(room.host?.name||packet.nick_en||packet.nick||'Gate Live').slice(0,90),
+              author_id:null,post_id:null,title:String(room.name||'Gate Live').slice(0,240),
+              currency:currencySymbol(packet.coin),published_codes:[],packet_id:null,packet_code:null,
+              amount:null,available_amount:null,available_receivers:null,
+              url:'https://www.gate.com/live/video/'+room.id+'?type=live',sources:['gate:countdown']};
+          }
+          export function gateAlertDue(post,now=Date.now()) {
+            if(post?.exchange!=='gate')return true;
+            const unlock=Date.parse(post.gate_unlock_at);
+            return Number.isFinite(unlock) && unlock>now+10000 && unlock-now<=GATE_ALERT_WINDOW_MS;
+          }
+          export async function scanGate(env={},wait=WAIT) {
+            const sources=[],rooms=new Map(),live=[],deadline=Date.now()+90000;
+            // Bounded public catalog coverage; no account cookies, API keys or claims.
+            for(let page=0;page<2 && Date.now()+12000<deadline;page++) {
+              try {
+                const data=await fetchGateJSON('/apiw/v2/live/streams?status=streaming&limit=100&offset='+page*100,wait);
+                if(!Array.isArray(data))throw new Error('Gate catalog is not a list');
+                sources.push({tag:'gate:catalog:page'+(page+1),ok:true,posts_checked:data.length});
+                for(const room of data)if(GATE_ID.test(String(room?.id||'')) && room.status==='streaming' && room.is_redpacket===true)rooms.set(room.id,room);
+                if(data.length<100)break;
+              }catch(error){sources.push({tag:'gate:catalog:page'+(page+1),ok:false,error:String(error)});break;}
+            }
+            const queue=[...rooms.values()].slice(0,32);
+            await Promise.all(Array.from({length:Math.min(4,queue.length)},async()=>{
+              while(queue.length && Date.now()+10000<deadline){
+                const room=queue.shift();
+                try{
+                  const packets=await fetchGateJSON('/apiw/v2/live/redenvelopes?stream_id='+room.id,wait);
+                  if(!Array.isArray(packets))throw new Error('Gate packets are not a list');
+                  for(const packet of packets){const post=normalizeGatePacket(room,packet);if(post)live.push(post);}
+                  sources.push({tag:'gate:room:'+room.id,ok:true,posts_checked:packets.length});
+                }catch(error){sources.push({tag:'gate:room:'+room.id,ok:false,error:String(error)});}
+              }
+            }));
+            if(rooms.size>32 || queue.length)sources.push({tag:'gate:budget',ok:true,local_processing:true,posts_checked:0,
+              reason:'At most 200 catalog entries and 32 badged rooms per scan; 90-second time budget'});
+            return {sources,live_candidates:live};
+          }
+          export async function refreshGatePacket(post,wait=WAIT) {
+            if(!GATE_ID.test(String(post.live_id||'')) || !GATE_ORDER.test(String(post.gate_order_id||'')))return null;
+            const [room,packets]=await Promise.all([
+              fetchGateJSON('/apiw/v2/live/streams/'+post.live_id+'/details',wait),
+              fetchGateJSON('/apiw/v2/live/redenvelopes?stream_id='+post.live_id,wait)]);
+            if(!Array.isArray(packets) || room?.id!==post.live_id)return null;
+            const packet=packets.find(p=>p.order_id===post.gate_order_id),current=normalizeGatePacket(room,packet);
+            return current && gateAlertDue(current)?current:null;
+          }
+          function formatGateTelegram(post,language) {
+            const en=language==='en',unlock=Date.parse(post.gate_unlock_at),remaining=Math.max(0,Math.ceil((unlock-Date.now())/1000));
+            const time=new Date(unlock).toISOString().slice(11,19)+' UTC';
+            const coin=post.currency?' #'+escapeHtml(post.currency):'';
+            const lines=['🔴 <b>GATE LIVE · '+(en?'RED PACKET SOON':'СКОРО РЕД-ПАКЕТ')+'</b>',
+              '#GATE #LIVE'+coin,'',
+              '⏳ '+(en?'Opens in approximately ':'До открытия примерно ')+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0'),
+              '🕒 '+(en?'Opens at: ':'Открытие: ')+time,
+              '👤 '+escapeHtml(post.author,90),'📺 '+escapeHtml(post.title,200),'',
+              post.gate_follower_only?(en?'👥 Follower-only packet. Gate may restrict repeat claims from the same streamer.':'👥 Пакет для подписчиков. Gate может ограничивать повторное получение у одного стримера.'):
+                (en?'🎁 Standard live red packet.':'🎁 Обычный ред-пакет в эфире.'),
+              en?'Open the stream before the countdown ends. Eligibility and availability are checked by Gate.':'Зайдите в эфир до окончания таймера. Условия получения и доступность проверяет Gate.'];
+            return {text:lines.join('\n'),parse_mode:'HTML',link_preview_options:{is_disabled:true},reply_markup:{inline_keyboard:[[
+              {text:en?'Open Gate stream':'Открыть эфир Gate',url:post.url}]]}};
+          }
           export async function scan(env=process.env,worker='all',onProgress=null) {
             if(worker!=='all' && !WORKER_ROLES.includes(worker))throw new Error('Unknown search worker');
+            const gateTask=env.ENABLE_GATE_LIVE==='1' && ['all','live'].includes(worker) ? scanGate(env) : null;
             const legacy=worker==='all',scanProfiles=legacy || worker==='authors',scanLive=legacy || worker==='live';
             const scanCommunity=legacy || worker==='community';
             const concurrency=legacy ? REQUEST_CONCURRENCY : 4;
@@ -707,6 +800,7 @@ jobs:
               sourceChecks.push({tag:'square:live:'+id,ok:true,posts_checked:1,live:item!==null,coverage:'public_badge_and_live_status'});
               if(item){liveItems.push(item);if(item.author_id)observedAuthors.push({uid:item.author_id,name:item.author,live_host:true,last_packet_at:Date.parse(item.published_at)||0});}
             }
+            if(gateTask){const gate=await gateTask;liveItems.push(...gate.live_candidates);sourceChecks.push(...gate.sources);}
             const items = [...posts.values()].sort((a,b) => (Date.parse(b.published_at) || 0) - (Date.parse(a.published_at) || 0));
             const statusCounts = {};
             for (const p of items) statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
@@ -766,6 +860,7 @@ jobs:
             return value>=1 ? String(Number(value.toFixed(2))) : String(Number(value.toFixed(6)));
           }
           export function formatTelegramPost(post,language='ru') {
+            if(post.exchange==='gate')return formatGateTelegram(post,language);
             const t=(ru,en)=>language==='en'?en:ru;
             if(post.kind==='live') {
               if(!/^https:\/\/www\.binance\.com\/en\/square\/audio\?id=\d+$/.test(post.url||''))throw new Error('Invalid live URL');
@@ -833,6 +928,14 @@ jobs:
             return Number.isFinite(published) && published <= now + 60000 && now - published <= POST_MAX_AGE_MS;
           }
           export function isEligiblePost(post, now=Date.now()) {
+            if(post?.exchange==='gate') {
+              const checked=Date.parse(post.live_checked_at),unlock=Date.parse(post.gate_unlock_at);
+              return post.discovery_kind==='gate' && post.kind==='live' && post.status==='gate_countdown' && post.live_badge===true &&
+                GATE_ID.test(String(post.live_id||'')) && GATE_ORDER.test(String(post.gate_order_id||'')) &&
+                post.url==='https://www.gate.com/live/video/'+post.live_id+'?type=live' &&
+                Number.isFinite(checked) && checked<=now+60000 && now-checked<=15*60000 &&
+                Number.isFinite(unlock) && unlock>now && unlock<=now+2*3600000;
+            }
             if(post?.source_kind && post.source_kind!=='square')return false;
             if(post?.discovery_kind && post.discovery_kind!=='square')return false;
             if(post?.status==='unverified_link')return false;
@@ -852,7 +955,8 @@ jobs:
               .filter(post => isEligiblePost(post, now))
               .sort((a,b) => Date.parse(b.published_at) - Date.parse(a.published_at));
             for (const post of recent) {
-              if(post.kind==='live')unique.set('live:'+post.live_id,{key:'live:'+post.live_id,post});
+              if(post.exchange==='gate')unique.set('gate:'+post.gate_order_id,{key:'gate:'+post.gate_order_id,post});
+              else if(post.kind==='live')unique.set('live:'+post.live_id,{key:'live:'+post.live_id,post});
               else if (post.status === "reported_open" && !(post.expires_at && Date.parse(post.expires_at) <= now)) {
                 unique.set(`post:${post.post_id}`, {key: `post:${post.post_id}`, post});
               } else if (post.kind === "code" && post.status === "unverified_code") {
@@ -866,6 +970,7 @@ jobs:
             return deduplicateCandidates([...unique.values()]);
           }
           function canonicalIdentity(key) {
+            if(/^gate:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(key))return key;
             if (/^code:[A-Za-z0-9]{8}$/.test(key)) return key.toUpperCase().replace(/^CODE:/,'code:');
             return /^(?:post:\d+|live:\d+|packet:[A-Za-z0-9_-]{1,128}|test:[A-Za-z0-9_-]+)$/.test(key) ? key : null;
           }
@@ -953,7 +1058,7 @@ jobs:
             return null;
           }
           export function orderDeliveryCandidates(candidates) {
-            const live=candidates.filter(c=>c.post?.kind==='live');
+            const live=candidates.filter(c=>c.post?.kind==='live').sort((a,b)=>a.post.exchange==='gate' ? b.post.exchange==='gate' ? Date.parse(a.post.gate_unlock_at)-Date.parse(b.post.gate_unlock_at) : -1 : b.post.exchange==='gate'?1:0);
             const codes=candidates.filter(c=>c.post?.kind==='code');
             const posts=candidates.filter(c=>!['live','code'].includes(c.post?.kind));
             const ordered=[];
@@ -1351,7 +1456,8 @@ jobs:
           export const AFFILIATE_LINKS={
             binance:'https://www.binance.com/register?ref=1052543841',
             bitunix:'https://www.bitunix.com/u-link/referral/invitee?inviteCode=q8KxNk&t_act=-1',
-            traderpro:'https://trader-pro.org/ru/?ref=REF1AC1106D'
+            traderpro:'https://trader-pro.org/ru/?ref=REF1AC1106D',
+            gate:'https://www.gate.com/ru/referral/earn-together/invite/VAAQV1ONUW?ref=VAAQV1ONUW&ref_type=103&utm_cmp=rXJBDjtJ&activity_id=1791876947985'
           };
           export const AFFILIATE_INTERVAL=10;
           export function formatAffiliateMessage(language='ru') {
@@ -1362,6 +1468,7 @@ jobs:
               '<b>Binance</b> — create an account to use Binance and Square.',
               '<b>Bitunix</b> — advertised offer: trading from <b>0.01 USDT</b>* and <b>10,000+ USDT</b> in newcomer rewards, subject to campaign tasks and eligibility.',
               '<b>Trader Pro</b> — advertised partner offer: <b>1 month of VIP access free</b>*.',
+              '<b>Gate</b> — registration and live streams with red packets.',
               '',
               '* The 0.01 USDT threshold and free VIP month have not been independently confirmed. Check availability, order minimums and activation requirements with the platform before registering. Rewards are not a guaranteed cash payment.',
               '',
@@ -1372,6 +1479,7 @@ jobs:
               '<b>Binance</b> — регистрация для работы с Binance и Square.',
               '<b>Bitunix</b> — заявленное предложение: торговля от <b>0,01 USDT</b>* и <b>10 000+ USDT</b> в бонусах новичкам при выполнении заданий и условий акции.',
               '<b>Trader Pro</b> — заявленное партнёрское предложение: <b>1 месяц VIP-доступа бесплатно</b>*.',
+              '<b>Gate</b> — регистрация и прямые эфиры с ред-пакетами.',
               '',
               '* Порог 0,01 USDT и бесплатный месяц VIP независимо не подтверждены. До регистрации уточните у платформы доступность, минимальный ордер и условия активации. Бонусы не являются гарантированной выплатой деньгами.',
               '',
@@ -1379,7 +1487,8 @@ jobs:
             ].join('\n'),reply_markup:{inline_keyboard:[
               [{text:en?'Binance · Register':'Binance · Регистрация',url:AFFILIATE_LINKS.binance}],
               [{text:en?'Bitunix · View offer':'Bitunix · Смотреть условия',url:AFFILIATE_LINKS.bitunix}],
-              [{text:en?'Trader Pro · VIP offer':'Trader Pro · Предложение VIP',url:AFFILIATE_LINKS.traderpro}]
+              [{text:en?'Trader Pro · VIP offer':'Trader Pro · Предложение VIP',url:AFFILIATE_LINKS.traderpro}],
+              [{text:en?'Gate · Register':'Gate · Регистрация',url:AFFILIATE_LINKS.gate}]
             ]}};
           }
           export function affiliateProgress(state,destination,now=Date.now()) {
@@ -1476,6 +1585,7 @@ jobs:
             }
             index=deliveryIndex(state,destination);
             const ready=allCandidates.filter(candidate=>{
+              if(!gateAlertDue(candidate.post))return false;
               const reason=deliverySkipReason(state,matchingDeliveries(index,candidate));
               if(reason && !(budget?.verify_originals && reason==='previously_stale')){skip(reason);return false;}return true;
             });
@@ -1494,7 +1604,7 @@ jobs:
                   stats.deferred_by_limit++;stats.deferred_by_queue[queue]++;continue;
                 }
               } else if (attempted>=MAX_POSTS_PER_RUN) {stats.deferred_by_limit=candidates.length-candidateIndex;break;}
-              if (candidate.post && !isEligiblePost(candidate.post)) continue;
+              if (candidate.post && (!isEligiblePost(candidate.post) || !gateAlertDue(candidate.post))) continue;
               if (candidate.post?.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()) continue;
               budget?.considered?.add(candidate.key);
               index=deliveryIndex(state,destination);
@@ -1551,7 +1661,7 @@ jobs:
                 throw new Error('Telegram destination changed during state update; publishing stopped');
               if(candidate.post?.kind==='live') {
                 try {
-                  const current=await refreshLive(candidate.post);
+                  const current=candidate.post.exchange==='gate'?await refreshGatePacket(candidate.post,wait):await refreshLive(candidate.post);
                   if(!current) {
                     state.items[key].state='queued';state.items[key].retry_at=Date.now()+60000;state.items[key].updated_at=Date.now();
                     await storage.save(state,'live ended or badge hidden');skip('live_ended_or_badge_hidden');continue;
@@ -1565,8 +1675,8 @@ jobs:
                 }
               }
               // Persistence can take time; enforce freshness again immediately before Telegram.
-              if (candidate.post && (!isEligiblePost(candidate.post) ||
-                  (candidate.post.kind==='live' && Date.now()-Date.parse(candidate.post.live_checked_at)>LIVE_CHECK_MAX_AGE_MS) ||
+              if (candidate.post && (!isEligiblePost(candidate.post) || !gateAlertDue(candidate.post) ||
+                  (candidate.post.kind==='live' && Date.now()-Date.parse(candidate.post.live_checked_at)>(candidate.post.exchange==='gate'?GATE_RECHECK_MAX_AGE_MS:LIVE_CHECK_MAX_AGE_MS)) ||
                   (candidate.post.expires_at && Date.parse(candidate.post.expires_at)<=Date.now()))) {
                 state.items[key].state='skipped_stale';state.items[key].updated_at=Date.now();
                 await storage.save(state,'post became too old before send');skip('became_stale');continue;
@@ -1613,7 +1723,7 @@ jobs:
               outside_freshness_window:textCodes.filter(p=>!isEligiblePost(p)).length}),env);
             const counts={posts:0,codes:0,live:0};
             for(const candidate of publishCandidates(snapshot))counts[deliveryQueue(candidate)]++;
-            summary('Находки по очередям: '+JSON.stringify(counts)+'. Только Binance Square; авторы из общих лент сохраняются независимо от подписок.',env);
+            summary('Находки по очередям: '+JSON.stringify(counts)+'. Источники: Binance Square и включённый Gate Live; авторы Square из общих лент сохраняются независимо от подписок.',env);
           }
           export function writeSearchResult(snapshot,env,worker,status='done',error=null) {
             if(!WORKER_ROLES.includes(worker))throw new Error('Unknown search worker');
@@ -1718,7 +1828,7 @@ jobs:
               const index=deliveryIndex(state,target.destination),budget=budgets[target.language];
               return candidates.filter(candidate=>{
                 const reason=deliverySkipReason(state,matchingDeliveries(index,candidate));
-                return !budget.considered.has(candidate.key) && (budget.used[deliveryQueue(candidate)]||0)<budget.limits[deliveryQueue(candidate)] &&
+                return gateAlertDue(candidate.post) && !budget.considered.has(candidate.key) && (budget.used[deliveryQueue(candidate)]||0)<budget.limits[deliveryQueue(candidate)] &&
                   (!reason || reason==='previously_stale');
               });
             };
@@ -1877,6 +1987,7 @@ jobs:
         shell: bash
         env:
           RUN_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || inputs.mode }}
+          ENABLE_GATE_LIVE: "1"
           WORKER_ROLE: publisher
           SQUARE_RESULT_DIR: ${{ (steps.download_result_1.outcome == 'success' || steps.download_result_2.outcome == 'success' || steps.download_result_3.outcome == 'success') && 'redpacket-results' || 'redpacket-results-unavailable' }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
