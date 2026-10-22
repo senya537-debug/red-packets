@@ -142,6 +142,9 @@ jobs:
           const LATEST_PAGES = 4;
           const TAG_PAGES = 3;
           const RECOMMENDATION_PAGES = 2;
+          const GLOBAL_FEED_LANGUAGES = ['ru','zh-CN'];
+          const GLOBAL_FEED_PAGES = 2;
+          const GLOBAL_DISCOVERY_AUTHOR_LIMIT = 24;
           const AUTHOR_LIMIT = 48;
           const FAST_AUTHOR_LIMIT = 256;
           const ACTIVE_AUTHOR_SLOTS = 128;
@@ -170,7 +173,7 @@ jobs:
           const PUBLISH_WINDOW_MS = 240000;
           const PUBLISH_POLL_MS = 5000;
           const POST_MAX_AGE_MS = 10 * 60 * 1000;
-          
+
           function epoch(value) {
             const n = Number(value);
             return Number.isFinite(n) && n > 0 ? (n < 1e12 ? n * 1000 : n) : null;
@@ -205,7 +208,8 @@ jobs:
             return "unknown";
           }
           export function bodyText(post) {
-            let text=typeof post?.bodyTextOnly==='string' ? post.bodyTextOnly : typeof post?.content==='string' ? post.content : '';
+            // Article-list cards expose their body in subTitle; profile cards use bodyTextOnly.
+            let text=[post?.bodyTextOnly,post?.content,post?.subTitle].find(value=>typeof value==='string' && value.trim())||'';
             try {const parsed=JSON.parse(text);if(typeof parsed?.richtext==='string')text=parsed.richtext;} catch {}
             // Rich-text cards may contain HTML rather than the plain body field.
             return text.replace(/<br\s*\/?\s*>|<\/(?:p|div|li)>/gi,'\n').replace(/<[^>]*>/g,'')
@@ -219,6 +223,8 @@ jobs:
             const markers=SEARCH_TERMS.filter(term=>term==='Red Packet Quiz' ? /red\s*packet\s*quiz/i.test(text) :
               term==='Red Packet' ? /red\s*packet|crypto\s*box|红包|красн\S*\s+(?:пакет|конверт)|ред\s*пакет/i.test(text) : text.includes(term));
             if(REGIONAL_PACKET_PATTERN.test(text) || new RegExp(REGIONAL_CODE_LABEL+'\\s*[:：=\\-]','u').test(text))markers.push('regional:packet-or-code');
+            // Association is a discovery hint only; original metadata still decides eligibility.
+            if(post?.isAssociateRedEnvelop===true)markers.push('metadata:packet');
             return markers;
           }
           export async function fetchKeyword(term) {
@@ -526,6 +532,17 @@ jobs:
             }
             return ordered;
           }
+          export function chooseGlobalAuthors(observed,registry,knownBefore=new Set(),now=Date.now()) {
+            const remembered=new Map(registry.map(author=>[author.uid,author]));
+            const recent=author=>Math.max(author.last_marker_at||0,author.last_packet_at||0);
+            return mergeAuthors(observed).filter(author=>author.discovered)
+              .map(author=>remembered.get(author.uid)||author)
+              .filter(author=>recent(author)>=now-86400000 && recent(author)<=now+60000 &&
+                (!author.last_checked_at || author.last_checked_at<=now-5*60000))
+              .sort((a,b)=>Number(knownBefore.has(a.uid))-Number(knownBefore.has(b.uid)) ||
+                recent(b)-recent(a) || (a.last_checked_at||0)-(b.last_checked_at||0) || a.uid.localeCompare(b.uid))
+              .slice(0,GLOBAL_DISCOVERY_AUTHOR_LIMIT).map(author=>({...author,scan_reason:'global_discovery'}));
+          }
           export async function loadScanMemory(env) {
             if(env.SQUARE_STATE_SNAPSHOT) {
               if(!fs.existsSync(env.SQUARE_STATE_SNAPSHOT))return {version:1,items:{},enabled_destination:null};
@@ -745,6 +762,10 @@ jobs:
                 coverage:'public_feed_type_'+type+'_page_'+(i+1),run:()=>fetchLatest(type,i+1)}))),
               ...(legacy || ['posts','codes','live'].includes(worker) ? Array.from({length:worker==='live'?1:RECOMMENDATION_PAGES},(_,i)=>({
                 tag:i?'square:discover:page'+(i+1):'square:discover',coverage:'public_recommendations_page_'+(i+1),run:()=>fetchRecommended(i+1)})) : []),
+              ...(legacy || worker==='posts' ? GLOBAL_FEED_LANGUAGES.flatMap(language=>[1,2].flatMap(type=>
+                Array.from({length:GLOBAL_FEED_PAGES},(_,i)=>({tag:'square:global:'+language+':type'+type+':page'+(i+1),
+                  coverage:'public_localized_global_feed_'+language+'_type_'+type+'_page_'+(i+1),
+                  run:()=>fetchLatest(type,i+1,language)})))) : []),
               ...(REMOTE_KEYWORD_SEARCH_ENABLED && (legacy || worker==='posts') ? SEARCH_TERMS.map(term=>({tag:'square:search:'+term,coverage:'first_search_page_only',run:()=>fetchKeyword(term)})) : []),
               ...(scanLive ? [{tag:'square:live:catalog',coverage:'recommended_live_rooms_only',run:fetchLiveCatalog}] : []),
               ...(scanCommunity ? COMMUNITY_TAGS.flatMap(tag=>Array.from({length:COMMUNITY_TAG_PAGES},(_,i)=>({
@@ -827,7 +848,7 @@ jobs:
                   continue;
                 }
                 const feed = result.value;
-                const dates = feed.map(p => epoch(p.date)).filter(Boolean);
+                const dates = feed.map(p => epoch(p.date??p.firstReleaseTime??p.createTime??p.latestReleaseTime)).filter(Boolean);
                 sourceChecks.push({tag, ok: true, posts_checked: feed.length,
                   newest_post_at: dates.length ? iso(Math.max(...dates)) : null,
                   oldest_post_at: dates.length ? iso(Math.min(...dates)) : null,
@@ -858,6 +879,7 @@ jobs:
             remembered=mergeAuthors(FOLLOWING_BOOTSTRAP.authors.map(a=>({...a,followed:true})),remembered,following.authors);
             const registry=mergeAuthors(observedAuthors,remembered).map(a=>followed.has(a.uid)?{...a,followed:true}:a);
             const authors=scanProfiles ? legacy ? chooseAuthors(registry,now) : chooseFastAuthors(registry,now) :
+              worker==='posts' ? chooseGlobalAuthors(observedAuthors,registry,knownBefore,now) :
               scanCommunity ? mergeAuthors(observedAuthors).slice(0,COMMUNITY_AUTHOR_LIMIT).map(a=>({...a,scan_reason:'community_discovery'})) : [];
             if(scanLive) {
               const hosts=[...new Set([...LIVE_HOST_UIDS,...registry.filter(a=>a.live_host).sort((a,b)=>(a.last_checked_at||0)-(b.last_checked_at||0)).map(a=>a.uid)])].slice(0,LIVE_HOST_CHECK_LIMIT);
@@ -925,6 +947,8 @@ jobs:
             const discovered=mergeAuthors(observedAuthors).filter(a=>a.discovered);
             const newAuthors=discovered.filter(a=>!knownBefore.has(a.uid));
             const discoveryStats={global_posts_checked:globalPostIds.size,authors_seen:discovered.length,
+              localized_global_posts_checked:sourceChecks.filter(s=>GLOBAL_FEED_LANGUAGES.some(language=>s.tag.startsWith('square:global:'+language+':')) && s.ok).reduce((n,s)=>n+(s.posts_checked||0),0),
+              global_discovery_profiles_checked:checkedAuthors.filter(a=>a.scan_reason==='global_discovery').length,
               new_authors:newAuthors.length,new_authors_outside_loaded_following:newAuthors.filter(a=>!followed.has(a.uid)).length,
               new_following_authors:following.authors.filter(a=>!knownBefore.has(a.uid)).length,
               following_pages_checked:following.pages_checked,
@@ -955,7 +979,8 @@ jobs:
                 Number.isFinite(Number(stamp)) && Number(stamp)>now-86400000).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,1000)),
               limitations: ["Discovery only; no reward claimed", "Hints are not verified answers",
                 "Public Square endpoint is undocumented and can change", "Hashtags: up to 3 pages of 50 posts across 8 tags including 红包; bounded coverage",
-                "Global feed types 1 and 2: first 4 pages each plus 2 recommendation pages; duplicates merged",
+                "Global feed types 1 and 2: first 4 pages each plus 2 recommendation pages; Russian and Chinese global feeds add 2 pages per type; duplicates merged",
+                "Posts worker: up to 24 recent publishers found in global feeds or hashtags are checked immediately, independently of following; unknown authors first; originals still verified",
                 "Community worker: 11 public Islamic-topic hashtags, 2 pages each; Arabic feed types 1/2, 3 pages each; 2 Arabic recommendation pages; up to 16 discovered publisher profiles within budget",
                 "Community coverage is bounded to public topics/feeds, not all Square; no author religion inferred; Urdu packet/code labels supported but Urdu feed falls back to English",
                 "Author worker: up to 256 profiles; 128 recent publishers, 64 discoveries, 64 following; active publishers due every 2 minutes; vacant slots reused",
@@ -1198,11 +1223,11 @@ jobs:
               for(const queue of [posts,codes,live])if(queue.length)ordered.push(queue.shift());
             return ordered;
           }
-          
+
           import fs from 'node:fs';
           import {request as httpsRequest} from 'node:https';
           import {createHash,randomUUID} from 'node:crypto';
-          
+
           const STATE_PATH = '.redpacket/delivery.json';
           const WAIT = ms => new Promise(resolve => setTimeout(resolve,ms));
           function redact(value,env,limit=300) {
@@ -1942,7 +1967,7 @@ jobs:
           }
           function workerSummary(snapshot,env) {
             summary('## Square · '+snapshot.worker+'\n\n'+snapshot.sources.map(s=>`${s.tag}: ${s.ok ?
-              s.coverage==='disabled_by_configuration' ? 'отключено' : 'OK, posts '+s.posts_checked : s.error}`).join('\n\n'),env);
+              s.coverage==='disabled_by_configuration' ? 'отключено' : 'OK, posts '+s.posts_checked+(s.newest_post_at?', newest '+s.newest_post_at:'') : s.error}`).join('\n\n'),env);
             if(snapshot.following_sync) {
               const f=snapshot.following_sync;
               summary(`Подписки @${f.username}: известно ${f.uids.length} авторов; Binance сообщает ${f.reported_total??'?'}; `+
