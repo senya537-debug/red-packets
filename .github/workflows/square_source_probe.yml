@@ -1,0 +1,46 @@
+name: Square source diagnostics
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/square_source_probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read public source responses without sending messages
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          const agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36';
+          const urls={profile:'https://www.binance.com/en/square/profile/puppieswillwin',api:'https://www.binance.com/bapi/composite/v9/friendly/pgc/content/queryUserProfilePageContents?targetSquareUid=CeJ9rMnk2XCPrWM2j3Cz2w&timeOffset=-1'};
+          await Promise.all(Object.entries(urls).flatMap(([kind,url])=>[agent,'Mozilla/5.0'].map(async userAgent=>{
+            try{
+              const r=await fetch(url,{signal:AbortSignal.timeout(12000),headers:{'User-Agent':userAgent,Accept:kind==='profile'?'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8':'application/json','Accept-Language':'en-US,en;q=0.9',clienttype:'web',Referer:'https://www.binance.com/en/square'}});
+              const text=await r.text();let data;try{data=JSON.parse(text);}catch{}
+              console.log(JSON.stringify({client:'node',kind,full_agent:userAgent===agent,status:r.status,type:r.headers.get('content-type'),waf:r.headers.get('x-amzn-waf-action'),bytes:text.length,has_app_data:text.includes('__APP_DATA'),title:text.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.slice(0,120),success:data?.success,posts:data?.data?.contents?.length}));
+            }catch(e){console.log(JSON.stringify({client:'node',kind,error:e.message}));}
+          })));
+          JS
+          python3 - <<'PY'
+          import urllib.request,urllib.error,gzip,json,concurrent.futures
+          agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36'
+          urls={'profile':'https://www.binance.com/en/square/profile/puppieswillwin','api':'https://www.binance.com/bapi/composite/v9/friendly/pgc/content/queryUserProfilePageContents?targetSquareUid=CeJ9rMnk2XCPrWM2j3Cz2w&timeOffset=-1'}
+          def check(item):
+            kind,url=item
+            try:
+              req=urllib.request.Request(url,headers={'User-Agent':agent,'Accept':'text/html' if kind=='profile' else 'application/json','clienttype':'web','Accept-Language':'en-US,en;q=0.9'})
+              with urllib.request.urlopen(req,timeout=12) as r:
+                raw=r.read(4*1024*1024);status=r.status;headers=r.headers
+              if raw[:2]==b'\x1f\x8b':raw=gzip.decompress(raw)
+              text=raw.decode('utf-8',errors='replace')
+              try:data=json.loads(text)
+              except:data={}
+              return {'client':'python','kind':kind,'status':status,'type':headers.get('content-type'),'waf':headers.get('x-amzn-waf-action'),'bytes':len(raw),'has_app_data':'__APP_DATA' in text,'success':data.get('success'),'posts':len(data.get('data',{}).get('contents',[])) if isinstance(data.get('data'),dict) else None}
+            except Exception as e:return {'client':'python','kind':kind,'error':str(e)[:200]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            for result in pool.map(check,urls.items()):print(json.dumps(result))
+          PY
