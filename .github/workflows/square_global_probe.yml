@@ -1,0 +1,28 @@
+name: Square global source diagnostics
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/square_global_probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read public global sources without Telegram or state writes
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          const headers={Accept:'application/json','Content-Type':'application/json','User-Agent':'Mozilla/5.0',clienttype:'web',versioncode:'2.61.0',lang:'en',Referer:'https://www.binance.com/en/square/search?s=Red%20Packet'};
+          const tasks=[
+           ...['Red Packet Quiz','Red Packet','🧧','🎁','红包','redpacket'].map(term=>({tag:'keyword:'+term,url:'https://www.binance.com/bapi/composite/v2/friendly/pgc/feed/search/list',options:{method:'POST',headers,body:JSON.stringify({scene:'web',pageIndex:1,pageSize:20,searchContent:term,type:1})}})),
+           ...['ru','zh-CN'].flatMap(lang=>[1,2].map(type=>({tag:'global:'+lang+':type'+type,url:'https://www.binance.com/bapi/composite/v3/friendly/pgc/content/article/list?pageIndex=1&pageSize=50&type='+type,options:{headers:{...headers,lang,'Accept-Language':lang}}})))
+          ];
+          for(let start=0;start<tasks.length;start+=4)await Promise.all(tasks.slice(start,start+4).map(async t=>{
+           try{const r=await fetch(t.url,{...t.options,signal:AbortSignal.timeout(12000)});const raw=await r.text();let d;try{d=JSON.parse(raw)}catch{}
+           const posts=d?.data?.vos;console.log(JSON.stringify({tag:t.tag,status:r.status,waf:r.headers.get('x-amzn-waf-action'),bytes:raw.length,success:d?.success,code:d?.code,message:d?.message,keys:d?.data&&Object.keys(d.data),posts:Array.isArray(posts)?posts.length:null,ids:posts?.slice(0,8).map(p=>p.id),dates:posts?.slice(0,4).map(p=>p.date??p.firstReleaseTime),packets:posts?.filter(p=>p.redEnvelop).length}));
+           }catch(e){console.log(JSON.stringify({tag:t.tag,error:e.message}));}
+          }));
+          JS
