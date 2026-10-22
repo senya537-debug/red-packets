@@ -9,7 +9,9 @@
 # Telegram uses fresh IPv4 TLS connections; no HTTP payload is written until TLS is ready.
 # Old uncertain records are preserved; historical error text is not proof of non-delivery.
 # Read-only API calls retry transient failures; errors identify the API and underlying network cause.
-# Ambiguous state writes are reconciled with fresh history before retrying; Telegram sends are never blindly retried.
+# GitHub 5xx/408, network failures and missing write acknowledgments reconcile fresh history before retrying.
+# Up to 3 transient write attempts (5 total with conflicts); a confirmed committed write is not repeated.
+# Telegram sends are never blindly retried; sent and uncertain receipts remain protected.
 # State writes retry conflicts with a three-way merge and recheck the delivery claim.
 # Public following list for Aleks8234 is imported 4 pages per run and saved in delivery state.
 # Standard Ubuntu runner in a public repository; schedule may be delayed/dropped.
@@ -1423,42 +1425,57 @@ jobs:
             async load() {
               const state=await this.readLatest();this.base=cloneState(state);return state;
             }
-            async save(state,reason,wait=WAIT) {
+            async save(state,reason,wait=this.wait) {
               if(!this.base)throw new Error('GitHub state must be loaded before saving');
               const base=cloneState(this.base),local=cloneState(state);
-              let pending=local,networkFailures=0;
+              let pending=local,transientFailures=0;
+              const accept=confirmed=>{
+                this.base=cloneState(confirmed);STATE_READ_CACHE.delete(this.cacheKey);
+                // Callers must see reconciled receipts before considering another send.
+                for(const key of Object.keys(state))delete state[key];
+                Object.assign(state,cloneState(confirmed));
+              };
               for(let attempt=0;attempt<5;attempt++) {
                 const creating=this.sha===null;
-                let response;
+                let response,result,failure;
                 try {
                   response=await this.request('PUT',{
-                    message:`Red Packet delivery: ${reason} [skip ci]`, branch:this.env.GITHUB_REF_NAME,
-                    content:Buffer.from(JSON.stringify(pending)).toString('base64'), ...(this.sha ? {sha:this.sha} : {})});
-                } catch(error) {
-                  const detail='GitHub state PUT ('+reason+'): '+networkCause(error,this.env);
-                  if(++networkFailures>=3 || attempt===4)throw new Error(detail+'; persistence not confirmed; publishing stopped');
-                  console.log(detail+'; refreshing history before retry');
-                  await wait(1000*2**(networkFailures-1));
-                  // The server may have committed despite a lost response. A fresh SHA
-                  // and three-way merge preserve any committed or competing claim.
-                  pending=mergeDeliveryState(base,local,await this.readLatest(true));continue;
+                    message:`Red Packet delivery: ${reason} [skip ci]`,branch:this.env.GITHUB_REF_NAME,
+                    content:Buffer.from(JSON.stringify(pending)).toString('base64'),...(this.sha?{sha:this.sha}:{})});
+                  result=await response.json().catch(()=>null);
+                } catch(error){failure=error;}
+                if(!failure && response.ok && typeof result?.content?.sha==='string' && result.content.sha) {
+                  this.sha=result.content.sha;accept(pending);return;
                 }
-                const result=await response.json().catch(()=>null);
-                if(response.ok) {
-                  if(!result?.content?.sha)throw new Error('GitHub did not confirm state persistence; publishing stopped');
-                  this.sha=result.content.sha;this.base=cloneState(pending);
-                  STATE_READ_CACHE.delete(this.cacheKey);
-                  // Callers must see imported records before considering the next send.
-                  for(const key of Object.keys(state))delete state[key];
-                  Object.assign(state,cloneState(pending));return;
+                const ambiguous=failure || response.status===408 || response.status>=500 || response.ok;
+                if(ambiguous) {
+                  transientFailures++;
+                  const detail='GitHub state PUT ('+reason+'): '+(failure?networkCause(failure,this.env):
+                    'HTTP '+response.status+(response.ok?'; persistence acknowledgment missing':''));
+                  const delay=failure?1000*2**(transientFailures-1):apiRetryDelay(response,result,transientFailures-1);
+                  if(delay>10000)throw new Error(detail+'; retry deferred for '+Math.ceil(delay/1000)+'s; publishing stopped');
+                  console.log(detail+'; refreshing history before retry');
+                  await wait(delay);
+                  // 5xx and lost acknowledgments may follow a committed write. Fetch a
+                  // fresh SHA and merge receipts before retrying. Never reset the history.
+                  const remote=await this.readLatest(true);
+                  if(sameState(remote,pending)){accept(remote);return;}
+                  pending=mergeDeliveryState(base,local,remote);
+                  if(sameState(remote,pending)){accept(remote);return;}
+                  if(transientFailures>=3 || attempt===4)
+                    throw new Error(detail+'; persistence not confirmed after '+transientFailures+' transient failures; publishing stopped');
+                  console.log('GitHub state retry '+(attempt+2)+'/5 after history reconciliation');
+                  continue;
                 }
                 const conflict=response.status===409 || (creating && response.status===422 &&
                   /sha.*(?:supplied|required)|already exists/i.test(String(result?.message||'')));
                 if(!conflict || attempt===4)throw new Error('GitHub state write: HTTP '+response.status+
                   (conflict?' after 5 attempts':'')+'; publishing stopped');
-                console.log('GitHub state conflict: refreshing history, retry '+(attempt+1)+'/4');
-                await wait(250*2**attempt+Math.floor(Math.random()*200));
-                pending=mergeDeliveryState(base,local,await this.readLatest(true));
+                console.log('GitHub state conflict: refreshing history, retry '+(attempt+2)+'/5');
+                await wait(1000*2**attempt+Math.floor(Math.random()*200));
+                const remote=await this.readLatest(true);
+                pending=mergeDeliveryState(base,local,remote);
+                if(sameState(remote,pending)){accept(remote);return;}
               }
             }
           }
