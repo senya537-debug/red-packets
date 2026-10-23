@@ -51,6 +51,7 @@
 # Empty queues include examples of already-sent messages; code discovery is reported as disabled.
 # Missing identity in anonymous original details is not treated as a changed packet.
 # Unsent stale rejections can be revalidated; sent and uncertain records remain blocked.
+# Rejected originals wait 15 minutes before another check; summaries distinguish raw queue entries from ready deliveries.
 # Keyword API failures are reported; matching feed posts are also checked via original details.
 # Live alerts require the public liveRedEnvelopeInfo.isDisplay badge and a currently live room.
 # Live queue retention: 10 minutes; badge and room rechecked immediately before every send.
@@ -173,6 +174,7 @@ jobs:
           const PUBLISH_WINDOW_MS = 240000;
           const PUBLISH_POLL_MS = 5000;
           const POST_MAX_AGE_MS = 10 * 60 * 1000;
+          const ORIGINAL_RECHECK_DELAY_MS = 15 * 60 * 1000;
 
           function epoch(value) {
             const n = Number(value);
@@ -1178,6 +1180,8 @@ jobs:
             if(records.some(item=>item.state==='sent'))return 'already_sent';
             if(records.some(item=>item.state==='uncertain'))return 'delivery_uncertain';
             if(records.some(item=>item.state==='sending'))return 'claimed_by_run';
+            if(records.some(item=>item.state==='skipped_stale' &&
+              (Number(item.retry_at)||Number(item.updated_at)+ORIGINAL_RECHECK_DELAY_MS)>now))return 'original_recheck_cooldown';
             if(records.some(item=>item.state==='skipped_stale'))return 'previously_stale';
             if(records.some(item=>item.state!=='queued'))return 'other_history_block';
             if(records.some(item=>Number(item.retry_at)>now))return 'retry_cooldown';
@@ -1191,6 +1195,21 @@ jobs:
             while(posts.length || live.length)
               for(const queue of [posts,live])if(queue.length)ordered.push(queue.shift());
             return ordered;
+          }
+          export function originalRecheckReason(candidate,current,now=Date.now()) {
+            if(!current)return 'packet_metadata_missing';
+            if(!isEligiblePost(current,now))return 'original_status_'+String(current.status||'unknown');
+            if(!['packet','quiz'].includes(current.kind))return 'original_kind_changed';
+            if(candidate.post.packet_id && current.packet_id && current.packet_id!==candidate.post.packet_id)return 'packet_id_changed';
+            if(candidate.post.packet_code && current.packet_code &&
+              current.packet_code.toUpperCase()!==candidate.post.packet_code.toUpperCase())return 'packet_code_changed';
+            return null;
+          }
+          function originalCheckDiagnostic(stats,candidate,reason,current=null,error=null) {
+            stats.original_check_reasons[reason]=(stats.original_check_reasons[reason]||0)+1;
+            if(reason==='passed' || stats.original_check_examples.length>=5)return;
+            stats.original_check_examples.push({post_id:candidate.post.post_id,
+              url:candidate.post.url,reason,original_status:current?.status||null,...(error?{error}:{})});
           }
 
           import fs from 'node:fs';
@@ -1751,7 +1770,8 @@ jobs:
             const destination=target.destination,sendEnv={...env,TG_THREAD_ID:target.thread_id};
             const storage=new GitHubState(env,wait), state=await storage.load();
             const stats={sent:0,skipped:0,uncertain:0,last_error:null,skip_reasons:{},candidates_found:0,new_candidates:0,
-              max_posts_per_run:MAX_POSTS_PER_RUN,deferred_by_limit:0,affiliate_sent:0,connection_failures:0};
+              max_posts_per_run:MAX_POSTS_PER_RUN,deferred_by_limit:0,affiliate_sent:0,connection_failures:0,
+              original_check_reasons:{},original_check_examples:[]};
             if(budget)Object.assign(stats,{queue_limits:{...budget.limits},attempted_by_queue:{posts:0,live:0},
               sent_by_queue:{posts:0,live:0},deferred_by_queue:{posts:0,live:0}});
             const skip=reason=>{stats.skipped++;stats.skip_reasons[reason]=(stats.skip_reasons[reason]||0)+1;};
@@ -1836,16 +1856,19 @@ jobs:
                 let current;
                 try {current=normalize(await fetchOriginal(candidate.post.post_id),'square:queue-recheck');}
                 catch(error) {
+                  originalCheckDiagnostic(stats,candidate,'original_check_failed',null,redact(error,env));
                   state.items[key]={state:'queued',post_id:candidate.post.post_id,identity_keys:candidateIdentityKeys(candidate),
                     retry_at:Date.now()+60000,updated_at:Date.now(),error:redact(error,env)};
                   await storage.save(state,'original check failed');skip('original_check_failed');continue;
                 }
-                if(!current || !isEligiblePost(current) || !['packet','quiz'].includes(current.kind) ||
-                    (candidate.post.packet_id && current.packet_id && current.packet_id!==candidate.post.packet_id) ||
-                    (candidate.post.packet_code && current.packet_code && current.packet_code.toUpperCase()!==candidate.post.packet_code.toUpperCase())) {
-                  state.items[key]={state:'skipped_stale',post_id:candidate.post.post_id,identity_keys:candidateIdentityKeys(candidate),updated_at:Date.now()};
+                const rejected=originalRecheckReason(candidate,current);
+                if(rejected) {
+                  originalCheckDiagnostic(stats,candidate,rejected,current);
+                  state.items[key]={state:'skipped_stale',post_id:candidate.post.post_id,identity_keys:candidateIdentityKeys(candidate),
+                    updated_at:Date.now(),retry_at:Date.now()+ORIGINAL_RECHECK_DELAY_MS,original_check_reason:rejected};
                   await storage.save(state,'original no longer eligible');skip('original_no_longer_eligible');continue;
                 }
+                originalCheckDiagnostic(stats,candidate,'passed',current);
                 candidate.identity_keys=candidateIdentityKeys(candidate);
                 // Anonymous details can omit the packet identity while still confirming
                 // this exact post, open flags and expiry. Missing identity is not a change.
@@ -2068,6 +2091,8 @@ jobs:
                 totals.sent_by_language[target.language]+=result.sent;
                 totals.last_error=result.last_error;
                 for(const [reason,n] of Object.entries(result.skip_reasons))totals.skip_reasons[reason]=(totals.skip_reasons[reason]||0)+n;
+                for(const [reason,n] of Object.entries(result.original_check_reasons))totals.original_check_reasons[reason]=(totals.original_check_reasons[reason]||0)+n;
+                totals.original_check_examples.push(...result.original_check_examples.slice(0,Math.max(0,5-totals.original_check_examples.length)));
                 for(const queue of Object.keys(QUEUE_LIMITS))totals.sent_by_queue[queue]+=result.sent_by_queue[queue];
                 summary('Telegram · '+target.language.toUpperCase()+': '+JSON.stringify({sent:result.sent,
                   sent_by_queue:result.sent_by_queue,affiliate_sent:result.affiliate_sent,connection_failures:result.connection_failures,skip_reasons:result.skip_reasons,last_error:result.last_error}),env);
@@ -2088,6 +2113,7 @@ jobs:
             totals.candidates_found=found.size;totals.new_candidates=fresh.size;
             totals.queue_remaining={posts:0,live:0};totals.deferred_by_queue={posts:0,live:0};
             totals.pending_uncertain=0;totals.pending_uncertain_posts=[];
+            totals.queue_reasons_by_language={};totals.ready_by_language={};
             for(const target of targets) {
               const prefix=target.destination+':';
               for(const [key,item] of Object.entries(latest.items))if(key.startsWith(prefix)&&item.state==='uncertain') {
@@ -2096,6 +2122,14 @@ jobs:
                   post_id:item.post_id||null,updated_at:iso(item.updated_at)});
               }
               for(const queue of Object.keys(QUEUE_LIMITS))totals.attempted_by_queue[queue]+=budgets[target.language].used[queue];
+              const index=deliveryIndex(latest,target.destination),reasons={},ready={posts:0,live:0};
+              for(const candidate of outboxSnapshot(latest).queued_candidates) {
+                const reason=deliverySkipReason(latest,matchingDeliveries(index,candidate)) ||
+                  (!gateAlertDue(candidate.post)?'waiting_for_gate_countdown':'ready');
+                reasons[reason]=(reasons[reason]||0)+1;
+                if(reason==='ready' || reason==='previously_stale')ready[deliveryQueue(candidate)]++;
+              }
+              totals.queue_reasons_by_language[target.language]=reasons;totals.ready_by_language[target.language]=ready;
             }
             for(const candidate of outboxSnapshot(latest).queued_candidates) {
               const queue=deliveryQueue(candidate);totals.queue_remaining[queue]++;
@@ -2216,3 +2250,4 @@ jobs:
           TG_EN_THREAD_ID: ${{ secrets.TG_EN_THREAD_ID }}
           GH_STATE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: *square_runtime
+
