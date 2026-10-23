@@ -144,13 +144,15 @@ jobs:
           const TAG_PAGES = 3;
           const RECOMMENDATION_PAGES = 2;
           const GLOBAL_FEED_LANGUAGES = ['ru','zh-CN'];
+          const ROTATING_FEED_LANGUAGES = ['es','pt','tr','fr','vi','id'];
+          const ROTATING_FEED_SLOTS = 2;
           const GLOBAL_FEED_PAGES = 2;
           const GLOBAL_DISCOVERY_AUTHOR_LIMIT = 24;
           const AUTHOR_LIMIT = 48;
-          const FAST_AUTHOR_LIMIT = 256;
+          const FAST_AUTHOR_LIMIT = 320;
           const ACTIVE_AUTHOR_SLOTS = 128;
-          const FAST_DISCOVERY_SLOTS = 64;
-          const FAST_FOLLOWING_SLOTS = 64;
+          const FAST_DISCOVERY_SLOTS = 96;
+          const FAST_FOLLOWING_SLOTS = 96;
           const ACTIVE_AUTHOR_INTERVAL_MS = 2 * 60 * 1000;
           const PACKET_AUTHOR_SLOTS = 16;
           const DISCOVERY_AUTHOR_SLOTS = 16;
@@ -541,8 +543,11 @@ jobs:
           export function chooseMarkerPosts(posts,checks={},now=Date.now()) {
             const stamp=p=>epoch(p.date??p.firstReleaseTime??p.createTime)||0;
             const tier=p=>now-stamp(p)<=POST_MAX_AGE_MS ? 0 : now-stamp(p)<=86400000 ? 1 : 2;
+            const strength=p=>p.redEnvelop || p.isAssociateRedEnvelop===true ? 0 :
+              searchMarkers(p).some(marker=>!['🧧','🎁'].includes(marker)) ? 1 : 2;
             return posts.filter(p=>(Number(checks[p.id])||0)<=now-5*60000 && stamp(p)<=now+60000)
-              .sort((a,b)=>tier(a)-tier(b) || (Number(checks[a.id])||0)-(Number(checks[b.id])||0) || stamp(b)-stamp(a))
+              .sort((a,b)=>tier(a)-tier(b) || strength(a)-strength(b) || stamp(b)-stamp(a) ||
+                (Number(checks[a.id])||0)-(Number(checks[b.id])||0))
               .slice(0,SEARCH_DETAIL_LIMIT);
           }
           export async function fetchFollowingPage(username,page) {
@@ -732,6 +737,48 @@ jobs:
             return {text:lines.join('\n'),parse_mode:'HTML',link_preview_options:{is_disabled:true},reply_markup:{inline_keyboard:[[
               {text:en?'Open Gate stream':'Открыть эфир Gate',url:post.url}]]}};
           }
+          export function rotatingFeedLanguages(now=Date.now()) {
+            const batches=Math.ceil(ROTATING_FEED_LANGUAGES.length/ROTATING_FEED_SLOTS);
+            const offset=(Math.floor(now/120000)%batches)*ROTATING_FEED_SLOTS;
+            return ROTATING_FEED_LANGUAGES.slice(offset,offset+ROTATING_FEED_SLOTS);
+          }
+          export function buildDiscoveryFeeds(worker,now=Date.now()) {
+            const legacy=worker==='all',scanLive=legacy || worker==='live',scanCommunity=legacy || worker==='community';
+            const workerTags=legacy || worker==='posts' ? TAGS : [];
+            const feedPages=legacy || worker==='posts' ? LATEST_PAGES : worker==='live' ? 1 : 0;
+            const feeds=[...workerTags.flatMap(tag=>Array.from({length:TAG_PAGES},(_,i)=>({
+                tag:i ? tag+':page'+(i+1) : tag,coverage:'public_hashtag_page_'+(i+1),run:()=>fetchTag(tag,i+1)}))),
+              ...[1,2].flatMap(type=>Array.from({length:feedPages},(_,i)=>({tag:'square:global:type'+type+':page'+(i+1),
+                language:'en',coverage:'public_feed_type_'+type+'_page_'+(i+1),run:()=>fetchLatest(type,i+1)}))),
+              ...(legacy || ['posts','live'].includes(worker) ? Array.from({length:worker==='live'?1:RECOMMENDATION_PAGES},(_,i)=>({
+                tag:i?'square:discover:page'+(i+1):'square:discover',language:'en',coverage:'public_recommendations_page_'+(i+1),run:()=>fetchRecommended(i+1)})) : []),
+              ...(legacy || worker==='posts' ? GLOBAL_FEED_LANGUAGES.flatMap(language=>[1,2].flatMap(type=>
+                Array.from({length:GLOBAL_FEED_PAGES},(_,i)=>({tag:'square:global:'+language+':type'+type+':page'+(i+1),
+                  language,coverage:'public_localized_global_feed_'+language+'_type_'+type+'_page_'+(i+1),
+                  run:()=>fetchLatest(type,i+1,language)})))) : []),
+              ...(legacy || worker==='posts' ? rotatingFeedLanguages(now).flatMap(language=>
+                Array.from({length:GLOBAL_FEED_PAGES},(_,i)=>({tag:'square:global:'+language+':type2:page'+(i+1),
+                  language,coverage:'public_rotating_global_feed_'+language+'_page_'+(i+1),run:()=>fetchLatest(2,i+1,language)}))) : []),
+              ...(legacy || worker==='posts' ? [...GLOBAL_FEED_LANGUAGES,...rotatingFeedLanguages(now)].map(language=>({
+                tag:'square:discover:'+language+':page1',language,coverage:'public_localized_recommendations_'+language,
+                run:()=>fetchRecommended(1,language)})) : []),
+              ...(REMOTE_KEYWORD_SEARCH_ENABLED && (legacy || worker==='posts') ? SEARCH_TERMS.map(term=>({tag:'square:search:'+term,coverage:'first_search_page_only',run:()=>fetchKeyword(term)})) : []),
+              ...(scanLive ? [{tag:'square:live:catalog',coverage:'recommended_live_rooms_only',run:fetchLiveCatalog}] : []),
+              ...(scanCommunity ? COMMUNITY_TAGS.flatMap(tag=>Array.from({length:COMMUNITY_TAG_PAGES},(_,i)=>({
+                tag:'community:tag:'+tag+(i?':page'+(i+1):''),coverage:'public_community_hashtag_page_'+(i+1),run:()=>fetchTag(tag,i+1)}))) : []),
+              ...(scanCommunity ? [1,2].flatMap(type=>Array.from({length:COMMUNITY_FEED_PAGES},(_,i)=>({
+                tag:'community:'+COMMUNITY_FEED_LANGUAGE+':type'+type+':page'+(i+1),language:COMMUNITY_FEED_LANGUAGE,coverage:'public_localized_feed_page_'+(i+1),
+                run:()=>fetchLatest(type,i+1,COMMUNITY_FEED_LANGUAGE)}))) : []),
+              ...(scanCommunity ? Array.from({length:RECOMMENDATION_PAGES},(_,i)=>({
+                tag:'community:'+COMMUNITY_FEED_LANGUAGE+':discover:page'+(i+1),language:COMMUNITY_FEED_LANGUAGE,coverage:'public_localized_recommendations_page_'+(i+1),
+                run:()=>fetchRecommended(i+1,COMMUNITY_FEED_LANGUAGE)})) : [])];
+            // Visit the first page of every source before deep pagination of any source.
+            // Previously one slow tag could consume the scan before global feeds ran.
+            const pageOf=feed=>Number(feed.tag.match(/:page(\d+)$/)?.[1]||1);
+            const priority=feed=>feed.tag.includes(':type2:')?0:feed.tag.includes(':discover')?1:feed.language?2:3;
+            feeds.sort((a,b)=>pageOf(a)-pageOf(b) || priority(a)-priority(b));
+            return feeds;
+          }
           export async function scan(env=process.env,worker='all',onProgress=null) {
             if(worker!=='all' && !WORKER_ROLES.includes(worker))throw new Error('Unknown search worker');
             const gateTask=env.ENABLE_GATE_LIVE==='1' && ['all','live'].includes(worker) ? scanGate(env) : null;
@@ -740,34 +787,9 @@ jobs:
             const concurrency=legacy ? REQUEST_CONCURRENCY : 4;
             const now = Date.now(),deadline=now+SCAN_BUDGET_MS;
             const hasBudget=(reserve=0)=>Date.now()+10000+reserve<=deadline;
-            const workerTags=legacy || worker==='posts' ? TAGS : [];
-            const feedPages=legacy || worker==='posts' ? LATEST_PAGES : worker==='live' ? 1 : 0;
-            const feeds=[...workerTags.flatMap(tag=>Array.from({length:TAG_PAGES},(_,i)=>({
-                tag:i ? tag+':page'+(i+1) : tag,coverage:'public_hashtag_page_'+(i+1),run:()=>fetchTag(tag,i+1)}))),
-              ...[1,2].flatMap(type=>Array.from({length:feedPages},(_,i)=>({tag:'square:global:type'+type+':page'+(i+1),
-                coverage:'public_feed_type_'+type+'_page_'+(i+1),run:()=>fetchLatest(type,i+1)}))),
-              ...(legacy || ['posts','live'].includes(worker) ? Array.from({length:worker==='live'?1:RECOMMENDATION_PAGES},(_,i)=>({
-                tag:i?'square:discover:page'+(i+1):'square:discover',coverage:'public_recommendations_page_'+(i+1),run:()=>fetchRecommended(i+1)})) : []),
-              ...(legacy || worker==='posts' ? GLOBAL_FEED_LANGUAGES.flatMap(language=>[1,2].flatMap(type=>
-                Array.from({length:GLOBAL_FEED_PAGES},(_,i)=>({tag:'square:global:'+language+':type'+type+':page'+(i+1),
-                  coverage:'public_localized_global_feed_'+language+'_type_'+type+'_page_'+(i+1),
-                  run:()=>fetchLatest(type,i+1,language)})))) : []),
-              ...(REMOTE_KEYWORD_SEARCH_ENABLED && (legacy || worker==='posts') ? SEARCH_TERMS.map(term=>({tag:'square:search:'+term,coverage:'first_search_page_only',run:()=>fetchKeyword(term)})) : []),
-              ...(scanLive ? [{tag:'square:live:catalog',coverage:'recommended_live_rooms_only',run:fetchLiveCatalog}] : []),
-              ...(scanCommunity ? COMMUNITY_TAGS.flatMap(tag=>Array.from({length:COMMUNITY_TAG_PAGES},(_,i)=>({
-                tag:'community:tag:'+tag+(i?':page'+(i+1):''),coverage:'public_community_hashtag_page_'+(i+1),run:()=>fetchTag(tag,i+1)}))) : []),
-              ...(scanCommunity ? [1,2].flatMap(type=>Array.from({length:COMMUNITY_FEED_PAGES},(_,i)=>({
-                tag:'community:'+COMMUNITY_FEED_LANGUAGE+':type'+type+':page'+(i+1),coverage:'public_localized_feed_page_'+(i+1),
-                run:()=>fetchLatest(type,i+1,COMMUNITY_FEED_LANGUAGE)}))) : []),
-              ...(scanCommunity ? Array.from({length:RECOMMENDATION_PAGES},(_,i)=>({
-                tag:'community:'+COMMUNITY_FEED_LANGUAGE+':discover:page'+(i+1),coverage:'public_localized_recommendations_page_'+(i+1),
-                run:()=>fetchRecommended(i+1,COMMUNITY_FEED_LANGUAGE)})) : [])];
-            // Visit the first page of every source before deep pagination of any source.
-            // Previously one slow tag could consume the scan before global feeds ran.
-            const pageOf=feed=>Number(feed.tag.match(/:page(\d+)$/)?.[1]||1);
-            feeds.sort((a,b)=>pageOf(a)-pageOf(b));
+            const feeds=buildDiscoveryFeeds(worker,now);
             const posts = new Map();
-            const markerPosts=new Map(),liveSeeds=new Map(),globalPostIds=new Set();
+            const markerPosts=new Map(),liveSeeds=new Map(),globalPostIds=new Set(),feedPostIdsByLanguage=new Map();
             const sourceChecks = [];
             if(!REMOTE_KEYWORD_SEARCH_ENABLED)sourceChecks.push({tag:'square:search',ok:true,posts_checked:0,
               local_processing:true,coverage:'disabled_by_configuration',
@@ -834,10 +856,16 @@ jobs:
                   continue;
                 }
                 const feed = result.value;
+                if(batch[i].language) {
+                  if(!feedPostIdsByLanguage.has(batch[i].language))feedPostIdsByLanguage.set(batch[i].language,new Set());
+                  for(const post of feed)if(/^\d+$/.test(String(post.id||post.contentId||'')))
+                    feedPostIdsByLanguage.get(batch[i].language).add(String(post.id||post.contentId));
+                }
                 const dates = feed.map(p => epoch(p.date??p.firstReleaseTime??p.createTime??p.latestReleaseTime)).filter(Boolean);
                 sourceChecks.push({tag, ok: true, posts_checked: feed.length,
                   newest_post_at: dates.length ? iso(Math.max(...dates)) : null,
                   oldest_post_at: dates.length ? iso(Math.min(...dates)) : null,
+                  ...(batch[i].language?{language_requested:batch[i].language}:{}),
                   coverage: batch[i].coverage, may_have_more: feed.length >= PAGE_SIZE});
                 for (const post of feed) {
                   ingest(post,tag);
@@ -891,7 +919,7 @@ jobs:
             }
             const hydratePosts=new Map(markerPosts);
             for(const item of posts.values())if(item.status==='unknown')
-              hydratePosts.set(item.post_id,{id:item.post_id,date:Date.parse(item.published_at)});
+              hydratePosts.set(item.post_id,{id:item.post_id,date:Date.parse(item.published_at),isAssociateRedEnvelop:true});
             const detailPosts=worker==='live' ? [] : chooseMarkerPosts([...hydratePosts.values()],keywordChecks,now);
             let markerVerified=0,markerChecked=0;
             for(let start=0;start<detailPosts.length;start+=concurrency) {
@@ -933,7 +961,10 @@ jobs:
             const discovered=mergeAuthors(observedAuthors).filter(a=>a.discovered);
             const newAuthors=discovered.filter(a=>!knownBefore.has(a.uid));
             const discoveryStats={global_posts_checked:globalPostIds.size,authors_seen:discovered.length,
-              localized_global_posts_checked:sourceChecks.filter(s=>GLOBAL_FEED_LANGUAGES.some(language=>s.tag.startsWith('square:global:'+language+':')) && s.ok).reduce((n,s)=>n+(s.posts_checked||0),0),
+              localized_global_posts_checked:sourceChecks.filter(s=>s.language_requested && s.language_requested!=='en' && s.ok).reduce((n,s)=>n+(s.posts_checked||0),0),
+              requested_feed_languages:[...feedPostIdsByLanguage.keys()],
+              feed_coverage_by_language:Object.fromEntries([...feedPostIdsByLanguage].map(([language,ids])=>[language,{
+                unique_posts:ids.size,unique_outside_default:[...ids].filter(id=>!feedPostIdsByLanguage.get('en')?.has(id)).length}])),
               global_discovery_profiles_checked:checkedAuthors.filter(a=>a.scan_reason==='global_discovery').length,
               new_authors:newAuthors.length,new_authors_outside_loaded_following:newAuthors.filter(a=>!followed.has(a.uid)).length,
               new_following_authors:following.authors.filter(a=>!knownBefore.has(a.uid)).length,
@@ -965,11 +996,11 @@ jobs:
                 Number.isFinite(Number(stamp)) && Number(stamp)>now-86400000).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,1000)),
               limitations: ["Discovery only; no reward claimed", "Hints are not verified answers", "Standalone text codes are disabled; legacy code candidates are removed from the active outbox and public feed; historical receipts are preserved",
                 "Public Square endpoint is undocumented and can change", "Hashtags: up to 3 pages of 50 posts across 6 packet/quiz tags including 红包; standalone code discovery is disabled",
-                "Global feed types 1 and 2: first 4 pages each plus 2 recommendation pages; Russian and Chinese global feeds add 2 pages per type; duplicates merged",
+                "Global feeds: English plus Russian/Chinese; two rotating requested languages from es/pt/tr/fr/vi/id every 2 minutes; localized recommendations; requested language may fall back, distinct IDs are measured",
                 "Posts worker: up to 24 recent publishers found in global feeds or hashtags are checked immediately, independently of following; unknown authors first; originals still verified",
                 "Community worker: 11 public Islamic-topic hashtags, 2 pages each; Arabic feed types 1/2, 3 pages each; 2 Arabic recommendation pages; up to 16 discovered publisher profiles within budget",
                 "Community coverage is bounded to public topics/feeds, not all Square; no author religion inferred; Urdu packet/code labels supported but Urdu feed falls back to English",
-                "Author worker: up to 256 profiles; 128 recent publishers, 64 discoveries, 64 following; active publishers due every 2 minutes; vacant slots reused",
+                "Author worker: up to 320 profiles; 128 recent publishers, 96 discoveries, 96 following; actual coverage depends on the unchanged scan budget; vacant slots reused",
                 "Following list: up to 4 public pages of 20 per run, including first 2 pages refreshed each run; saved sweep cursor; public API capped at page 100; remaining subscriptions are not guaranteed visible; full rotation can take hours and miss short-lived packets",
                 "Remote keyword API is disabled after anonymous HTTP 400; marker/partial-card matching checks up to 96 originals within time budget, not all Square",
                 "Scan budget per worker: 150 seconds; four parallel requests per worker; 45 seconds reserved after feeds/profiles, 20 after originals for room checks",

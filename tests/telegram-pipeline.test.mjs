@@ -122,3 +122,55 @@ test('state conflict merge preserves sent/uncertain receipts and removes legacy 
     assert.deepEqual(merged.outbox,{});assert.deepEqual(merged.public_feed,{});
   }
 });
+
+test('three two-minute rounds cover six extra languages and retain the existing feeds',()=>{
+  const covered=new Set();
+  for(let round=0;round<3;round++) {
+    const stamp=round*120000,rotating=app.rotatingFeedLanguages(stamp);
+    assert.equal(rotating.length,2);
+    rotating.forEach(language=>covered.add(language));
+    const tasks=app.buildDiscoveryFeeds('posts',stamp);
+    for(const language of ['en','ru','zh-CN',...rotating]) {
+      assert.ok(tasks.some(t=>t.language===language && t.tag.includes(':type2:')));
+      assert.ok(tasks.some(t=>t.language===language && t.tag.includes(':discover')));
+    }
+    assert.ok(tasks.every(t=>!/(?:redpacketcode|cryptobox)/i.test(t.tag)));
+    assert.ok(tasks.length<=48,'feed expansion stays bounded');
+  }
+  assert.equal(covered.size,6);
+});
+
+test('fresh global heads run before archive pagination while every existing packet tag stays enabled',()=>{
+  const tasks=app.buildDiscoveryFeeds('posts',0),page=t=>Number(t.tag.match(/:page(\d+)$/)?.[1]||1);
+  const firstDeep=tasks.findIndex(t=>page(t)>1);
+  assert.ok(firstDeep>0);
+  assert.ok(tasks.slice(firstDeep).every(t=>page(t)>1));
+  assert.ok(tasks[0].tag.includes(':type2:'));
+  for(const tag of ['redpacket','redpacketgiveawaycampaign','binanceredpacket','redpacketmission','redpacketquiz','红包'])
+    assert.ok(tasks.some(t=>t.tag===tag));
+  assert.deepEqual(app.buildDiscoveryFeeds('authors',0),[]);
+  assert.ok(app.buildDiscoveryFeeds('community',0).some(t=>t.language==='ar'));
+});
+
+test('original check slots reach strong packet hints before same-age emoji-only posts',()=>{
+  const weak=Array.from({length:110},(_,i)=>({id:String(1000+i),date:now-60000,title:'🎁'}));
+  const strong={id:'9999',date:now-60000,isAssociateRedEnvelop:true};
+  const chosen=app.chooseMarkerPosts([...weak,strong],{},now);
+  assert.equal(chosen.length,96);
+  assert.equal(chosen[0].id,strong.id);
+  assert.ok(!app.chooseMarkerPosts([strong],{[strong.id]:now-60000},now).length,'recent checks still cool down');
+});
+
+test('profile exploration expands without displacing the active publisher allocation',()=>{
+  const authors=[
+    ...Array.from({length:150},(_,i)=>({uid:'active_'+String(i).padStart(5,'0'),last_packet_at:now-60000})),
+    ...Array.from({length:150},(_,i)=>({uid:'discover_'+String(i).padStart(5,'0'),discovered:true,last_marker_at:now-60000})),
+    ...Array.from({length:150},(_,i)=>({uid:'follow_'+String(i).padStart(5,'0'),followed:true}))
+  ];
+  const selected=app.chooseFastAuthors(authors,now);
+  assert.equal(selected.length,320);
+  assert.equal(new Set(selected.map(a=>a.uid)).size,320);
+  assert.equal(selected.filter(a=>a.scan_reason==='active_packet_publisher').length,128);
+  assert.equal(selected.filter(a=>a.scan_reason==='discovery').length,96);
+  assert.equal(selected.filter(a=>a.scan_reason==='following').length,96);
+});
