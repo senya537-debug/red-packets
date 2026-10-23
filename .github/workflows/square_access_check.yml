@@ -126,6 +126,7 @@ jobs:
           // Urdu requests currently fall back to English; do not count them as a separate feed.
           const COMMUNITY_FEED_LANGUAGE = 'ar';
           const REGIONAL_PACKET_PATTERN = /(?:الظرف|المظروف|المغلف|الغلاف|الحزمة|الحزمه)\s*(?:الأحمر|الاحمر|الحمراء)|(?:الأظرف|الاظرف|المظاريف)\s*الحمراء|ريد\s*باك(?:ي|ا)ت|ریڈ\s*پیکٹ|سرخ\s*(?:پیکٹ|لفافہ)/u;
+          const MULTILINGUAL_PACKET_PATTERN = /sobres?\s+rojos?|pa[cç]otes?\s+vermelhos?|k[ıi]rm[ıi]z[ıi]\s+paket|enveloppes?\s+rouges?|l[ìi]\s*x[ìi]|angpao|紅包/iu;
           const REGIONAL_CODE_LABEL = '(?:(?:ال)?(?:رمز|كود)(?:\\s*(?:الظرف|المظروف|الحزمة)\\s*(?:الأحمر|الاحمر|الحمراء))?|(?:ریڈ\\s*پیکٹ\\s*)?کوڈ)';
           const SEARCH_TERMS = ['Red Packet Quiz','Red Packet','🧧','🎁'];
           // Remote keyword API is separate from marker matching in loaded feeds.
@@ -144,7 +145,7 @@ jobs:
           const TAG_PAGES = 3;
           const RECOMMENDATION_PAGES = 2;
           const GLOBAL_FEED_LANGUAGES = ['ru','zh-CN'];
-          const ROTATING_FEED_LANGUAGES = ['es','pt','tr','fr','vi','id'];
+          const ROTATING_FEED_LANGUAGES = ['es','pt-BR','tr','fr','vi','id'];
           const ROTATING_FEED_SLOTS = 2;
           const GLOBAL_FEED_PAGES = 2;
           const GLOBAL_DISCOVERY_AUTHOR_LIMIT = 24;
@@ -212,6 +213,7 @@ jobs:
             const markers=SEARCH_TERMS.filter(term=>term==='Red Packet Quiz' ? /red\s*packet\s*quiz/i.test(text) :
               term==='Red Packet' ? /red\s*packet|crypto\s*box|红包|красн\S*\s+(?:пакет|конверт)|ред\s*пакет/i.test(text) : text.includes(term));
             if(REGIONAL_PACKET_PATTERN.test(text) || new RegExp(REGIONAL_CODE_LABEL+'\\s*[:：=\\-]','u').test(text))markers.push('regional:packet-or-code');
+            if(MULTILINGUAL_PACKET_PATTERN.test(text))markers.push('regional:packet');
             // Association is a discovery hint only; original metadata still decides eligibility.
             if(post?.isAssociateRedEnvelop===true)markers.push('metadata:packet');
             return markers;
@@ -996,7 +998,7 @@ jobs:
                 Number.isFinite(Number(stamp)) && Number(stamp)>now-86400000).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,1000)),
               limitations: ["Discovery only; no reward claimed", "Hints are not verified answers", "Standalone text codes are disabled; legacy code candidates are removed from the active outbox and public feed; historical receipts are preserved",
                 "Public Square endpoint is undocumented and can change", "Hashtags: up to 3 pages of 50 posts across 6 packet/quiz tags including 红包; standalone code discovery is disabled",
-                "Global feeds: English plus Russian/Chinese; two rotating requested languages from es/pt/tr/fr/vi/id every 2 minutes; localized recommendations; requested language may fall back, distinct IDs are measured",
+                "Global feeds: English plus Russian/Chinese; two rotating requested languages from es/pt-BR/tr/fr/vi/id every 2 minutes; localized recommendations; requested language may fall back, distinct IDs are measured",
                 "Posts worker: up to 24 recent publishers found in global feeds or hashtags are checked immediately, independently of following; unknown authors first; originals still verified",
                 "Community worker: 11 public Islamic-topic hashtags, 2 pages each; Arabic feed types 1/2, 3 pages each; 2 Arabic recommendation pages; up to 16 discovered publisher profiles within budget",
                 "Community coverage is bounded to public topics/feeds, not all Square; no author religion inferred; Urdu packet/code labels supported but Urdu feed falls back to English",

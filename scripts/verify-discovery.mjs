@@ -28,6 +28,7 @@ for(const result of results)console.log(JSON.stringify({...result,ids:undefined,
   unique_outside_default:result.ids?[...result.ids].filter(id=>!baseline.has(id)).length:undefined}));
 const added=results.filter(r=>!['en','ru','zh-CN','ar'].includes(r.language) && r.ok);
 assert.ok(added.length,'none of the additional requested language sources is available');
+assert.ok(added.some(result=>[...result.ids].some(id=>!baseline.has(id))),'additional sources only duplicate the default feed');
 const snapshot=await app.scan({SQUARE_STATE_SNAPSHOT:'.redpacket/delivery.json'},'posts');
 console.log('FULL_SCAN '+JSON.stringify({all_sources_failed:snapshot.all_sources_failed,partial:snapshot.partial,
   discovery:snapshot.discovery_stats,eligible_candidates:app.publishCandidates(snapshot).length,

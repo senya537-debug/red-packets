@@ -161,6 +161,15 @@ test('original check slots reach strong packet hints before same-age emoji-only 
   assert.ok(!app.chooseMarkerPosts([strong],{[strong.id]:now-60000},now).length,'recent checks still cool down');
 });
 
+test('local packet phrases are discovery hints while code-only text stays ineligible',()=>{
+  for(const title of ['Sobre rojo','Pacote vermelho','Kırmızı paket','Enveloppe rouge','Lì xì','Angpao','紅包']) {
+    const raw={id:'9999',title};
+    assert.ok(app.searchMarkers(raw).includes('regional:packet'),title);
+    assert.equal(app.normalize(raw,'test'),null,'words alone never verify a packet');
+    assert.equal(app.isEligiblePost({kind:'code',status:'unverified_code',published_codes:['ABCD1234']}),false);
+  }
+});
+
 test('profile exploration expands without displacing the active publisher allocation',()=>{
   const authors=[
     ...Array.from({length:150},(_,i)=>({uid:'active_'+String(i).padStart(5,'0'),last_packet_at:now-60000})),
