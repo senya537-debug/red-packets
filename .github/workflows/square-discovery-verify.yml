@@ -1,0 +1,25 @@
+name: Verify Square discovery · read only
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix/telegram-original-recheck-backoff]
+    paths:
+      - '.github/workflows/square_access_check.yml'
+      - '.github/workflows/square-discovery-verify.yml'
+      - 'scripts/verify-discovery.mjs'
+      - 'tests/telegram-pipeline.test.mjs'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify pipeline guards and discovery planning
+        run: node --test tests/telegram-pipeline.test.mjs
+      - name: Check public sources without publishing
+        run: node scripts/verify-discovery.mjs
