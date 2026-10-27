@@ -1220,52 +1220,52 @@ jobs:
             if(records.some(item=>Number(item.retry_at)>now))return 'retry_cooldown';
             return null;
           }
-            function averageRewardPriority(candidate) {
-          const post = candidate.post || {};
-          const currency = String(post.currency || '').toUpperCase();
+          function averageRewardPriority(candidate) {
+            const post = candidate.post || {};
+            const currency = String(post.currency || '').toUpperCase();
 
-          // Сравниваем только долларовые стейблкоины:
-          // значения разных криптовалют напрямую несопоставимы.
-          if (!USD_STABLE.has(currency)) return -1;
+            // Сравниваем только долларовые стейблкоины:
+            // значения разных криптовалют напрямую несопоставимы.
+            if (!USD_STABLE.has(currency)) return -1;
 
-          return averagePerPerson(post)?.avg ?? -1;
+            return averagePerPerson(post)?.avg ?? -1;
           }
 
           export function orderDeliveryCandidates(candidates) {
-          const live = candidates
-          .filter(c => c.post?.kind === 'live')
-          .sort((a, b) =>
-          a.post.exchange === 'gate'
-          ? b.post.exchange === 'gate'
-            ? Date.parse(a.post.gate_unlock_at) - Date.parse(b.post.gate_unlock_at)
-            : -1
-          : b.post.exchange === 'gate'
-            ? 1
-            : 0
-          );
+            const live = candidates
+              .filter(c => c.post?.kind === 'live')
+              .sort((a, b) =>
+                a.post.exchange === 'gate'
+                  ? b.post.exchange === 'gate'
+                    ? Date.parse(a.post.gate_unlock_at) - Date.parse(b.post.gate_unlock_at)
+                    : -1
+                  : b.post.exchange === 'gate'
+                    ? 1
+                    : 0
+              );
 
-          const posts = candidates
-          .filter(c =>
-          !['live', 'code'].includes(c.post?.kind) &&
-          c.post?.status !== 'unverified_code'
-          )
-          .sort((a, b) =>
-          averageRewardPriority(b) - averageRewardPriority(a) ||
-          (Date.parse(b.post?.published_at) || 0) -
-          (Date.parse(a.post?.published_at) || 0)
-          );
+            const posts = candidates
+              .filter(c =>
+                !['live', 'code'].includes(c.post?.kind) &&
+                c.post?.status !== 'unverified_code'
+              )
+              .sort((a, b) =>
+                averageRewardPriority(b) - averageRewardPriority(a) ||
+                (Date.parse(b.post?.published_at) || 0) -
+                  (Date.parse(a.post?.published_at) || 0)
+              );
 
-          const ordered = [];
+            const ordered = [];
 
-          // Крупные известные средние награды идут первыми.
-          // Мелкие и неизвестные суммы остаются в очереди как запасные.
-          while (posts.length || live.length) {
-          for (const queue of [posts, live]) {
-          if (queue.length) ordered.push(queue.shift());
-          }
-          }
+            // Крупные известные средние награды идут первыми.
+            // Мелкие и неизвестные суммы остаются в очереди как запасные.
+            while (posts.length || live.length) {
+              for (const queue of [posts, live]) {
+                if (queue.length) ordered.push(queue.shift());
+              }
+            }
 
-          return ordered;
+            return ordered;
           }
           export function originalRecheckReason(candidate,current,now=Date.now()) {
             if(!current)return 'packet_metadata_missing';
