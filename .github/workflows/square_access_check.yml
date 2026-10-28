@@ -1033,6 +1033,74 @@ jobs:
           function formatAverage(value) {
             return value>=1 ? String(Number(value.toFixed(2))) : String(Number(value.toFixed(6)));
           }
+          function formatUsd(value) {
+            return value>=1 ? String(Number(value.toFixed(2))) : String(Number(value.toPrecision(2)));
+          }
+          // Dollar estimates for non-stable reward coins come from public Binance spot prices. They are estimates:
+          // the reward split is random and prices move. A coin without a liquid market never gets a "large" mark.
+          const MARKET_ENDPOINTS = ['https://api.binance.com','https://data-api.binance.vision'];
+          const MARKET_TTL_MS = 60 * 1000;
+          const MIN_LIQUID_USDT = 100000;
+          const USD_QUOTES = ['USDT','USDC','FDUSD','USD1'];
+          const BRIDGE_QUOTES = ['BTC','BNB','ETH'];
+          let MARKET_CACHE = null;
+          export function resetUsdMarketCache() {MARKET_CACHE=null;}
+          export function buildUsdMarket(tickers,now=Date.now()) {
+            const symbols=new Map();
+            for(const ticker of Array.isArray(tickers)?tickers:[]) {
+              const price=Number(ticker?.lastPrice),volume=Number(ticker?.quoteVolume);
+              if(typeof ticker?.symbol==='string' && Number.isFinite(price) && price>0)
+                symbols.set(ticker.symbol,{price,volume:Number.isFinite(volume) && volume>0 ? volume : 0});
+            }
+            return {symbols,fetched_at:now,source:null};
+          }
+          export function usdPrice(coin,market) {
+            const symbol=currencySymbol(coin);
+            if(!symbol)return null;
+            if(USD_STABLE.has(symbol))return {price:1,liquidity:Infinity,route:'stable'};
+            if(!market?.symbols)return null;
+            const routes=[];
+            for(const quote of USD_QUOTES) {
+              const pair=market.symbols.get(symbol+quote);
+              if(pair)routes.push({price:pair.price,liquidity:pair.volume,route:symbol+quote});
+            }
+            for(const quote of BRIDGE_QUOTES) {
+              const pair=market.symbols.get(symbol+quote),bridge=market.symbols.get(quote+'USDT');
+              if(pair && bridge)routes.push({price:pair.price*bridge.price,liquidity:pair.volume*bridge.price,route:symbol+quote+'*'+quote+'USDT'});
+            }
+            routes.sort((a,b)=>b.liquidity-a.liquidity);
+            return routes[0]||null;
+          }
+          export function valuation(post,market) {
+            const average=averagePerPerson(post||{});
+            if(!average)return null;
+            const rate=usdPrice(post.currency,market);
+            if(!rate)return null;
+            const avgUsd=average.avg*rate.price;
+            if(!Number.isFinite(avgUsd) || avgUsd<=0)return null;
+            return {avg_usd:avgUsd,price_usd:rate.price,liquid:rate.liquidity>=MIN_LIQUID_USDT,route:rate.route};
+          }
+          // Returns a copy; the valuation is never written to delivery state.
+          export function valuedPost(post,market) {
+            if(!post || post.kind==='live' || post.exchange==='gate')return post;
+            const worth=valuation(post,market);
+            return worth ? {...post,valuation:worth} : post;
+          }
+          export async function loadUsdMarket({fetchImpl=fetch,now=Date.now(),endpoints=MARKET_ENDPOINTS}={}) {
+            if(MARKET_CACHE && now-MARKET_CACHE.fetched_at<MARKET_TTL_MS)return MARKET_CACHE;
+            let lastError;
+            for(const base of endpoints) {
+              try {
+                const response=await fetchImpl(base+'/api/v3/ticker/24hr?type=MINI',{signal:AbortSignal.timeout(8000),
+                  headers:{Accept:'application/json','User-Agent':'Mozilla/5.0'}});
+                if(!response.ok)throw new Error('HTTP '+response.status);
+                const market=buildUsdMarket(await response.json(),now);
+                if(market.symbols.size<100 || !market.symbols.has('BTCUSDT'))throw new Error('unexpected price response');
+                market.source=base;MARKET_CACHE=market;return market;
+              } catch(error) {lastError=error;}
+            }
+            throw new Error('Binance spot prices unavailable: '+String(lastError?.message||lastError).slice(0,120));
+          }
           export function formatTelegramPost(post,language='ru') {
             if(post.kind==='code' || post.status==='unverified_code')throw new Error('Standalone code publishing is disabled');
             if(post.exchange==='gate')return formatGateTelegram(post,language);
@@ -1073,10 +1141,15 @@ jobs:
             const average=averagePerPerson(post);
             if (average) {
               const currency=String(post.currency||'').toUpperCase(), isUsd=USD_STABLE.has(currency);
+              const worth=!isUsd && post.valuation && Number.isFinite(post.valuation.avg_usd) ? post.valuation : null;
               const unit=isUsd ? '$' : escapeHtml(post.currency || '',24);
-              lines.push(language==='en'?`💰 Average ≈ ${formatAverage(average.avg)}${unit?' '+unit:''} per person, ${average.places} spots remaining`:
-                `💰 В среднем ≈ ${formatAverage(average.avg)}${unit ? ' '+unit : ''} на человека, осталось ${average.places} ${placesWord(average.places)}`);
-              if (isUsd && average.avg>=BIG_AVG_USD) lines.push(t('💎 <b>Крупный пакет</b>','💎 <b>Large packet</b>'));
+              const usdNote=worth && worth.liquid ? ` (≈ ${formatUsd(worth.avg_usd)} $)` : '';
+              lines.push(language==='en'?`💰 Average ≈ ${formatAverage(average.avg)}${unit?' '+unit:''}${usdNote} per person, ${average.places} spots remaining`:
+                `💰 В среднем ≈ ${formatAverage(average.avg)}${unit ? ' '+unit : ''}${usdNote} на человека, осталось ${average.places} ${placesWord(average.places)}`);
+              if ((isUsd && average.avg>=BIG_AVG_USD) || (worth && worth.liquid && worth.avg_usd>=BIG_AVG_USD))
+                lines.push(t('💎 <b>Крупный пакет</b>','💎 <b>Large packet</b>'));
+              if (worth && !worth.liquid)
+                lines.push(t('⚠️ Монета мало торгуется: курс в долларах может быть неточным.','⚠️ This coin trades thinly: the dollar rate may be inaccurate.'));
             } else lines.push(t('💰 Размер награды неизвестен','💰 Reward amount unknown'));
             lines.push("", post.status === "reported_open"
               ? t('По данным Square: пакет не истёк и не разобран.','Square reports that the packet has not expired or run out.')
@@ -1224,8 +1297,9 @@ jobs:
             const post = candidate.post || {};
             const currency = String(post.currency || '').toUpperCase();
 
-            // Сравниваем только долларовые стейблкоины:
-            // значения разных криптовалют напрямую несопоставимы.
+            // Другие монеты сравниваются только по долларовой оценке с ликвидным рынком;
+            // без цены или с тонким рынком они остаются запасными, как неизвестные суммы.
+            if (post.valuation?.liquid && Number.isFinite(post.valuation.avg_usd)) return post.valuation.avg_usd;
             if (!USD_STABLE.has(currency)) return -1;
 
             return averagePerPerson(post)?.avg ?? -1;
@@ -1869,12 +1943,20 @@ jobs:
                 recovered=true;
               }
             }
+            // Dollar estimates are optional: if prices are unavailable, stable-coin packets work as before.
+            let market=null;
+            if(mode!=='telegram_test') {
+              try {
+                market=await loadUsdMarket();
+                stats.usd_prices={ok:true,source:market.source,symbols:market.symbols.size};
+              } catch(error) {stats.usd_prices={ok:false,error:redact(error,env)};}
+            }
             const allCandidates=mode==='telegram_test'
               ? [{key:'test:'+(env.GITHUB_RUN_ID||'local'),message:{text:language==='en'?
                 '🧧 Red Packet Radar connected.\nThis is a test message. Run publish separately to enable automatic posting.':
                 '🧧 Бот Red Packet подключён.\nЭто тестовое сообщение. Автопубликация включается отдельным запуском publish.'}}]
-              : orderDeliveryCandidates(snapshot.queued_candidates ? deduplicateCandidates(snapshot.queued_candidates.filter(c=>isEligiblePost(c.post))) :
-                publishCandidates(snapshot)).filter((item,index,all)=>budget ? all.slice(0,index+1).filter(c=>deliveryQueue(c)===deliveryQueue(item)).length<=100 : index<100)
+              : orderDeliveryCandidates((snapshot.queued_candidates ? deduplicateCandidates(snapshot.queued_candidates.filter(c=>isEligiblePost(c.post))) :
+                publishCandidates(snapshot)).map(item=>({...item,post:valuedPost(item.post,market)}))).filter((item,index,all)=>budget ? all.slice(0,index+1).filter(c=>deliveryQueue(c)===deliveryQueue(item)).length<=100 : index<100)
                 .map(item=>({...item,message:formatTelegramPost(item.post,language)}));
             stats.candidates_found=allCandidates.length;
             let index=deliveryIndex(state,destination),identitiesChanged=false;
@@ -1943,8 +2025,8 @@ jobs:
                 candidate.identity_keys=candidateIdentityKeys(candidate);
                 // Anonymous details can omit the packet identity while still confirming
                 // this exact post, open flags and expiry. Missing identity is not a change.
-                candidate.post={...current,currency:current.currency??currencySymbol(candidate.post.currency),
-                  packet_id:current.packet_id??candidate.post.packet_id,packet_code:current.packet_code??candidate.post.packet_code};
+                candidate.post=valuedPost({...current,currency:current.currency??currencySymbol(candidate.post.currency),
+                  packet_id:current.packet_id??candidate.post.packet_id,packet_code:current.packet_code??candidate.post.packet_code},market);
                 candidate.message=formatTelegramPost(candidate.post,language);
                 index=deliveryIndex(state,destination);
                 const refreshedReason=deliverySkipReason(state,matchingDeliveries(index,candidate));
