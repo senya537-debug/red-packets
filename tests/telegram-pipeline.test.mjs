@@ -183,3 +183,79 @@ test('profile exploration expands without displacing the active publisher alloca
   assert.equal(selected.filter(a=>a.scan_reason==='discovery').length,96);
   assert.equal(selected.filter(a=>a.scan_reason==='following').length,96);
 });
+
+// ---- USD-equivalent valuation of non-stable reward coins ----
+const tick=(symbol,lastPrice,quoteVolume)=>({symbol,lastPrice:String(lastPrice),quoteVolume:String(quoteVolume)});
+const marketTickers=()=>[tick('BTCUSDT',100000,5e9),tick('BNBUSDT',600,1e9),tick('ETHUSDT',4000,2e9),
+  tick('DOGEUSDT',0.2,5e8),tick('SOLUSDT',200,9e8),tick('SOLBTC',0.002,100),tick('TINYUSDT',0.5,50),
+  tick('ALTBNB',0.01,1000),...Array.from({length:120},(_,i)=>tick('COIN'+i+'USDT',1,1e6))];
+const fmt=(post,lang)=>app.formatTelegramPost(post,lang).text;
+const market=()=>app.buildUsdMarket(marketTickers(),now);
+const coinPacket=(currency,amount,places,id='900')=>{const p=packet(id);
+  return {...p,post:{...p.post,currency,available_amount:amount,available_receivers:places}};};
+
+test('non-stable coins convert to USD via direct pairs, bridge pairs and best liquidity',()=>{
+  const m=market();
+  assert.equal(app.usdPrice('USDT',m).price,1);
+  assert.equal(app.usdPrice('DOGE',m).price,0.2);
+  assert.equal(app.usdPrice('SOL',m).route,'SOLUSDT','direct pair with the deepest market wins over BTC bridge');
+  assert.ok(Math.abs(app.usdPrice('ALT',m).price-6)<1e-9,'ALTBNB * BNBUSDT');
+  assert.equal(app.usdPrice('NOPE',m),null);
+  assert.equal(app.usdPrice('DOGE',null),null);
+});
+
+test('valuation computes average in USD and flags thin markets',()=>{
+  const m=market();
+  const doge=app.valuation(coinPacket('DOGE',100,10).post,m);
+  assert.ok(Math.abs(doge.avg_usd-2)<1e-9);assert.equal(doge.liquid,true);
+  const tiny=app.valuation(coinPacket('TINY',100,10).post,m);
+  assert.equal(tiny.liquid,false);
+  assert.equal(app.valuation(coinPacket('NOPE',100,10).post,m),null);
+  assert.equal(app.valuation(packet().post,m),null,'no amount, no valuation');
+});
+
+test('valuedPost does not mutate input and skips live alerts',()=>{
+  const m=market(),c=coinPacket('DOGE',100,10);
+  const v=app.valuedPost(c.post,m);
+  assert.equal(c.post.valuation,undefined);assert.ok(v.valuation);
+  const live={kind:'live'};assert.equal(app.valuedPost(live,m),live);
+  assert.equal(app.valuedPost(c.post,null),c.post);
+});
+
+test('message shows coin and USD amounts, marks large only for liquid coins (RU/EN)',()=>{
+  const m=market();
+  const big=app.valuedPost(coinPacket('DOGE',100,10).post,m);
+  const ru=fmt(big,'ru'),en=fmt(big,'en');
+  assert.match(ru,/В среднем ≈ 10 DOGE \(≈ 2 \$\) на человека/);assert.match(ru,/Крупный пакет/);
+  assert.match(en,/Average ≈ 10 DOGE \(≈ 2 \$\) per person/);assert.match(en,/Large packet/);
+  const small=fmt(app.valuedPost(coinPacket('DOGE',10,10).post,m),'ru');
+  assert.match(small,/\(≈ 0\.2 \$\)/);assert.doesNotMatch(small,/Крупный/);
+  const thin=fmt(app.valuedPost(coinPacket('TINY',100000,10).post,m),'ru');
+  assert.doesNotMatch(thin,/Крупный/);assert.doesNotMatch(thin,/\$\)/);assert.match(thin,/мало торгуется/);
+  const unpriced=fmt(coinPacket('NOPE',100,10).post,'ru');
+  assert.match(unpriced,/В среднем ≈ 10 NOPE на человека/);
+  const usdt=fmt(coinPacket('USDT',20,10).post,'ru');
+  assert.match(usdt,/≈ 2 \$ на человека/);assert.match(usdt,/Крупный/);
+});
+
+test('delivery order ranks liquid USD-equivalent rewards alongside stable coins',()=>{
+  const m=market();
+  const stable=coinPacket('USDT',30,10,'1'),doge=coinPacket('DOGE',500,10,'2'),thin=coinPacket('TINY',1e6,10,'3'),
+    none=coinPacket('NOPE',1e6,10,'4');
+  const items=[stable,doge,thin,none].map(c=>({...c,post:app.valuedPost(c.post,m)}));
+  // DOGE: 500*0.2/10 = 10 $ > USDT 3 $; thin and unpriced coins fall back behind
+  assert.deepEqual(app.orderDeliveryCandidates(items).map(c=>c.key).slice(0,2),[doge.key,stable.key]);
+});
+
+test('price loading falls back to second endpoint, validates data, and fails safely',async()=>{
+  app.resetUsdMarketCache();
+  const calls=[],good=new Response(JSON.stringify(marketTickers()),{status:200});
+  const fetchImpl=async url=>{calls.push(url);return url.startsWith('https://api.binance.com')?new Response('x',{status:451}):good;};
+  const m=await app.loadUsdMarket({fetchImpl,now:1000});
+  assert.equal(m.source,'https://data-api.binance.vision');assert.equal(calls.length,2);
+  await app.loadUsdMarket({fetchImpl:async()=>{throw new Error('must be cached');},now:2000});
+  app.resetUsdMarketCache();
+  await assert.rejects(app.loadUsdMarket({fetchImpl:async()=>new Response('[]',{status:200}),now:5000}),/unavailable/);
+  await assert.rejects(app.loadUsdMarket({fetchImpl:async()=>{throw new Error('offline');},now:5000}),/unavailable/);
+  app.resetUsdMarketCache();
+});
