@@ -259,3 +259,33 @@ test('price loading falls back to second endpoint, validates data, and fails saf
   await assert.rejects(app.loadUsdMarket({fetchImpl:async()=>{throw new Error('offline');},now:5000}),/unavailable/);
   app.resetUsdMarketCache();
 });
+
+// ---- small public feed file for the website ----
+test('public feed file is small, worker-compatible, and skips unchanged writes',async()=>{
+  const a=packet('810'),b=packet('811');
+  const state={items:{big:{state:'sent'}},authors:Array.from({length:50},(_,i)=>({uid:'u'+i})),
+    public_feed:{[a.key]:{candidate:a,observed_at:now},[b.key]:{candidate:b,observed_at:now-1000},
+      'code:ZZZZ1234':{candidate:{key:'code:ZZZZ1234',post:{...a.post,kind:'code',published_codes:['ZZZZ1234']}},observed_at:now}}};
+  const file=app.buildPublicFeedFile(state,now);
+  assert.equal(file.version,1);assert.deepEqual(file.items,{});
+  assert.deepEqual(Object.keys(file.public_feed).sort(),[a.key,b.key]);
+  assert.equal(file.authors,undefined);assert.equal(file.outbox,undefined);
+  const env={GITHUB_REPOSITORY:'o/r',GITHUB_REF_NAME:'main',GH_STATE_TOKEN:'t'};
+  const calls=[];let remote=null;
+  const fetchImpl=async(url,init={})=>{
+    calls.push(init.method||'GET');
+    if((init.method||'GET')==='GET')return remote?new Response(JSON.stringify({sha:'s1',content:remote}),{status:200}):new Response('{}',{status:404});
+    const sent=JSON.parse(init.body);assert.match(sent.message,/\[skip ci\]/);remote=sent.content;return new Response('{}',{status:200});
+  };
+  assert.equal((await app.exportPublicFeed(env,state,{fetchImpl,now})).changed,true);
+  assert.deepEqual(calls,['GET','PUT']);
+  // only observed_at moved, file is fresh: no new commit
+  const moved={...state,public_feed:Object.fromEntries(Object.entries(state.public_feed).map(([k,e])=>[k,{...e,observed_at:now+60000}]))};
+  assert.equal((await app.exportPublicFeed(env,moved,{fetchImpl,now:now+60000})).changed,false);
+  assert.equal(calls.length,3);
+  // a new finding or a stale file triggers a write
+  const c=packet('812');
+  assert.equal((await app.exportPublicFeed(env,{...state,public_feed:{...state.public_feed,[c.key]:{candidate:c,observed_at:now}}},{fetchImpl,now:now+60000})).changed,true);
+  assert.equal((await app.exportPublicFeed(env,state,{fetchImpl,now:now+16*60000})).changed,true);
+  await assert.rejects(app.exportPublicFeed(env,state,{fetchImpl:async()=>new Response('x',{status:500}),now}),/HTTP 500/);
+});
