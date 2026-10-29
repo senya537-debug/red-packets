@@ -314,6 +314,7 @@ jobs:
               amount: envelope?.amount ?? null,
               available_amount: envelope?.availableAmount ?? null,
               available_receivers: envelope?.availableNumber ?? null,
+              total_receivers: envelope?.number ?? null,
               eligibility: "not_checked",
               excerpt: text.slice(0, 240),
             };
@@ -1018,11 +1019,20 @@ jobs:
           // Reward split among receivers is random (set by Square, not the author), so only the average is shown.
           const BIG_AVG_USD = 1;
           const USD_STABLE = new Set(['USDT','USDC','FDUSD','USD1','BUSD','TUSD']);
+          const hasValue=v=>v!==null && v!==undefined && String(v).trim()!=='';
           function averagePerPerson(post) {
-            const amount=Number(post.available_amount), places=Number(post.available_receivers);
-            if(post.available_amount===null || post.available_amount===undefined || post.available_receivers===null || post.available_receivers===undefined)return null;
-            if(!Number.isFinite(amount) || !Number.isFinite(places) || amount<=0 || places<=0)return null;
-            return {avg:amount/places, places};
+            // Preferred: what is left divided by the spots left.
+            if(hasValue(post.available_amount) && hasValue(post.available_receivers)) {
+              const amount=Number(post.available_amount), places=Number(post.available_receivers);
+              return Number.isFinite(amount) && Number.isFinite(places) && amount>0 && places>0 ? {avg:amount/places,places} : null;
+            }
+            // Square often hides the remaining figures but still reports the whole packet: total / receivers.
+            // The average of a random split is the same, but how many spots remain is then unknown.
+            if(hasValue(post.amount) && hasValue(post.total_receivers)) {
+              const amount=Number(post.amount), count=Number(post.total_receivers);
+              return Number.isFinite(amount) && Number.isFinite(count) && amount>0 && count>0 ? {avg:amount/count,places:null} : null;
+            }
+            return null;
           }
           function placesWord(n) {
             const last=n%10, tens=n%100;
@@ -1144,8 +1154,8 @@ jobs:
               const worth=!isUsd && post.valuation && Number.isFinite(post.valuation.avg_usd) ? post.valuation : null;
               const unit=isUsd ? '$' : escapeHtml(post.currency || '',24);
               const usdNote=worth && worth.liquid ? ` (≈ ${formatUsd(worth.avg_usd)} $)` : '';
-              lines.push(language==='en'?`💰 Average ≈ ${formatAverage(average.avg)}${unit?' '+unit:''}${usdNote} per person, ${average.places} spots remaining`:
-                `💰 В среднем ≈ ${formatAverage(average.avg)}${unit ? ' '+unit : ''}${usdNote} на человека, осталось ${average.places} ${placesWord(average.places)}`);
+              lines.push(language==='en'?`💰 Average ≈ ${formatAverage(average.avg)}${unit?' '+unit:''}${usdNote} per person${average.places!==null?`, ${average.places} spots remaining`:''}`:
+                `💰 В среднем ≈ ${formatAverage(average.avg)}${unit ? ' '+unit : ''}${usdNote} на человека${average.places!==null?`, осталось ${average.places} ${placesWord(average.places)}`:''}`);
               if ((isUsd && average.avg>=BIG_AVG_USD) || (worth && worth.liquid && worth.avg_usd>=BIG_AVG_USD))
                 lines.push(t('💎 <b>Крупный пакет</b>','💎 <b>Large packet</b>'));
               if (worth && !worth.liquid)
