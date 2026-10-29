@@ -2297,6 +2297,41 @@ jobs:
             totals.enabled=initial.enabled && !totals.disabled && targetEnabled(latest,configuration);
             return totals;
           }
+          // The website reads this small file instead of the full delivery history. It is derived data:
+          // failures here never affect Telegram delivery or the durable state.
+          const PUBLIC_FEED_PATH = '.redpacket/public_feed.json';
+          const PUBLIC_FEED_REFRESH_MS = 15 * 60 * 1000;
+          export function buildPublicFeedFile(state,now=Date.now()) {
+            return {version:1,items:{},generated_at:new Date(now).toISOString(),public_feed:compactPublicFeed(state?.public_feed,now)};
+          }
+          function publicFeedFingerprint(file) {
+            // observed_at moves on every scan; ignoring it avoids a commit per run when nothing else changed.
+            return JSON.stringify(Object.entries(file?.public_feed||{}).sort(([a],[b])=>a<b?-1:1)
+              .map(([key,entry])=>[key,{...entry,observed_at:0}]));
+          }
+          export async function exportPublicFeed(env,state,{fetchImpl=fetch,now=Date.now()}={}) {
+            const file=buildPublicFeedFile(state,now);
+            const url=`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/contents/${PUBLIC_FEED_PATH}`;
+            const headers={Accept:'application/vnd.github.object+json',Authorization:'Bearer '+env.GH_STATE_TOKEN,
+              'X-GitHub-Api-Version':'2026-03-10','User-Agent':'SquareTelegramPublisher','Cache-Control':'no-cache'};
+            const current=await fetchImpl(url+'?ref='+encodeURIComponent(env.GITHUB_REF_NAME),{headers,signal:AbortSignal.timeout(20000),redirect:'error'});
+            let sha=null;
+            if(current.status===404)sha=null;
+            else if(current.ok) {
+              const metadata=await current.json();
+              sha=typeof metadata?.sha==='string'?metadata.sha:null;
+              try {
+                const existing=JSON.parse(Buffer.from(String(metadata.content||''),'base64').toString('utf8'));
+                if(publicFeedFingerprint(existing)===publicFeedFingerprint(file) &&
+                   now-Date.parse(existing.generated_at||0)<PUBLIC_FEED_REFRESH_MS)return {changed:false,entries:Object.keys(file.public_feed).length};
+              } catch {}
+            } else throw new Error('Public feed read: HTTP '+current.status);
+            const body=JSON.stringify(file);
+            const saved=await fetchImpl(url,{method:'PUT',headers:{...headers,'Content-Type':'application/json'},signal:AbortSignal.timeout(20000),redirect:'error',
+              body:JSON.stringify({message:'Public feed [skip ci]',branch:env.GITHUB_REF_NAME,content:Buffer.from(body).toString('base64'),...(sha?{sha}:{})})});
+            if(!saved.ok)throw new Error('Public feed write: HTTP '+saved.status);
+            return {changed:true,entries:Object.keys(file.public_feed).length,bytes:Buffer.byteLength(body)};
+          }
           export async function main(env=process.env) {
             const mode=env.RUN_MODE||'preview',role=env.WORKER_ROLE||'publisher';
             if(!['preview','telegram_test','publish','scheduled'].includes(mode))throw new Error('Unknown run mode');
@@ -2304,6 +2339,10 @@ jobs:
             if(role!=='publisher')throw new Error('Unknown worker role');
             if(mode==='preview')return;
             const stats=await runQueuePublisher(env,mode);
+            if(mode!=='telegram_test') {
+              try {stats.public_feed_file=await exportPublicFeed(env,await new GitHubState(env).readLatest(true));}
+              catch(error) {stats.public_feed_file={error:redact(error,env)};}
+            }
             summary('## Telegram\n\n'+JSON.stringify(stats,null,2),env);
             if(stats.last_error)process.exitCode=1;
           }
