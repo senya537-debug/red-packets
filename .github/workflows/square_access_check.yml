@@ -281,6 +281,10 @@ jobs:
               const current=normalizeLive(original,await fetchLiveRoom(post.live_id));
               return current ? {...current,currency:current.currency??currencySymbol(post.currency)} : null;
           }
+          function commentCount(post) {
+            const n=Number(post?.commentCount ?? post?.replyCount);
+            return post?.commentCount==null && post?.replyCount==null ? null : Number.isFinite(n) && n>=0 ? Math.floor(n) : null;
+          }
           export function normalize(post, tag, now = Date.now()) {
             if (!post || typeof post !== "object" || !/^\d+$/.test(String(post.id || ""))) return null;
             if(post.extraFeature==='SPACE_LIVE' || (post.contentType===4 && post.liveType>0))return null;
@@ -314,6 +318,7 @@ jobs:
               amount: envelope?.amount ?? null,
               available_amount: envelope?.availableAmount ?? null,
               available_receivers: envelope?.availableNumber ?? null,
+              comments: commentCount(post),
               eligibility: "not_checked",
               excerpt: text.slice(0, 240),
             };
@@ -1018,6 +1023,7 @@ jobs:
           // Reward split among receivers is random (set by Square, not the author), so only the average is shown.
           const BIG_AVG_USD = 1;
           const USD_STABLE = new Set(['USDT','USDC','FDUSD','USD1','BUSD','TUSD']);
+          const hasValue=v=>v!==null && v!==undefined && String(v).trim()!=='';
           function averagePerPerson(post) {
             const amount=Number(post.available_amount), places=Number(post.available_receivers);
             if(post.available_amount===null || post.available_amount===undefined || post.available_receivers===null || post.available_receivers===undefined)return null;
@@ -1071,14 +1077,26 @@ jobs:
             routes.sort((a,b)=>b.liquidity-a.liquidity);
             return routes[0]||null;
           }
+          // Square hides how many people share a packet, so the whole amount and the comment count are the
+          // only signals: total / comments is a rough competition-adjusted estimate, never a promised payout.
+          const BIG_PER_COMMENTER_USD = 0.5;
+          const COMMENTS_ASSUMED = 50;
+          function totalAmount(post) {
+            const total=hasValue(post?.amount) ? Number(post.amount) : NaN;
+            return Number.isFinite(total) && total>0 ? total : null;
+          }
           export function valuation(post,market) {
-            const average=averagePerPerson(post||{});
-            if(!average)return null;
+            post=post||{};
+            const average=averagePerPerson(post),total=totalAmount(post);
+            if(!average && total===null)return null;
             const rate=usdPrice(post.currency,market);
             if(!rate)return null;
-            const avgUsd=average.avg*rate.price;
-            if(!Number.isFinite(avgUsd) || avgUsd<=0)return null;
-            return {avg_usd:avgUsd,price_usd:rate.price,liquid:rate.liquidity>=MIN_LIQUID_USDT,route:rate.route};
+            const avgUsd=average ? average.avg*rate.price : null,totalUsd=total!==null ? total*rate.price : null;
+            if(!(avgUsd>0) && !(totalUsd>0))return null;
+            const comments=Number.isFinite(post.comments) && post.comments>=0 ? post.comments : null;
+            return {avg_usd:avgUsd>0?avgUsd:null,total_usd:totalUsd>0?totalUsd:null,comments,
+              per_commenter_usd:totalUsd>0 && comments!==null ? totalUsd/Math.max(comments,1) : null,
+              price_usd:rate.price,liquid:rate.liquidity>=MIN_LIQUID_USDT,route:rate.route};
           }
           // Returns a copy; the valuation is never written to delivery state.
           export function valuedPost(post,market) {
@@ -1148,6 +1166,22 @@ jobs:
                 `💰 В среднем ≈ ${formatAverage(average.avg)}${unit ? ' '+unit : ''}${usdNote} на человека, осталось ${average.places} ${placesWord(average.places)}`);
               if ((isUsd && average.avg>=BIG_AVG_USD) || (worth && worth.liquid && worth.avg_usd>=BIG_AVG_USD))
                 lines.push(t('💎 <b>Крупный пакет</b>','💎 <b>Large packet</b>'));
+              if (worth && !worth.liquid)
+                lines.push(t('⚠️ Монета мало торгуется: курс в долларах может быть неточным.','⚠️ This coin trades thinly: the dollar rate may be inaccurate.'));
+            } else if (totalAmount(post)!==null) {
+              const currency=String(post.currency||'').toUpperCase(), isUsd=USD_STABLE.has(currency),total=totalAmount(post);
+              const worth=post.valuation && Number.isFinite(post.valuation.total_usd) ? post.valuation : null;
+              const unit=isUsd ? '$' : escapeHtml(post.currency || '',24);
+              const usdNote=!isUsd && worth && worth.liquid ? ` (≈ ${formatUsd(worth.total_usd)} $)` : '';
+              lines.push(language==='en'?`💰 Total in the packet ≈ ${formatAverage(total)}${unit?' '+unit:''}${usdNote}`:
+                `💰 Всего в пакете ≈ ${formatAverage(total)}${unit ? ' '+unit : ''}${usdNote}`);
+              lines.push(t('Сколько человек делят пакет, Square не показывает.','Square does not show how many people share the packet.'));
+              if (worth && worth.liquid && worth.per_commenter_usd!==null) {
+                lines.push(language==='en'?`💬 Comments: ${worth.comments} · ≈ ${formatUsd(worth.per_commenter_usd)} $ per commenter (estimate)`:
+                  `💬 Комментариев: ${worth.comments} · ≈ ${formatUsd(worth.per_commenter_usd)} $ на комментатора (оценка)`);
+                if (worth.per_commenter_usd>=BIG_PER_COMMENTER_USD)
+                  lines.push(t('🔥 <b>Заметная сумма и мало конкурентов</b>','🔥 <b>Notable amount, little competition</b>'));
+              }
               if (worth && !worth.liquid)
                 lines.push(t('⚠️ Монета мало торгуется: курс в долларах может быть неточным.','⚠️ This coin trades thinly: the dollar rate may be inaccurate.'));
             } else lines.push(t('💰 Размер награды неизвестен','💰 Reward amount unknown'));
@@ -1299,7 +1333,11 @@ jobs:
 
             // Другие монеты сравниваются только по долларовой оценке с ликвидным рынком;
             // без цены или с тонким рынком они остаются запасными, как неизвестные суммы.
-            if (post.valuation?.liquid && Number.isFinite(post.valuation.avg_usd)) return post.valuation.avg_usd;
+            const worth = post.valuation;
+            if (worth?.liquid && Number.isFinite(worth.avg_usd)) return worth.avg_usd;
+            // Whole amount shared by the commenters so far; unknown comment counts use a typical value.
+            if (worth?.liquid && Number.isFinite(worth.total_usd))
+              return worth.total_usd / Math.max(Number.isFinite(worth.comments) ? worth.comments : COMMENTS_ASSUMED, 1);
             if (!USD_STABLE.has(currency)) return -1;
 
             return averagePerPerson(post)?.avg ?? -1;
@@ -2025,8 +2063,13 @@ jobs:
                 candidate.identity_keys=candidateIdentityKeys(candidate);
                 // Anonymous details can omit the packet identity while still confirming
                 // this exact post, open flags and expiry. Missing identity is not a change.
+                // The detail endpoint often hides reward figures that the listing showed: keep them, but take fresh comments.
                 candidate.post=valuedPost({...current,currency:current.currency??currencySymbol(candidate.post.currency),
-                  packet_id:current.packet_id??candidate.post.packet_id,packet_code:current.packet_code??candidate.post.packet_code},market);
+                  packet_id:current.packet_id??candidate.post.packet_id,packet_code:current.packet_code??candidate.post.packet_code,
+                  amount:current.amount??candidate.post.amount??null,
+                  available_amount:current.available_amount??candidate.post.available_amount??null,
+                  available_receivers:current.available_receivers??candidate.post.available_receivers??null,
+                  comments:current.comments??candidate.post.comments??null},market);
                 candidate.message=formatTelegramPost(candidate.post,language);
                 index=deliveryIndex(state,destination);
                 const refreshedReason=deliverySkipReason(state,matchingDeliveries(index,candidate));

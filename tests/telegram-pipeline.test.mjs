@@ -289,3 +289,46 @@ test('public feed file is small, worker-compatible, and skips unchanged writes',
   assert.equal((await app.exportPublicFeed(env,state,{fetchImpl,now:now+16*60000})).changed,true);
   await assert.rejects(app.exportPublicFeed(env,state,{fetchImpl:async()=>new Response('x',{status:500}),now}),/HTTP 500/);
 });
+
+// ---- total amount and competition (comments) when Square hides per-person figures ----
+const totalPacket=(currency,amount,comments,id)=>{const p=coinPacket(currency,null,null,id);
+  return {...p,post:{...p.post,available_amount:null,available_receivers:null,amount:String(amount),comments}};};
+
+test('normalize keeps total amount and comment count',()=>{
+  const post=app.normalize({id:'123456',commentCount:20,redEnvelop:{currency:'USDT',amount:'5',availableAmount:null,
+    quiz:'q',type:1,isExpired:false,isRunOut:false,expiredTime:Date.now()+3600000}},'t');
+  assert.equal(post.comments,20);assert.equal(post.amount,'5');assert.equal(post.available_amount,null);
+  assert.equal(app.normalize({id:'123457',redEnvelop:{currency:'USDT',quiz:'q'}},'t').comments,null);
+});
+
+test('message shows total amount, competition estimate and honest wording (RU/EN)',()=>{
+  const m=market();
+  const low=app.valuedPost(totalPacket('USDT',5,5,'950').post,m);
+  const ru=fmt(low,'ru'),en=fmt(low,'en');
+  assert.match(ru,/Всего в пакете ≈ 5 \$/);assert.match(ru,/Square не показывает/);
+  assert.match(ru,/Комментариев: 5 · ≈ 1 \$ на комментатора \(оценка\)/);assert.match(ru,/мало конкурентов/);
+  assert.match(en,/Total in the packet ≈ 5 \$/);assert.match(en,/per commenter \(estimate\)/);assert.match(en,/little competition/);
+  assert.doesNotMatch(ru,/на человека/);
+  const crowded=fmt(app.valuedPost(totalPacket('USDT',5,500,'951').post,m),'ru');
+  assert.match(crowded,/≈ 0\.01 \$ на комментатора/);assert.doesNotMatch(crowded,/мало конкурентов/);
+  const noComments=fmt(app.valuedPost(totalPacket('USDT',5,null,'952').post,m),'ru');
+  assert.match(noComments,/Всего в пакете ≈ 5 \$/);assert.doesNotMatch(noComments,/Комментариев/);
+  const doge=fmt(app.valuedPost(totalPacket('DOGE',100,10,'953').post,m),'ru');
+  assert.match(doge,/Всего в пакете ≈ 100 DOGE \(≈ 20 \$\)/);assert.match(doge,/≈ 2 \$ на комментатора/);
+  const thin=fmt(app.valuedPost(totalPacket('TINY',100000,2,'954').post,m),'ru');
+  assert.doesNotMatch(thin,/на комментатора/);assert.doesNotMatch(thin,/мало конкурентов/);assert.match(thin,/мало торгуется/);
+  const unpriced=fmt(app.valuedPost(totalPacket('NOPE',77,2,'955').post,m),'ru');
+  assert.match(unpriced,/Всего в пакете ≈ 77 NOPE/);assert.doesNotMatch(unpriced,/\$\)/);
+  assert.match(fmt(coinPacket('USDT',null,null,'956').post,'ru'),/Размер награды неизвестен/);
+});
+
+test('delivery order prefers a big total with few comments, then unknowns',()=>{
+  const m=market();
+  const exact=coinPacket('USDT',30,10,'960'),     // real average 3 $
+    quiet=totalPacket('USDT',5,5,'961'),          // 1 $ per commenter
+    crowded=totalPacket('USDT',50,500,'962'),     // 0.1 $ per commenter
+    unknownComments=totalPacket('USDT',2,null,'963'), // 2 / 50 assumed
+    nothing=coinPacket('USDT',null,null,'964');
+  const items=[nothing,crowded,unknownComments,quiet,exact].map(c=>({...c,post:app.valuedPost(c.post,m)}));
+  assert.deepEqual(app.orderDeliveryCandidates(items).map(c=>c.key).slice(0,4),[exact.key,quiet.key,crowded.key,unknownComments.key]);
+});
