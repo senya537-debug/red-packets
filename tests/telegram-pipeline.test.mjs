@@ -259,3 +259,20 @@ test('price loading falls back to second endpoint, validates data, and fails saf
   await assert.rejects(app.loadUsdMarket({fetchImpl:async()=>{throw new Error('offline');},now:5000}),/unavailable/);
   app.resetUsdMarketCache();
 });
+
+test('average falls back to total amount / total receivers when remaining figures are hidden',()=>{
+  const base=coinPacket('USDT',null,null,'700').post;
+  const hidden={...base,available_amount:null,available_receivers:null,amount:'10',total_receivers:5};
+  assert.match(fmt(hidden,'ru'),/В среднем ≈ 2 \$ на человека(?!, осталось)/);
+  assert.match(fmt(hidden,'en'),/Average ≈ 2 \$ per person(?!, )/);
+  assert.match(fmt(hidden,'ru'),/Крупный пакет/);
+  // remaining figures win when present
+  assert.match(fmt({...hidden,available_amount:'6',available_receivers:2},'ru'),/≈ 3 \$ на человека, осталось 2 места/);
+  // missing or invalid receivers never invent an average
+  assert.match(fmt({...hidden,total_receivers:null},'ru'),/Размер награды неизвестен/);
+  assert.match(fmt({...hidden,total_receivers:0},'ru'),/Размер награды неизвестен/);
+  assert.match(fmt({...hidden,amount:null},'ru'),/Размер награды неизвестен/);
+  // non-stable coin gets a USD estimate from the same fallback
+  const doge=app.valuedPost({...coinPacket('DOGE',null,null,'701').post,amount:'100',total_receivers:10},market());
+  assert.match(fmt(doge,'ru'),/≈ 10 DOGE \(≈ 2 \$\) на человека(?!, осталось)/);
+});
