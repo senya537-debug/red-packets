@@ -1318,9 +1318,9 @@ jobs:
           }
           function rewardRank(candidate) {
             const post=candidate.post||{},currency=String(post.currency||'').toUpperCase(),worth=post.valuation;
-            // Tier 3: actual average reward per remaining place, never inferred from comments.
+            // Tier 3: Square-reported average per remaining place; this is not proof of a successful claim.
             if(worth?.liquid && Number.isFinite(worth.avg_usd) && worth.avg_usd>0)
-              return {tier:3,value:worth.avg_usd,source:'verified_per_place_usd'};
+              return {tier:3,value:worth.avg_usd,source:'source_reported_per_place_usd'};
             if(USD_STABLE.has(currency)) {
               const average=averagePerPerson(post);
               if(average)return {tier:3,value:average.avg,source:'reported_per_place_stable'};
