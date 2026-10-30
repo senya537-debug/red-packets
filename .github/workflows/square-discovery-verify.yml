@@ -2,7 +2,7 @@ name: Verify Square discovery · read only
 on:
   workflow_dispatch:
   push:
-    branches: [fix/telegram-original-recheck-backoff]
+    branches: [fix/telegram-original-recheck-backoff, radar-global-quality-v1]
     paths:
       - '.github/workflows/square_access_check.yml'
       - '.github/workflows/square-discovery-verify.yml'
