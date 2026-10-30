@@ -29,6 +29,36 @@ for(const result of results)console.log(JSON.stringify({...result,ids:undefined,
 const added=results.filter(r=>!['en','ru','zh-CN','ar'].includes(r.language) && r.ok);
 assert.ok(added.length,'none of the additional requested language sources is available');
 assert.ok(added.some(result=>[...result.ids].some(id=>!baseline.has(id))),'additional sources only duplicate the default feed');
+
+// Read-only sample of original-post reward metadata. This determines whether detail
+// responses expose remaining amount/places that are absent from feed cards.
+let detailAudit=[];
+try {
+  const feed=await app.fetchLatest(2,1,'en');
+  const samples=feed.filter(post=>post?.redEnvelop && /^\\d+$/.test(String(post.id||''))).slice(0,8);
+  detailAudit=await Promise.all(samples.map(async post=>{
+    const envelope=post.redEnvelop||{};
+    const base={post_id:String(post.id),list:{
+      currency:envelope.currency??null,amount:envelope.amount??null,
+      availableAmount:envelope.availableAmount??null,availableNumber:envelope.availableNumber??null,
+      isExpired:envelope.isExpired??null,isRunOut:envelope.isRunOut??null,
+      expiredTime:envelope.expiredTime??null
+    }};
+    try {
+      const original=await app.fetchOriginal(post.id),detail=original?.redEnvelop||{};
+      return {...base,detail:{
+        currency:detail.currency??null,amount:detail.amount??null,
+        availableAmount:detail.availableAmount??null,availableNumber:detail.availableNumber??null,
+        isExpired:detail.isExpired??null,isRunOut:detail.isRunOut??null,
+        expiredTime:detail.expiredTime??null
+      },detail_has_redEnvelop:!!original?.redEnvelop};
+    } catch(error) {return {...base,detail_error:String(error.message||error).slice(0,160)};}
+  }));
+} catch(error) {
+  detailAudit=[{audit_error:String(error.message||error).slice(0,160)}];
+}
+console.log('ORIGINAL_REWARD_METADATA_AUDIT '+JSON.stringify(detailAudit));
+
 const snapshot=await app.scan({SQUARE_STATE_SNAPSHOT:'.redpacket/delivery.json'},'posts');
 console.log('FULL_SCAN '+JSON.stringify({all_sources_failed:snapshot.all_sources_failed,partial:snapshot.partial,
   discovery:snapshot.discovery_stats,eligible_candidates:app.publishCandidates(snapshot).length,
