@@ -78,6 +78,8 @@ function mergeRecord(old, incoming) {
   out.first_seen_at = old.first_seen_at || incoming.first_seen_at;
   out.last_seen_at = incoming.last_seen_at;
   out.observations = (old.observations || 0) + 1;
+  out.answer_verified = old.answer_verified === true || incoming.answer_verified === true;
+  out.reward_verified = old.reward_verified === true || incoming.reward_verified === true;
   out.sources = [...new Set([...(old.sources || []), ...(incoming.sources || [])])];
   return out;
 }
@@ -114,7 +116,10 @@ function aggregate(records, feedGeneratedAt, snapshots) {
     if (r.answer_verified) a.answer_verified++;
     if (r.reward_verified) a.reward_verified++;
   }
-  const authors = Object.values(authorMap).sort((a,b) => b.posts - a.posts).slice(0, 30);
+  const authorRows = Object.values(authorMap);
+  const authors = [...authorRows].sort((a,b) => b.posts - a.posts).slice(0, 30);
+  const authorsByData = authorRows.filter(a => a.codes || a.packet_ids || a.amounts_known)
+    .sort((a,b) => (b.packet_ids-a.packet_ids) || (b.codes-a.codes) || (b.amounts_known-a.amounts_known) || (b.posts-a.posts)).slice(0, 30);
   const daily = Object.entries(byDay).filter(([k]) => k !== 'unknown').sort((a,b) => a[0].localeCompare(b[0])).map(([date,count]) => ({date,count}));
   const hourly = Array.from({length:24},(_,h)=>({hour_utc:String(h).padStart(2,'0'),count:byHour[String(h).padStart(2,'0')]||0}));
   return {
@@ -128,7 +133,7 @@ function aggregate(records, feedGeneratedAt, snapshots) {
       available_amount_known: withAvailableAmount, receivers_known: withReceivers,
       answer_verified: answerVerified, reward_verified: rewardVerified,
       expired_by_feed_timestamp: expiredAtSnapshot },
-    daily, hourly_utc: hourly, top_authors: authors,
+    daily, hourly_utc: hourly, top_authors: authors, top_authors_by_data_completeness: authorsByData,
     notes: [
       'Counts are unique Square posts retained by analytics history, not confirmed successful claims.',
       'packet_id/code groups are deduplicated separately from post counts; posts without either identifier fall back to post identity.',
