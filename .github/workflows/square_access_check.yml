@@ -19,13 +19,13 @@
 # Quiz/Claim cards retain questions, hints, answers and source buttons.
 # Envelope grabCode is an internal identity, never a displayed standalone code.
 # Square quizzes/Claim: require open flags and a future expiry, regardless of post age.
-# Reads global feeds, recommendations, 6 packet hashtags and discovered authors outside the loaded following list.
+# Reads default global feeds plus all supported localized feeds in the same cycle, recommendations, 6 packet hashtags and discovered authors.
 # Discovery uses Binance Square plus public Gate Live countdowns. Telegram is the delivery destination.
 # Gate packets stay queued until the final 5 minutes before start_at; already-open packets are skipped.
 # Gate rechecks room, packet ID and countdown before sending; no Gate credentials or claims.
 # GitHub scheduling/startup delays mean a delivery time cannot be guaranteed.
-# Author worker: up to 256 profiles; 128 recent packet publishers + 64 discoveries + 64 following.
-# Recent publishers become due every 2 minutes; vacant slots are reused; 150-second scan budget.
+# Author worker: up to 320 profiles; 128 recent packet publishers + up to 192 global discoveries; no subscription quota.
+# Global discoveries and proven packet publishers only; 150-second scan budget.
 # Empty author API responses fall back to public profile initial data with matching UID; no login.
 # Profile usernames are cached; diagnostics count actual posts, empty/failed profiles and HTML fallback.
 # Four requests at a time per worker; feed/profile budgets reserve time for original and live checks.
@@ -37,7 +37,7 @@
 # Durable outbox in the existing delivery state: max 200 findings per category.
 # Publisher starts after the searches; imports their artifacts, then consumes the durable queue for up to 240 seconds.
 # Affiliate message after every 10 confirmed new giveaways per language; durable receipts prevent repeats.
-# Independent per-language quotas: up to 20 packet/quiz posts and 5 verified live alerts. High average USD-stable rewards go first; lower/unknown rewards remain fallbacks. RU/EN batches alternate.
+# Discovery is language-neutral. Per-destination send quotas remain anti-spam safeguards; high average rewards go first.
 # After setting both topic secrets, run telegram_test to check the two topics, then publish to enable this configuration.
 # Queue rounds: one packet/quiz, then one verified live alert.
 # Search checkpoints stay local; final/partial results are uploaded even after a failed search.
@@ -144,20 +144,18 @@ jobs:
           const LATEST_PAGES = 4;
           const TAG_PAGES = 3;
           const RECOMMENDATION_PAGES = 2;
-          const GLOBAL_FEED_LANGUAGES = ['ru','zh-CN'];
-          const ROTATING_FEED_LANGUAGES = ['es','pt-BR','tr','fr','vi','id'];
-          const ROTATING_FEED_SLOTS = 2;
-          const GLOBAL_FEED_PAGES = 2;
-          const GLOBAL_DISCOVERY_AUTHOR_LIMIT = 24;
+          const GLOBAL_FEED_LANGUAGES = ['ru','zh-CN','es','pt-BR','tr','fr','vi','id'];
+          const GLOBAL_FEED_PAGES = 1;
+          const GLOBAL_DISCOVERY_AUTHOR_LIMIT = 64;
           const AUTHOR_LIMIT = 48;
           const FAST_AUTHOR_LIMIT = 320;
           const ACTIVE_AUTHOR_SLOTS = 128;
-          const FAST_DISCOVERY_SLOTS = 96;
-          const FAST_FOLLOWING_SLOTS = 96;
+          const FAST_DISCOVERY_SLOTS = 192;
+          const FAST_FOLLOWING_SLOTS = 0;
           const ACTIVE_AUTHOR_INTERVAL_MS = 2 * 60 * 1000;
           const PACKET_AUTHOR_SLOTS = 16;
-          const DISCOVERY_AUTHOR_SLOTS = 16;
-          const FOLLOWING_AUTHOR_SLOTS = 16;
+          const DISCOVERY_AUTHOR_SLOTS = 32;
+          const FOLLOWING_AUTHOR_SLOTS = 0;
           const REQUEST_CONCURRENCY = 8;
           const SCAN_BUDGET_MS = 150000;
           const AUTHOR_MEMORY_LIMIT = 5000;
@@ -744,11 +742,8 @@ jobs:
             return {text:lines.join('\n'),parse_mode:'HTML',link_preview_options:{is_disabled:true},reply_markup:{inline_keyboard:[[
               {text:en?'Open Gate stream':'Открыть эфир Gate',url:post.url}]]}};
           }
-          export function rotatingFeedLanguages(now=Date.now()) {
-            const batches=Math.ceil(ROTATING_FEED_LANGUAGES.length/ROTATING_FEED_SLOTS);
-            const offset=(Math.floor(now/120000)%batches)*ROTATING_FEED_SLOTS;
-            return ROTATING_FEED_LANGUAGES.slice(offset,offset+ROTATING_FEED_SLOTS);
-          }
+          // Compatibility helper: return every supported locale on every cycle; no rotation.
+          export function rotatingFeedLanguages(now=Date.now()) { return GLOBAL_FEED_LANGUAGES.slice(); }
           export function buildDiscoveryFeeds(worker,now=Date.now()) {
             const legacy=worker==='all',scanLive=legacy || worker==='live',scanCommunity=legacy || worker==='community';
             const workerTags=legacy || worker==='posts' ? TAGS : [];
@@ -759,15 +754,13 @@ jobs:
                 language:'en',coverage:'public_feed_type_'+type+'_page_'+(i+1),run:()=>fetchLatest(type,i+1)}))),
               ...(legacy || ['posts','live'].includes(worker) ? Array.from({length:worker==='live'?1:RECOMMENDATION_PAGES},(_,i)=>({
                 tag:i?'square:discover:page'+(i+1):'square:discover',language:'en',coverage:'public_recommendations_page_'+(i+1),run:()=>fetchRecommended(i+1)})) : []),
+              // Poll every supported locale in the same cycle; language is never an eligibility filter.
               ...(legacy || worker==='posts' ? GLOBAL_FEED_LANGUAGES.flatMap(language=>[1,2].flatMap(type=>
                 Array.from({length:GLOBAL_FEED_PAGES},(_,i)=>({tag:'square:global:'+language+':type'+type+':page'+(i+1),
-                  language,coverage:'public_localized_global_feed_'+language+'_type_'+type+'_page_'+(i+1),
+                  language,coverage:'public_all_language_global_feed_'+language+'_type'+type+'_page'+(i+1),
                   run:()=>fetchLatest(type,i+1,language)})))) : []),
-              ...(legacy || worker==='posts' ? rotatingFeedLanguages(now).flatMap(language=>
-                Array.from({length:GLOBAL_FEED_PAGES},(_,i)=>({tag:'square:global:'+language+':type2:page'+(i+1),
-                  language,coverage:'public_rotating_global_feed_'+language+'_page_'+(i+1),run:()=>fetchLatest(2,i+1,language)}))) : []),
-              ...(legacy || worker==='posts' ? [...GLOBAL_FEED_LANGUAGES,...rotatingFeedLanguages(now)].map(language=>({
-                tag:'square:discover:'+language+':page1',language,coverage:'public_localized_recommendations_'+language,
+              ...(legacy || worker==='posts' ? GLOBAL_FEED_LANGUAGES.map(language=>({
+                tag:'square:discover:'+language+':page1',language,coverage:'public_all_language_recommendations_'+language,
                 run:()=>fetchRecommended(1,language)})) : []),
               ...(REMOTE_KEYWORD_SEARCH_ENABLED && (legacy || worker==='posts') ? SEARCH_TERMS.map(term=>({tag:'square:search:'+term,coverage:'first_search_page_only',run:()=>fetchKeyword(term)})) : []),
               ...(scanLive ? [{tag:'square:live:catalog',coverage:'recommended_live_rooms_only',run:fetchLiveCatalog}] : []),
@@ -888,14 +881,12 @@ jobs:
             for(const author of remembered)if(authorUsername(author.username))AUTHOR_USERNAMES.set(author.uid,author.username);
             const keywordChecks=memory.keyword_checks && typeof memory.keyword_checks==='object' && !Array.isArray(memory.keyword_checks) ? memory.keyword_checks : {};
             const knownBefore=new Set(mergeAuthors(FOLLOWING_BOOTSTRAP.authors,remembered).map(a=>a.uid));
-            const following=scanProfiles ? await syncFollowing(followingProgress,now,deadline-45000) :
-              {progress:followingProgress || FOLLOWING_BOOTSTRAP.progress,authors:[],pages_checked:0,error:null};
-            if(scanProfiles)sourceChecks.push({tag:'square:following:'+FOLLOWING_USERNAME,ok:!following.error,posts_checked:0,
-              pages_checked:following.pages_checked,head_pages_checked:following.head_pages_checked||0,
-              new_following_authors:following.authors.filter(a=>!knownBefore.has(a.uid)).length,authors_loaded:following.progress.uids.length,
-              total:following.progress.reported_total,complete:!!following.progress.completed_at,
-              ...(following.error?{error:following.error}:{}),coverage:'public_following_head_refresh_and_bounded_sweep',public_page_limit:FOLLOWING_PAGE_LIMIT,
-              coverage_limited:following.progress.coverage_limited===true});
+            // Personal subscriptions are not a discovery source or priority. Keep previously
+            // imported author memory for deduplication, but spend this worker's request budget
+            // on globally discovered packet publishers instead of refreshing the following list.
+            const following={progress:followingProgress || FOLLOWING_BOOTSTRAP.progress,authors:[],pages_checked:0,head_pages_checked:0,error:null};
+            if(scanProfiles)sourceChecks.push({tag:'square:following:disabled',ok:true,posts_checked:0,pages_checked:0,
+              authors_loaded:following.progress.uids.length,coverage:'disabled_personal_following_not_used_for_discovery'});
             const followed=new Set(following.progress.uids);
             remembered=mergeAuthors(FOLLOWING_BOOTSTRAP.authors.map(a=>({...a,followed:true})),remembered,following.authors);
             const registry=mergeAuthors(observedAuthors,remembered).map(a=>followed.has(a.uid)?{...a,followed:true}:a);
@@ -1343,6 +1334,25 @@ jobs:
             return averagePerPerson(post)?.avg ?? -1;
           }
 
+          function retainRewardRankedEntries(entries,limit) {
+            const compare=(a,b)=>averageRewardPriority(b[1].candidate)-averageRewardPriority(a[1].candidate) ||
+              Number(b[1].observed_at)-Number(a[1].observed_at);
+            const retained=[];
+            for(const queue of ['posts','live']) {
+              const group=entries.filter(([,entry])=>deliveryQueue(entry.candidate)===queue).sort(compare);
+              const known=group.filter(([,entry])=>averageRewardPriority(entry.candidate)>=0);
+              const unknown=group.filter(([,entry])=>averageRewardPriority(entry.candidate)<0);
+              // Keep a 25% discovery reserve for rewards without a reliable USD valuation.
+              // If either side is sparse, fill the remaining capacity from the other side.
+              const reserve=Math.min(Math.floor(limit*0.25),unknown.length);
+              const primary=known.slice(0,limit-reserve),fallback=unknown.slice(0,reserve);
+              const chosen=new Set([...primary,...fallback].map(([key])=>key));
+              const fill=group.filter(([key])=>!chosen.has(key)).slice(0,Math.max(0,limit-primary.length-fallback.length));
+              retained.push(...primary,...fallback,...fill);
+            }
+            return retained.sort(compare);
+          }
+
           export function orderDeliveryCandidates(candidates) {
             const live = candidates
               .filter(c => c.post?.kind === 'live')
@@ -1484,17 +1494,14 @@ jobs:
               if(key!==entry?.candidate?.key || !canonicalIdentity(key) || !isEligiblePost(entry.candidate.post,now))return false;
               if(!Number.isFinite(Number(entry.observed_at)) || Number(entry.observed_at)>now+60000)return false;
               return !indices.length || !indices.every(index=>matchingDeliveries(index,entry.candidate).some(k=>state.items[k]?.state==='sent'));
-            }).sort((a,b)=>Number(b[1].observed_at)-Number(a[1].observed_at));
-            const counts={posts:0,live:0};
-            return Object.fromEntries(entries.filter(([,entry])=>++counts[deliveryQueue(entry.candidate)]<=OUTBOX_LIMIT/2));
+            });
+            return Object.fromEntries(retainRewardRankedEntries(entries,OUTBOX_LIMIT/2));
           }
           export function compactPublicFeed(feed,now=Date.now()) {
-            const counts={posts:0,live:0};
-            return Object.fromEntries(Object.entries(feed||{}).filter(([key,entry])=>
+            const entries=Object.entries(feed||{}).filter(([key,entry])=>
               key===entry?.candidate?.key && canonicalIdentity(key) && isEligiblePost(entry.candidate.post,now) &&
-              Number.isFinite(Number(entry.observed_at)) && Number(entry.observed_at)<=now+60000)
-              .sort((a,b)=>Number(b[1].observed_at)-Number(a[1].observed_at))
-              .filter(([,entry])=>++counts[deliveryQueue(entry.candidate)]<=200));
+              Number.isFinite(Number(entry.observed_at)) && Number(entry.observed_at)<=now+60000);
+            return Object.fromEntries(retainRewardRankedEntries(entries,200));
           }
           export function mergeOutbox(...maps) {
             const result={};

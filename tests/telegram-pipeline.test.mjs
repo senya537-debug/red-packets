@@ -123,21 +123,22 @@ test('state conflict merge preserves sent/uncertain receipts and removes legacy 
   }
 });
 
-test('three two-minute rounds cover six extra languages and retain the existing feeds',()=>{
-  const covered=new Set();
+test('all supported language feeds are scanned every cycle without locale rotation',()=>{
+  const languages=['ru','zh-CN','es','pt-BR','tr','fr','vi','id'];
   for(let round=0;round<3;round++) {
-    const stamp=round*120000,rotating=app.rotatingFeedLanguages(stamp);
-    assert.equal(rotating.length,2);
-    rotating.forEach(language=>covered.add(language));
-    const tasks=app.buildDiscoveryFeeds('posts',stamp);
-    for(const language of ['en','ru','zh-CN',...rotating]) {
-      assert.ok(tasks.some(t=>t.language===language && t.tag.includes(':type2:')));
-      assert.ok(tasks.some(t=>t.language===language && t.tag.includes(':discover')));
+    assert.deepEqual(app.rotatingFeedLanguages(round*120000),languages);
+    const tasks=app.buildDiscoveryFeeds('posts',round*120000);
+    assert.ok(tasks.some(t=>t.tag==='square:global:type1:page1'));
+    assert.ok(tasks.some(t=>t.tag==='square:global:type2:page1'));
+    assert.ok(tasks.some(t=>t.tag==='square:discover'));
+    for(const language of languages) {
+      assert.ok(tasks.some(t=>t.tag==='square:global:'+language+':type1:page1'));
+      assert.ok(tasks.some(t=>t.tag==='square:global:'+language+':type2:page1'));
+      assert.ok(tasks.some(t=>t.tag==='square:discover:'+language+':page1'));
     }
     assert.ok(tasks.every(t=>!/(?:redpacketcode|cryptobox)/i.test(t.tag)));
-    assert.ok(tasks.length<=48,'feed expansion stays bounded');
+    assert.ok(tasks.length<=56,'all-language feed expansion remains bounded');
   }
-  assert.equal(covered.size,6);
 });
 
 test('fresh global heads run before archive pagination while every existing packet tag stays enabled',()=>{
@@ -170,18 +171,61 @@ test('local packet phrases are discovery hints while code-only text stays inelig
   }
 });
 
-test('profile exploration expands without displacing the active publisher allocation',()=>{
+test('personal following has no dedicated scan quota; global discoveries and active publishers fill the budget',()=>{
   const authors=[
     ...Array.from({length:150},(_,i)=>({uid:'active_'+String(i).padStart(5,'0'),last_packet_at:now-60000})),
-    ...Array.from({length:150},(_,i)=>({uid:'discover_'+String(i).padStart(5,'0'),discovered:true,last_marker_at:now-60000})),
+    ...Array.from({length:220},(_,i)=>({uid:'discover_'+String(i).padStart(5,'0'),discovered:true,last_marker_at:now-60000})),
     ...Array.from({length:150},(_,i)=>({uid:'follow_'+String(i).padStart(5,'0'),followed:true}))
   ];
   const selected=app.chooseFastAuthors(authors,now);
   assert.equal(selected.length,320);
   assert.equal(new Set(selected.map(a=>a.uid)).size,320);
   assert.equal(selected.filter(a=>a.scan_reason==='active_packet_publisher').length,128);
-  assert.equal(selected.filter(a=>a.scan_reason==='discovery').length,96);
-  assert.equal(selected.filter(a=>a.scan_reason==='following').length,96);
+  assert.equal(selected.filter(a=>a.scan_reason==='discovery').length,192);
+  assert.equal(selected.filter(a=>a.scan_reason==='following').length,0);
+});
+
+test('outbox and public feed reserve capacity for fresh candidates with unknown reward valuation',()=>{
+  const entries={};
+  for(let i=0;i<200;i++) {
+    const candidate=packet(String(30000+i));
+    candidate.post.currency='USDT';
+    candidate.post.available_amount=10;
+    candidate.post.available_receivers=10;
+    entries[candidate.key]={candidate,observed_at:now-1000-i};
+  }
+  for(let i=0;i<60;i++) {
+    const candidate=packet(String(40000+i));
+    candidate.post.currency='DOGE';
+    candidate.post.available_amount=100;
+    candidate.post.available_receivers=10;
+    entries[candidate.key]={candidate,observed_at:now-i};
+  }
+  const outbox=app.compactOutbox(entries,{},now);
+  const feed=app.compactPublicFeed(entries,now);
+  assert.equal(Object.keys(outbox).length,200);
+  assert.equal(Object.keys(feed).length,200);
+  assert.ok(outbox['post:40000'],'fresh unknown reward is retained in the reserve');
+  assert.ok(feed['post:40049'],'the reserve keeps the 50 freshest unknown rewards');
+  assert.ok(!outbox['post:40050'],'unknown rewards cannot overflow their reserved share');
+});
+
+test('outbox and public feed retain the highest verified stablecoin reward-per-place candidates',()=>{
+  const entries={};
+  for(let i=0;i<205;i++) {
+    const candidate=packet(String(10000+i));
+    candidate.post.currency='USDT';
+    candidate.post.available_amount=i===0?100:0.1;
+    candidate.post.available_receivers=10;
+    entries[candidate.key]={candidate,observed_at:now-i};
+  }
+  const outbox=app.compactOutbox(entries,{},now);
+  const feed=app.compactPublicFeed(entries,now);
+  assert.equal(Object.keys(outbox).length,200);
+  assert.equal(Object.keys(feed).length,200);
+  assert.ok(outbox['post:10000'],'best reward-per-place survives outbox compaction');
+  assert.ok(feed['post:10000'],'best reward-per-place survives public-feed compaction');
+  assert.ok(!outbox['post:10204'],'lowest-priority tail is trimmed first');
 });
 
 // ---- USD-equivalent valuation of non-stable reward coins ----
