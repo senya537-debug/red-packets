@@ -8,7 +8,7 @@ on:
       - 'scripts/verify-discovery.mjs'
       - 'tests/telegram-pipeline.test.mjs'
   push:
-    branches: [fix/telegram-original-recheck-backoff, radar-global-quality-v1]
+    branches: [fix/telegram-original-recheck-backoff, radar-global-quality-v1, radar-expected-reward-v1]
     paths:
       - '.github/workflows/square_access_check.yml'
       - '.github/workflows/square-discovery-verify.yml'
