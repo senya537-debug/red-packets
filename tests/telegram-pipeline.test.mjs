@@ -355,7 +355,7 @@ test('message shows total amount, competition estimate and honest wording (RU/EN
   const low=app.valuedPost(totalPacket('USDT',5,5,'950').post,m);
   const ru=fmt(low,'ru'),en=fmt(low,'en');
   assert.match(ru,/Всего в пакете ≈ 5 \$/);assert.match(ru,/Square не показывает/);
-  assert.match(ru,/Конкуренция \\(грубая оценка\\): 5 комментариев · ≈ 1 \$ на комментарий, не выплата/);assert.match(ru,/Сумма заметная относительно числа комментариев/);
+  assert.match(ru,/Конкуренция \(грубая оценка\): 5 комментариев · ≈ 1 \$ на комментарий, не выплата/);assert.match(ru,/Сумма заметная относительно числа комментариев/);
   assert.match(en,/Total in the packet ≈ 5 \$/);assert.match(en,/per comment, not a payout/);assert.match(en,/Notable pool relative to comment count/);
   assert.doesNotMatch(ru,/на человека/);
   const crowded=fmt(app.valuedPost(totalPacket('USDT',5,500,'951').post,m),'ru');
