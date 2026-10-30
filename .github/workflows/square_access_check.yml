@@ -24,8 +24,8 @@
 # Gate packets stay queued until the final 5 minutes before start_at; already-open packets are skipped.
 # Gate rechecks room, packet ID and countdown before sending; no Gate credentials or claims.
 # GitHub scheduling/startup delays mean a delivery time cannot be guaranteed.
-# Author worker: up to 320 profiles; 128 recent packet publishers + up to 160 global discoveries + 32 following.
-# Global discovery is prioritized over personal following; recent publishers stay protected; 150-second scan budget.
+# Author worker: up to 320 profiles; 128 recent packet publishers + up to 192 global discoveries; no subscription quota.
+# Global discoveries and proven packet publishers only; 150-second scan budget.
 # Empty author API responses fall back to public profile initial data with matching UID; no login.
 # Profile usernames are cached; diagnostics count actual posts, empty/failed profiles and HTML fallback.
 # Four requests at a time per worker; feed/profile budgets reserve time for original and live checks.
@@ -149,12 +149,12 @@ jobs:
           const AUTHOR_LIMIT = 48;
           const FAST_AUTHOR_LIMIT = 320;
           const ACTIVE_AUTHOR_SLOTS = 128;
-          const FAST_DISCOVERY_SLOTS = 160;
-          const FAST_FOLLOWING_SLOTS = 32;
+          const FAST_DISCOVERY_SLOTS = 192;
+          const FAST_FOLLOWING_SLOTS = 0;
           const ACTIVE_AUTHOR_INTERVAL_MS = 2 * 60 * 1000;
           const PACKET_AUTHOR_SLOTS = 16;
-          const DISCOVERY_AUTHOR_SLOTS = 28;
-          const FOLLOWING_AUTHOR_SLOTS = 4;
+          const DISCOVERY_AUTHOR_SLOTS = 32;
+          const FOLLOWING_AUTHOR_SLOTS = 0;
           const REQUEST_CONCURRENCY = 8;
           const SCAN_BUDGET_MS = 150000;
           const AUTHOR_MEMORY_LIMIT = 5000;
@@ -873,14 +873,12 @@ jobs:
             for(const author of remembered)if(authorUsername(author.username))AUTHOR_USERNAMES.set(author.uid,author.username);
             const keywordChecks=memory.keyword_checks && typeof memory.keyword_checks==='object' && !Array.isArray(memory.keyword_checks) ? memory.keyword_checks : {};
             const knownBefore=new Set(mergeAuthors(FOLLOWING_BOOTSTRAP.authors,remembered).map(a=>a.uid));
-            const following=scanProfiles ? await syncFollowing(followingProgress,now,deadline-45000) :
-              {progress:followingProgress || FOLLOWING_BOOTSTRAP.progress,authors:[],pages_checked:0,error:null};
-            if(scanProfiles)sourceChecks.push({tag:'square:following:'+FOLLOWING_USERNAME,ok:!following.error,posts_checked:0,
-              pages_checked:following.pages_checked,head_pages_checked:following.head_pages_checked||0,
-              new_following_authors:following.authors.filter(a=>!knownBefore.has(a.uid)).length,authors_loaded:following.progress.uids.length,
-              total:following.progress.reported_total,complete:!!following.progress.completed_at,
-              ...(following.error?{error:following.error}:{}),coverage:'public_following_head_refresh_and_bounded_sweep',public_page_limit:FOLLOWING_PAGE_LIMIT,
-              coverage_limited:following.progress.coverage_limited===true});
+            // Personal subscriptions are not a discovery source or priority. Keep previously
+            // imported author memory for deduplication, but spend this worker's request budget
+            // on globally discovered packet publishers instead of refreshing the following list.
+            const following={progress:followingProgress || FOLLOWING_BOOTSTRAP.progress,authors:[],pages_checked:0,head_pages_checked:0,error:null};
+            if(scanProfiles)sourceChecks.push({tag:'square:following:disabled',ok:true,posts_checked:0,pages_checked:0,
+              authors_loaded:following.progress.uids.length,coverage:'disabled_personal_following_not_used_for_discovery'});
             const followed=new Set(following.progress.uids);
             remembered=mergeAuthors(FOLLOWING_BOOTSTRAP.authors.map(a=>({...a,followed:true})),remembered,following.authors);
             const registry=mergeAuthors(observedAuthors,remembered).map(a=>followed.has(a.uid)?{...a,followed:true}:a);
