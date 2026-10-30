@@ -1166,10 +1166,10 @@ jobs:
                 `💰 Всего в пакете ≈ ${formatAverage(total)}${unit ? ' '+unit : ''}${usdNote}`);
               lines.push(t('Сколько человек делят пакет, Square не показывает.','Square does not show how many people share the packet.'));
               if (worth && worth.liquid && worth.per_commenter_usd!==null) {
-                lines.push(language==='en'?`💬 Comments: ${worth.comments} · ≈ ${formatUsd(worth.per_commenter_usd)} $ per commenter (estimate)`:
-                  `💬 Комментариев: ${worth.comments} · ≈ ${formatUsd(worth.per_commenter_usd)} $ на комментатора (оценка)`);
+                lines.push(language==='en'?`💬 Weak competition hint: ${worth.comments} comments · ≈ ${formatUsd(worth.per_commenter_usd)} $ per comment, not a payout`:
+                  `💬 Конкуренция (грубая оценка): ${worth.comments} комментариев · ≈ ${formatUsd(worth.per_commenter_usd)} $ на комментарий, не выплата`);
                 if (worth.per_commenter_usd>=BIG_PER_COMMENTER_USD)
-                  lines.push(t('🔥 <b>Заметная сумма и мало конкурентов</b>','🔥 <b>Notable amount, little competition</b>'));
+                  lines.push(t('🔥 <b>Сумма заметная относительно числа комментариев</b>','🔥 <b>Notable pool relative to comment count</b>'));
               }
               if (worth && !worth.liquid)
                 lines.push(t('⚠️ Монета мало торгуется: курс в долларах может быть неточным.','⚠️ This coin trades thinly: the dollar rate may be inaccurate.'));
