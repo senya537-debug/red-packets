@@ -1,6 +1,12 @@
 name: Verify Square discovery · read only
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/square_access_check.yml'
+      - '.github/workflows/square-discovery-verify.yml'
+      - 'scripts/verify-discovery.mjs'
+      - 'tests/telegram-pipeline.test.mjs'
   push:
     branches: [fix/telegram-original-recheck-backoff, radar-global-quality-v1]
     paths:
