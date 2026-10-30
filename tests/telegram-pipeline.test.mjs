@@ -371,15 +371,23 @@ test('message shows total amount, competition estimate and honest wording (RU/EN
   assert.match(fmt(coinPacket('USDT',null,null,'956').post,'ru'),/Размер награды неизвестен/);
 });
 
-test('delivery order prefers a big total with few comments, then unknowns',()=>{
+test('delivery ranking separates verified per-place rewards from total pools and ignores comments as payout math',()=>{
   const m=market();
-  const exact=coinPacket('USDT',30,10,'960'),     // real average 3 $
-    quiet=totalPacket('USDT',5,5,'961'),          // 1 $ per commenter
-    crowded=totalPacket('USDT',50,500,'962'),     // 0.1 $ per commenter
-    unknownComments=totalPacket('USDT',2,null,'963'), // 2 / 50 assumed
-    nothing=coinPacket('USDT',null,null,'964');
-  const items=[nothing,crowded,unknownComments,quiet,exact].map(c=>({...c,post:app.valuedPost(c.post,m)}));
-  assert.deepEqual(app.orderDeliveryCandidates(items).map(c=>c.key).slice(0,4),[exact.key,quiet.key,crowded.key,unknownComments.key]);
+  const exact=coinPacket('USDT',30,10,'960'),     // verified average 3 $ per remaining place
+    smallPool=totalPacket('USDT',5,5,'961'),
+    largePool=totalPacket('USDT',50,500,'962'),
+    samePoolFewComments=totalPacket('USDT',10,5,'963'),
+    samePoolManyComments=totalPacket('USDT',10,500,'965'),
+    unknownComments=totalPacket('USDT',2,null,'964'),
+    nothing=coinPacket('USDT',null,null,'966');
+  const items=[nothing,smallPool,largePool,samePoolManyComments,unknownComments,samePoolFewComments,exact]
+    .map(c=>({...c,post:app.valuedPost(c.post,m)}));
+  const ordered=app.orderDeliveryCandidates(items).map(c=>c.key);
+  assert.deepEqual(ordered.slice(0,5),[exact.key,samePoolFewComments.key,samePoolManyComments.key,largePool.key,smallPool.key]);
+  assert.ok(ordered.indexOf(exact.key)<ordered.indexOf(largePool.key),'known per-place value outranks any total-pool estimate');
+  assert.ok(ordered.indexOf(samePoolFewComments.key)<ordered.indexOf(samePoolManyComments.key),
+    'comments do not change payout ranking; publication freshness is only a tie-breaker');
+  assert.ok(ordered.indexOf(unknownComments.key)<ordered.indexOf(nothing.key),'unknown stablecoin totals remain rankable; missing values stay last');
 });
 
 // ---- watchdog: private alerts and healthcheck ping ----
