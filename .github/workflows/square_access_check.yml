@@ -1334,6 +1334,25 @@ jobs:
             return averagePerPerson(post)?.avg ?? -1;
           }
 
+          function retainRewardRankedEntries(entries,limit) {
+            const compare=(a,b)=>averageRewardPriority(b[1].candidate)-averageRewardPriority(a[1].candidate) ||
+              Number(b[1].observed_at)-Number(a[1].observed_at);
+            const retained=[];
+            for(const queue of ['posts','live']) {
+              const group=entries.filter(([,entry])=>deliveryQueue(entry.candidate)===queue).sort(compare);
+              const known=group.filter(([,entry])=>averageRewardPriority(entry.candidate)>=0);
+              const unknown=group.filter(([,entry])=>averageRewardPriority(entry.candidate)<0);
+              // Keep a 25% discovery reserve for rewards without a reliable USD valuation.
+              // If either side is sparse, fill the remaining capacity from the other side.
+              const reserve=Math.min(Math.floor(limit*0.25),unknown.length);
+              const primary=known.slice(0,limit-reserve),fallback=unknown.slice(0,reserve);
+              const chosen=new Set([...primary,...fallback].map(([key])=>key));
+              const fill=group.filter(([key])=>!chosen.has(key)).slice(0,Math.max(0,limit-primary.length-fallback.length));
+              retained.push(...primary,...fallback,...fill);
+            }
+            return retained.sort(compare);
+          }
+
           export function orderDeliveryCandidates(candidates) {
             const live = candidates
               .filter(c => c.post?.kind === 'live')
@@ -1475,19 +1494,14 @@ jobs:
               if(key!==entry?.candidate?.key || !canonicalIdentity(key) || !isEligiblePost(entry.candidate.post,now))return false;
               if(!Number.isFinite(Number(entry.observed_at)) || Number(entry.observed_at)>now+60000)return false;
               return !indices.length || !indices.every(index=>matchingDeliveries(index,entry.candidate).some(k=>state.items[k]?.state==='sent'));
-            }).sort((a,b)=>averageRewardPriority(b[1].candidate)-averageRewardPriority(a[1].candidate) ||
-              Number(b[1].observed_at)-Number(a[1].observed_at));
-            const counts={posts:0,live:0};
-            return Object.fromEntries(entries.filter(([,entry])=>++counts[deliveryQueue(entry.candidate)]<=OUTBOX_LIMIT/2));
+            });
+            return Object.fromEntries(retainRewardRankedEntries(entries,OUTBOX_LIMIT/2));
           }
           export function compactPublicFeed(feed,now=Date.now()) {
-            const counts={posts:0,live:0};
-            return Object.fromEntries(Object.entries(feed||{}).filter(([key,entry])=>
+            const entries=Object.entries(feed||{}).filter(([key,entry])=>
               key===entry?.candidate?.key && canonicalIdentity(key) && isEligiblePost(entry.candidate.post,now) &&
-              Number.isFinite(Number(entry.observed_at)) && Number(entry.observed_at)<=now+60000)
-              .sort((a,b)=>averageRewardPriority(b[1].candidate)-averageRewardPriority(a[1].candidate) ||
-                Number(b[1].observed_at)-Number(a[1].observed_at))
-              .filter(([,entry])=>++counts[deliveryQueue(entry.candidate)]<=200));
+              Number.isFinite(Number(entry.observed_at)) && Number(entry.observed_at)<=now+60000);
+            return Object.fromEntries(retainRewardRankedEntries(entries,200));
           }
           export function mergeOutbox(...maps) {
             const result={};
