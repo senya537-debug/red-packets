@@ -123,16 +123,21 @@ test('state conflict merge preserves sent/uncertain receipts and removes legacy 
   }
 });
 
-test('global discovery does not rotate or filter by publication language',()=>{
+test('all supported language feeds are scanned every cycle without locale rotation',()=>{
+  const languages=['ru','zh-CN','es','pt-BR','tr','fr','vi','id'];
   for(let round=0;round<3;round++) {
     assert.deepEqual(app.rotatingFeedLanguages(round*120000),[]);
     const tasks=app.buildDiscoveryFeeds('posts',round*120000);
     assert.ok(tasks.some(t=>t.tag==='square:global:type1:page1'));
     assert.ok(tasks.some(t=>t.tag==='square:global:type2:page1'));
     assert.ok(tasks.some(t=>t.tag==='square:discover'));
-    assert.ok(tasks.every(t=>!/:global:(?:ru|zh-CN|es|pt-BR|tr|fr|vi|id):/.test(t.tag)));
+    for(const language of languages) {
+      assert.ok(tasks.some(t=>t.tag==='square:global:'+language+':type1:page1'));
+      assert.ok(tasks.some(t=>t.tag==='square:global:'+language+':type2:page1'));
+      assert.ok(tasks.some(t=>t.tag==='square:discover:'+language+':page1'));
+    }
     assert.ok(tasks.every(t=>!/(?:redpacketcode|cryptobox)/i.test(t.tag)));
-    assert.ok(tasks.length<=32,'language-neutral feed expansion stays bounded');
+    assert.ok(tasks.length<=56,'all-language feed expansion remains bounded');
   }
 });
 
