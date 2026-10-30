@@ -37,7 +37,7 @@
 # Durable outbox in the existing delivery state: max 200 findings per category.
 # Publisher starts after the searches; imports their artifacts, then consumes the durable queue for up to 240 seconds.
 # Affiliate message after every 10 confirmed new giveaways per language; durable receipts prevent repeats.
-# Discovery is language-neutral. Per-destination send quotas remain anti-spam safeguards; high average rewards go first.
+# Discovery is language-neutral. Per-destination send quotas remain anti-spam safeguards; verified per-place rewards rank first, total pools second, comments never estimate payouts.
 # After setting both topic secrets, run telegram_test to check the two topics, then publish to enable this configuration.
 # Queue rounds: one packet/quiz, then one verified live alert.
 # Search checkpoints stay local; final/partial results are uploaded even after a failed search.
