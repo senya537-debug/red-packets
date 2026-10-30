@@ -1945,6 +1945,68 @@ jobs:
             else {stats.last_error=result.error;stats.affiliate_error=result.error;if(result.uncertain)stats.uncertain++;}
             await wait(budget?.send_delay_ms||3100);
           }
+          // ---- Daily digest posted once per day, per language topic ----
+          const DAILY_REPORT_HOUR_UTC = 7;
+          const DAILY_TOP = 5;
+          const dayStamp=now=>new Date(now).toISOString().slice(0,10);
+          export function dailyReportDue(state,destination,now=Date.now()) {
+            if(new Date(now).getUTCHours()<DAILY_REPORT_HOUR_UTC)return null;
+            const key=destination+':daily:'+dayStamp(now),item=state.items?.[key];
+            if(item && ['sent','uncertain','sending'].includes(item.state))return null;
+            if(Number(item?.retry_at)>now)return null;
+            return key;
+          }
+          export function buildDailyReport(state,market,now=Date.now()) {
+            const active=Object.values(state?.public_feed||{}).map(e=>valuedPost(e?.candidate?.post,market))
+              .filter(post=>post && post.kind!=='live' && post.exchange!=='gate' && isEligiblePost(post,now));
+            if(!active.length)return null;
+            const fresh=active.filter(post=>now-(Date.parse(post.published_at)||0)<=86400000);
+            const known=active.filter(post=>totalAmount(post)!==null);
+            const ranked=active.filter(post=>post.valuation?.liquid && Number.isFinite(post.valuation.per_commenter_usd))
+              .sort((a,b)=>b.valuation.per_commenter_usd-a.valuation.per_commenter_usd).slice(0,DAILY_TOP);
+            const notable=active.filter(post=>post.valuation?.liquid && post.valuation.per_commenter_usd>=BIG_PER_COMMENTER_USD).length;
+            return {fresh:fresh.length,active:active.length,known:known.length,notable,top:ranked};
+          }
+          export function formatDailyReport(report,language='ru') {
+            const en=language==='en',t=(ru,e)=>en?e:ru;
+            const lines=[t('📊 <b>Red Packet Radar · итоги суток</b>','📊 <b>Red Packet Radar · daily summary</b>'),'',
+              t(`🧧 Новых пакетов и викторин за 24 ч: <b>${report.fresh}</b>`,`🧧 New packets and quizzes in 24 h: <b>${report.fresh}</b>`),
+              t(`✅ Сейчас активны: <b>${report.active}</b>`,`✅ Active now: <b>${report.active}</b>`),
+              t(`💰 С известной суммой: <b>${report.known}</b> из ${report.active}`,`💰 With a known amount: <b>${report.known}</b> of ${report.active}`),
+              t(`🔥 С заметной суммой и малой конкуренцией: <b>${report.notable}</b>`,`🔥 Notable amount, little competition: <b>${report.notable}</b>`)];
+            if(report.top.length) {
+              lines.push('',t('<b>Лучшие по сумме на комментатора (оценка):</b>','<b>Best per commenter (estimate):</b>'));
+              report.top.forEach((post,i)=>{
+                const worth=post.valuation,unit=USD_STABLE.has(String(post.currency).toUpperCase())?'$':escapeHtml(post.currency||'',24);
+                lines.push(`${i+1}. ${formatAverage(totalAmount(post))} ${unit} · ${t('комментариев','comments')}: ${worth.comments} · ≈ ${formatUsd(worth.per_commenter_usd)} $ · <a href="${escapeHtml(post.url||'',300)}">${t('пост','post')}</a>`);
+              });
+            }
+            lines.push('',t('Суммы — это весь пакет целиком; сколько человек его делят, Square не показывает.','Amounts are for the whole packet; Square does not show how many people share it.'));
+            return {parse_mode:'HTML',link_preview_options:{is_disabled:true},text:lines.join('\n')};
+          }
+          // Same claim-before-send discipline as affiliate messages, but a failure here never blocks packet delivery.
+          export async function publishDailyReport(state,storage,sendEnv,chatId,configuration,destination,language,wait,budget,stats,market,
+              {send=sendMessage,now=Date.now()}={}) {
+            const key=dailyReportDue(state,destination,now);
+            if(!key || (budget && Date.now()+15000>budget.deadline))return;
+            try {
+              const report=buildDailyReport(state,market,now);
+              if(!report || !targetEnabled(state,configuration))return;
+              const claimId=randomUUID();
+              state.items[key]={kind:'daily',state:'sending',claim_id:claimId,updated_at:now};
+              await storage.save(state,'daily report claim before send');
+              const claim=state.items[key];
+              if(claim?.state!=='sending' || claim.claim_id!==claimId)return;
+              const result=await send(sendEnv,chatId,formatDailyReport(report,language),{wait,canSend:()=>!budget || Date.now()+1000<budget.deadline});
+              stats.connection_failures+=result.connection_failures||0;
+              Object.assign(claim,{state:result.ok?'sent':result.uncertain?'uncertain':'queued',updated_at:Date.now(),
+                ...(result.ok?{message_id:result.message_id}:{error:result.error,retry_at:Date.now()+(result.retry_ms||300000)})});
+              await storage.save(state,result.ok?'daily report sent':'daily report delivery not confirmed');
+              if(result.ok)stats.daily_report_sent=(stats.daily_report_sent||0)+1;
+              else {stats.daily_report_error=result.error;if(result.uncertain)stats.uncertain++;}
+              await wait(budget?.send_delay_ms||3100);
+            } catch(error) {stats.daily_report_error=redact(error,sendEnv);}
+          }
           export async function publish(snapshot,env,mode,wait=WAIT,budget=null,language='ru') {
             config(env);
             const chatId=await resolveGroup(env,wait);
@@ -2022,6 +2084,7 @@ jobs:
             const candidates=orderDeliveryCandidates(ready);
             stats.new_candidates=candidates.length;
             if(mode!=='telegram_test')await publishAffiliate(state,storage,sendEnv,chatId,configuration,destination,language,wait,budget,stats);
+            if(mode!=='telegram_test')await publishDailyReport(state,storage,sendEnv,chatId,configuration,destination,language,wait,budget,stats,market);
             let attempted=0;
             for (const [candidateIndex,candidate] of candidates.entries()) {
               if(stats.last_error)break;
@@ -2283,6 +2346,8 @@ jobs:
                 if(result.disabled){totals.disabled=true;totals.reason=result.reason;break;}
                 totals.pumps++;progressed=true;
                 totals.sent+=result.sent;totals.skipped+=result.skipped;totals.uncertain+=result.uncertain;totals.affiliate_sent+=result.affiliate_sent;
+                totals.daily_report_sent=(totals.daily_report_sent||0)+(result.daily_report_sent||0);
+                if(result.daily_report_error)totals.daily_report_error=result.daily_report_error;
                 totals.connection_failures+=result.connection_failures||0;
                 totals.sent_by_language[target.language]+=result.sent;
                 totals.last_error=result.last_error;
