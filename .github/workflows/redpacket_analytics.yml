@@ -1,0 +1,39 @@
+name: Red Packet Analytics
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: red-packet-analytics
+  cancel-in-progress: false
+
+jobs:
+  analytics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Build analytics from public feed
+        run: node scripts/redpacket-analytics.mjs
+
+      - name: Commit analytics data
+        run: |
+          if git diff --quiet -- .redpacket/analytics_history.json .redpacket/analytics.json; then
+            echo "Analytics unchanged; no commit needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .redpacket/analytics_history.json .redpacket/analytics.json
+          git commit -m "Update Red Packet analytics [skip ci]"
+          git push
