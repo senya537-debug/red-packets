@@ -19,7 +19,7 @@
 # Quiz/Claim cards retain questions, hints, answers and source buttons.
 # Envelope grabCode is an internal identity, never a displayed standalone code.
 # Square quizzes/Claim: require open flags and a future expiry, regardless of post age.
-# Reads language-neutral global feeds, recommendations, 6 packet hashtags and discovered authors outside the loaded following list.
+# Reads default global feeds plus all supported localized feeds in the same cycle, recommendations, 6 packet hashtags and discovered authors.
 # Discovery uses Binance Square plus public Gate Live countdowns. Telegram is the delivery destination.
 # Gate packets stay queued until the final 5 minutes before start_at; already-open packets are skipped.
 # Gate rechecks room, packet ID and countdown before sending; no Gate credentials or claims.
@@ -144,7 +144,8 @@ jobs:
           const LATEST_PAGES = 4;
           const TAG_PAGES = 3;
           const RECOMMENDATION_PAGES = 2;
-          const GLOBAL_FEED_PAGES = 2;
+          const GLOBAL_FEED_LANGUAGES = ['ru','zh-CN','es','pt-BR','tr','fr','vi','id'];
+          const GLOBAL_FEED_PAGES = 1;
           const GLOBAL_DISCOVERY_AUTHOR_LIMIT = 64;
           const AUTHOR_LIMIT = 48;
           const FAST_AUTHOR_LIMIT = 320;
@@ -754,6 +755,14 @@ jobs:
                 language:'en',coverage:'public_feed_type_'+type+'_page_'+(i+1),run:()=>fetchLatest(type,i+1)}))),
               ...(legacy || ['posts','live'].includes(worker) ? Array.from({length:worker==='live'?1:RECOMMENDATION_PAGES},(_,i)=>({
                 tag:i?'square:discover:page'+(i+1):'square:discover',language:'en',coverage:'public_recommendations_page_'+(i+1),run:()=>fetchRecommended(i+1)})) : []),
+              // Poll every supported locale in the same cycle; language is never an eligibility filter.
+              ...(legacy || worker==='posts' ? GLOBAL_FEED_LANGUAGES.flatMap(language=>[1,2].flatMap(type=>
+                Array.from({length:GLOBAL_FEED_PAGES},(_,i)=>({tag:'square:global:'+language+':type'+type+':page'+(i+1),
+                  language,coverage:'public_all_language_global_feed_'+language+'_type'+type+'_page'+(i+1),
+                  run:()=>fetchLatest(type,i+1,language)})))) : []),
+              ...(legacy || worker==='posts' ? GLOBAL_FEED_LANGUAGES.map(language=>({
+                tag:'square:discover:'+language+':page1',language,coverage:'public_all_language_recommendations_'+language,
+                run:()=>fetchRecommended(1,language)})) : []),
               ...(REMOTE_KEYWORD_SEARCH_ENABLED && (legacy || worker==='posts') ? SEARCH_TERMS.map(term=>({tag:'square:search:'+term,coverage:'first_search_page_only',run:()=>fetchKeyword(term)})) : []),
               ...(scanLive ? [{tag:'square:live:catalog',coverage:'recommended_live_rooms_only',run:fetchLiveCatalog}] : []),
               ...(scanCommunity ? COMMUNITY_TAGS.flatMap(tag=>Array.from({length:COMMUNITY_TAG_PAGES},(_,i)=>({
