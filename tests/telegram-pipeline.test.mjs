@@ -185,6 +185,31 @@ test('personal following has no dedicated scan quota; global discoveries and act
   assert.equal(selected.filter(a=>a.scan_reason==='following').length,0);
 });
 
+test('outbox and public feed reserve capacity for fresh candidates with unknown reward valuation',()=>{
+  const entries={};
+  for(let i=0;i<200;i++) {
+    const candidate=packet(String(30000+i));
+    candidate.post.currency='USDT';
+    candidate.post.available_amount=10;
+    candidate.post.available_receivers=10;
+    entries[candidate.key]={candidate,observed_at:now-1000-i};
+  }
+  for(let i=0;i<60;i++) {
+    const candidate=packet(String(40000+i));
+    candidate.post.currency='DOGE';
+    candidate.post.available_amount=100;
+    candidate.post.available_receivers=10;
+    entries[candidate.key]={candidate,observed_at:now-i};
+  }
+  const outbox=app.compactOutbox(entries,{},now);
+  const feed=app.compactPublicFeed(entries,now);
+  assert.equal(Object.keys(outbox).length,200);
+  assert.equal(Object.keys(feed).length,200);
+  assert.ok(outbox['post:40000'],'fresh unknown reward is retained in the reserve');
+  assert.ok(feed['post:40049'],'the reserve keeps the 50 freshest unknown rewards');
+  assert.ok(!outbox['post:40050'],'unknown rewards cannot overflow their reserved share');
+});
+
 test('outbox and public feed retain the highest verified stablecoin reward-per-place candidates',()=>{
   const entries={};
   for(let i=0;i<205;i++) {
