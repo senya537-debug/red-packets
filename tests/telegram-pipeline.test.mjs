@@ -387,3 +387,66 @@ test('runWatchdog is a no-op without settings, alerts privately, and persists on
   const bad=await app.runWatchdog({...base,HEALTHCHECK_URL:'https://evil.example/x'},{},state,{fetchImpl:hc,now});
   assert.match(bad.ping_error,/hc-ping/);assert.equal(pings.length,2);
 });
+
+// ---- daily digest ----
+const feedEntry=(c,observed=now)=>({candidate:c,observed_at:observed});
+const dailyState=()=>{
+  const q=totalPacket('USDT',5,5,'970'),crowded=totalPacket('USDT',5,500,'971'),doge=totalPacket('DOGE',100,10,'972'),
+    none=coinPacket('USDT',null,null,'973'),old=totalPacket('USDT',9,1,'974');
+  old.post.published_at=new Date(now-3*86400000).toISOString();
+  return {items:{},public_feed:Object.fromEntries([q,crowded,doge,none,old].map(c=>[c.key,feedEntry(c)]))};
+};
+
+test('daily report is due once per UTC day after the report hour and respects claims',()=>{
+  const at=h=>Date.UTC(2026,9,30,h,0,0),dest='d'.repeat(64),key=dest+':daily:2026-10-30';
+  assert.equal(app.dailyReportDue({items:{}},dest,at(6)),null,'too early');
+  assert.equal(app.dailyReportDue({items:{}},dest,at(7)),key);
+  for(const state of ['sent','uncertain','sending'])assert.equal(app.dailyReportDue({items:{[key]:{state}}},dest,at(9)),null);
+  assert.equal(app.dailyReportDue({items:{[key]:{state:'queued',retry_at:at(9)+1000}}},dest,at(9)),null,'cooldown after a definite failure');
+  assert.equal(app.dailyReportDue({items:{[key]:{state:'queued',retry_at:at(9)-1}}},dest,at(9)),key);
+  assert.equal(app.dailyReportDue({items:{[key]:{state:'sent'}}},dest,Date.UTC(2026,9,31,8)),dest+':daily:2026-10-31','next day is due again');
+});
+
+test('daily report summarizes the feed honestly and ranks by estimated amount per commenter',()=>{
+  const m=market(),report=app.buildDailyReport(dailyState(),m,now);
+  assert.equal(report.active,5);assert.equal(report.fresh,4,'three-day-old post is not new');
+  assert.equal(report.known,4);
+  // per commenter: 974 = 9 $, 972 (20 $ of DOGE / 10) = 2 $, 970 = 1 $, 971 = 0.01 $; 973 has no amount
+  assert.deepEqual(report.top.map(p=>p.post_id),['974','972','970','971']);
+  assert.equal(report.notable,3,'only estimates of 0.5 $ or more count');
+  const ru=app.formatDailyReport(report,'ru').text,en=app.formatDailyReport(report,'en').text;
+  assert.match(ru,/итоги суток/);assert.match(ru,/Новых пакетов и викторин за 24 ч: <b>4<\/b>/);assert.match(ru,/Square не показывает/);
+  assert.match(en,/daily summary/);assert.match(en,/<a href="https:\/\/www\.binance\.com\/en\/square\/post\/\d+">post<\/a>/);
+  assert.equal(app.buildDailyReport({items:{},public_feed:{}},m,now),null,'nothing to report, nothing is sent');
+});
+
+test('publishDailyReport claims before sending, sends once and never throws into delivery',async()=>{
+  const dest='d'.repeat(64),at=Date.UTC(2026,9,30,8,0,0),saves=[],sends=[];
+  const state=dailyState();state.public_feed=Object.fromEntries(Object.entries(state.public_feed).map(([k,e])=>[k,{...e,observed_at:at}]));
+  for(const e of Object.values(state.public_feed))e.candidate.post.expires_at=new Date(at+3600000).toISOString(),e.candidate.post.published_at=new Date(at-3600000).toISOString();
+  state.enabled_destination='base';state.enabled_topic_signature=null;
+  const configuration={base:'base',signature:null},stats={connection_failures:0,uncertain:0};
+  const storage={save:async(s,reason)=>{saves.push([reason,s.items[dest+':daily:2026-10-30']?.state]);}};
+  const send=async(env,chat,message)=>{sends.push(message);return {ok:true,message_id:'77'};};
+  const args=[state,storage,{},'-100',configuration,dest,'ru',async()=>{},null,stats,market(),{send,now:at}];
+  await app.publishDailyReport(...args);
+  assert.deepEqual(saves.map(x=>x[1]),['sending','sent'],'claim persisted before the message goes out');
+  assert.equal(sends.length,1);assert.equal(stats.daily_report_sent,1);
+  await app.publishDailyReport(...args);
+  assert.equal(sends.length,1,'second pump in the same day does nothing');
+  // uncertain delivery is never retried
+  const s2={...state,items:{}},stats2={connection_failures:0,uncertain:0};
+  await app.publishDailyReport(s2,storage,{},'-100',configuration,dest,'ru',async()=>{},null,stats2,market(),
+    {send:async()=>({ok:false,uncertain:true,error:'unclear'}),now:at});
+  assert.equal(s2.items[dest+':daily:2026-10-30'].state,'uncertain');assert.equal(stats2.uncertain,1);
+  assert.equal(app.dailyReportDue(s2,dest,at+3600000),null);
+  // a failing store or send is reported, not thrown
+  const s3={...state,items:{}},stats3={connection_failures:0,uncertain:0};
+  await app.publishDailyReport(s3,{save:async()=>{throw new Error('github down');}},{},'-100',configuration,dest,'ru',async()=>{},null,stats3,market(),{send,now:at});
+  assert.match(stats3.daily_report_error,/github down/);
+  // wrong destination configuration sends nothing
+  const s4={...state,items:{},enabled_destination:'other'};
+  const before=sends.length;
+  await app.publishDailyReport(s4,storage,{},'-100',configuration,dest,'ru',async()=>{},null,{connection_failures:0,uncertain:0},market(),{send,now:at});
+  assert.equal(sends.length,before);
+});
