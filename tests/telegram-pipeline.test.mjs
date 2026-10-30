@@ -126,7 +126,7 @@ test('state conflict merge preserves sent/uncertain receipts and removes legacy 
 test('all supported language feeds are scanned every cycle without locale rotation',()=>{
   const languages=['ru','zh-CN','es','pt-BR','tr','fr','vi','id'];
   for(let round=0;round<3;round++) {
-    assert.deepEqual(app.rotatingFeedLanguages(round*120000),[]);
+    assert.deepEqual(app.rotatingFeedLanguages(round*120000),languages);
     const tasks=app.buildDiscoveryFeeds('posts',round*120000);
     assert.ok(tasks.some(t=>t.tag==='square:global:type1:page1'));
     assert.ok(tasks.some(t=>t.tag==='square:global:type2:page1'));
