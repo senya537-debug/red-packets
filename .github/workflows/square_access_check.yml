@@ -2375,6 +2375,82 @@ jobs:
             if(!saved.ok)throw new Error('Public feed write: HTTP '+saved.status);
             return {changed:true,entries:Object.keys(file.public_feed).length,bytes:Buffer.byteLength(body)};
           }
+          // ---- Watchdog: private alerts and an optional dead-man's-switch ping ----
+          // Optional and fail-safe: without TG_ALERT_CHAT_ID / HEALTHCHECK_URL it does nothing, and it never
+          // touches delivery history or the Telegram groups. Throttle state lives in its own small file.
+          const WATCHDOG_PATH = '.redpacket/watchdog.json';
+          const SILENCE_MS = 3 * 60 * 60 * 1000;
+          const ALERT_COOLDOWN_MS = {run_error:3600000,search_failed:3600000,prices_down:6*3600000,no_sends:3*3600000,no_discovery:3*3600000};
+          export function watchdogFindings(stats,state,now=Date.now()) {
+            const found={};
+            if(stats?.last_error)found.run_error='Публикатор остановился с ошибкой: '+String(stats.last_error).slice(0,200);
+            const failed=Object.entries(stats?.workers||{}).filter(([,w])=>w?.status==='failed').map(([name])=>name);
+            if(failed.length)found.search_failed='Поиск Square завершился с ошибкой: '+failed.join(', ');
+            if(stats?.usd_prices && stats.usd_prices.ok===false)
+              found.prices_down='Цены Binance недоступны, доллары в постах не считаются: '+String(stats.usd_prices.error||'').slice(0,150);
+            const sentTimes=Object.values(state?.items||{}).filter(i=>i?.state==='sent').map(i=>Number(i.updated_at)||0);
+            const lastSent=sentTimes.length?Math.max(...sentTimes):0;
+            if(lastSent && now-lastSent>SILENCE_MS)found.no_sends='В Telegram ничего не отправлялось '+Math.floor((now-lastSent)/3600000)+' ч.';
+            const seen=Object.values(state?.public_feed||{}).map(e=>Number(e?.observed_at)||0);
+            const lastSeen=seen.length?Math.max(...seen):0;
+            if(lastSeen && now-lastSeen>SILENCE_MS)found.no_discovery='Новых находок в Square нет '+Math.floor((now-lastSeen)/3600000)+' ч.';
+            return found;
+          }
+          // Returns the messages to send and the next throttle state: repeats wait for the cooldown, recoveries are reported once.
+          export function planWatchdog(found,previous,now=Date.now()) {
+            const messages=[],next={};
+            for(const [type,text] of Object.entries(found)) {
+              const before=previous?.[type];
+              const due=!before || now-Number(before.last_sent||0)>=(ALERT_COOLDOWN_MS[type]||3600000);
+              next[type]={last_sent:due?now:before.last_sent,active:true};
+              if(due)messages.push('⚠️ '+text);
+            }
+            for(const [type,before] of Object.entries(previous||{}))
+              if(before?.active && !found[type])messages.push('✅ Восстановилось: '+({run_error:'публикатор',search_failed:'поиск Square',
+                prices_down:'цены Binance',no_sends:'отправка в Telegram',no_discovery:'находки в Square'}[type]||type));
+            return {messages,next};
+          }
+          async function repoFile(env,path,{fetchImpl=fetch}={}) {
+            const url=`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/contents/${path}`;
+            const headers={Accept:'application/vnd.github.object+json',Authorization:'Bearer '+env.GH_STATE_TOKEN,
+              'X-GitHub-Api-Version':'2026-03-10','User-Agent':'SquareTelegramPublisher','Cache-Control':'no-cache'};
+            const response=await fetchImpl(url+'?ref='+encodeURIComponent(env.GITHUB_REF_NAME),{headers,signal:AbortSignal.timeout(20000),redirect:'error'});
+            if(response.status===404)return {url,headers,sha:null,value:null};
+            if(!response.ok)throw new Error('Repository file read: HTTP '+response.status);
+            const metadata=await response.json();
+            let value=null;
+            try {value=JSON.parse(Buffer.from(String(metadata.content||''),'base64').toString('utf8'));} catch {}
+            return {url,headers,sha:metadata.sha||null,value};
+          }
+          export async function runWatchdog(env,stats,state,{fetchImpl=fetch,telegram=telegramRequest,now=Date.now()}={}) {
+            const chat=String(env.TG_ALERT_CHAT_ID||'').trim(),ping=String(env.HEALTHCHECK_URL||'').trim();
+            const result={alerts:Boolean(chat),ping:Boolean(ping),sent:0};
+            const found=watchdogFindings(stats,state,now);
+            if(ping) {
+              if(!/^https:\/\/(?:hc-ping\.com|hchk\.io)\/[A-Za-z0-9\/_-]+$/.test(ping))result.ping_error='HEALTHCHECK_URL must be a https://hc-ping.com/... address';
+              else try {
+                const response=await fetchImpl(Object.keys(found).some(k=>k==='run_error'||k==='search_failed')?ping.replace(/\/$/,'')+'/fail':ping,
+                  {method:'GET',signal:AbortSignal.timeout(10000),redirect:'error'});
+                result.ping_status=response.status;
+              } catch(error) {result.ping_error=redact(error,env);}
+            }
+            if(!chat)return result;
+            const file=await repoFile(env,WATCHDOG_PATH,{fetchImpl});
+            const plan=planWatchdog(found,file.value?.alerts,now);
+            result.findings=Object.keys(found);
+            if(!plan.messages.length && JSON.stringify(plan.next)===JSON.stringify(file.value?.alerts||{}))return result;
+            for(const text of plan.messages) {
+              const response=await telegram(env,'sendMessage',{chat_id:chat,text:'Red Packet Radar\n'+text,disable_web_page_preview:true});
+              if(!response.ok)throw new Error('Alert send: HTTP '+response.status);
+              result.sent++;
+            }
+            const saved=await fetchImpl(file.url,{method:'PUT',redirect:'error',signal:AbortSignal.timeout(20000),
+              headers:{...file.headers,'Content-Type':'application/json'},
+              body:JSON.stringify({message:'Watchdog state [skip ci]',branch:env.GITHUB_REF_NAME,
+                content:Buffer.from(JSON.stringify({version:1,alerts:plan.next})).toString('base64'),...(file.sha?{sha:file.sha}:{})})});
+            if(!saved.ok)throw new Error('Watchdog state write: HTTP '+saved.status);
+            return result;
+          }
           export async function main(env=process.env) {
             const mode=env.RUN_MODE||'preview',role=env.WORKER_ROLE||'publisher';
             if(!['preview','telegram_test','publish','scheduled'].includes(mode))throw new Error('Unknown run mode');
@@ -2385,6 +2461,10 @@ jobs:
             if(mode!=='telegram_test') {
               try {stats.public_feed_file=await exportPublicFeed(env,await new GitHubState(env).readLatest(true));}
               catch(error) {stats.public_feed_file={error:redact(error,env)};}
+            }
+            if(mode!=='telegram_test') {
+              try {stats.watchdog=await runWatchdog(env,stats,await new GitHubState(env).readLatest(true));}
+              catch(error) {stats.watchdog={error:redact(error,env)};}
             }
             summary('## Telegram\n\n'+JSON.stringify(stats,null,2),env);
             if(stats.last_error)process.exitCode=1;
@@ -2483,6 +2563,8 @@ jobs:
           TG_THREAD_ID: ${{ secrets.TG_THREAD_ID }}
           TG_RU_THREAD_ID: ${{ secrets.TG_RU_THREAD_ID }}
           TG_EN_THREAD_ID: ${{ secrets.TG_EN_THREAD_ID }}
+          TG_ALERT_CHAT_ID: ${{ secrets.TG_ALERT_CHAT_ID }}
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
           GH_STATE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: *square_runtime
 

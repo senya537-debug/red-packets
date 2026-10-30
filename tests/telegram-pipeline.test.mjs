@@ -332,3 +332,58 @@ test('delivery order prefers a big total with few comments, then unknowns',()=>{
   const items=[nothing,crowded,unknownComments,quiet,exact].map(c=>({...c,post:app.valuedPost(c.post,m)}));
   assert.deepEqual(app.orderDeliveryCandidates(items).map(c=>c.key).slice(0,4),[exact.key,quiet.key,crowded.key,unknownComments.key]);
 });
+
+// ---- watchdog: private alerts and healthcheck ping ----
+test('watchdog findings cover errors, failed searches, price outage and silence',()=>{
+  const hour=3600000,sentState=(ageH,seenH)=>({items:{a:{state:'sent',updated_at:now-ageH*hour},b:{state:'queued',updated_at:now}},
+    public_feed:{x:{observed_at:now-seenH*hour}}});
+  assert.deepEqual(app.watchdogFindings({},sentState(1,1),now),{});
+  const f=app.watchdogFindings({last_error:'boom',workers:{posts:{status:'done'},live:{status:'failed'}},usd_prices:{ok:false,error:'HTTP 451'}},sentState(5,4),now);
+  assert.deepEqual(Object.keys(f).sort(),['no_discovery','no_sends','prices_down','run_error','search_failed']);
+  assert.match(f.search_failed,/live/);assert.match(f.no_sends,/5 ч/);
+  assert.deepEqual(app.watchdogFindings({usd_prices:{ok:true}},{items:{},public_feed:{}},now),{},'empty history is not an outage');
+});
+
+test('watchdog throttles repeats, resends after cooldown and reports recovery once',()=>{
+  const hour=3600000;
+  let plan=app.planWatchdog({run_error:'e'},{},now);
+  assert.equal(plan.messages.length,1);assert.match(plan.messages[0],/^⚠️/);
+  const again=app.planWatchdog({run_error:'e'},plan.next,now+10*60000);
+  assert.deepEqual(again.messages,[]);assert.equal(again.next.run_error.last_sent,now);
+  assert.equal(app.planWatchdog({run_error:'e'},plan.next,now+hour+1).messages.length,1);
+  const ok=app.planWatchdog({},plan.next,now+hour);
+  assert.equal(ok.messages.length,1);assert.match(ok.messages[0],/^✅/);assert.deepEqual(ok.next,{});
+  assert.deepEqual(app.planWatchdog({},ok.next,now+2*hour).messages,[]);
+  assert.equal(app.planWatchdog({prices_down:'p'},{prices_down:{last_sent:now,active:true}},now+5*hour).messages.length,0,'price outage waits 6h');
+});
+
+test('runWatchdog is a no-op without settings, alerts privately, and persists only on change',async()=>{
+  const base={GITHUB_REPOSITORY:'o/r',GITHUB_REF_NAME:'main',GH_STATE_TOKEN:'t'};
+  const state={items:{},public_feed:{}},calls=[];
+  const fetchImpl=async()=>{calls.push('x');return new Response('{}',{status:200});};
+  assert.deepEqual(await app.runWatchdog(base,{},state,{fetchImpl,now}),{alerts:false,ping:false,sent:0});
+  assert.equal(calls.length,0);
+  // alert path
+  let remote=null;const sent=[],puts=[];
+  const gh=async(url,init={})=>{
+    if(!String(url).includes('api.github.com'))return new Response('',{status:200});
+    if((init.method||'GET')==='GET')return remote?new Response(JSON.stringify({sha:'s',content:remote}),{status:200}):new Response('{}',{status:404});
+    puts.push(1);remote=JSON.parse(init.body).content;return new Response('{}',{status:200});
+  };
+  const telegram=async(env,method,payload)=>{sent.push(payload);return {ok:true,status:200};};
+  const env={...base,TG_ALERT_CHAT_ID:'42'};
+  const first=await app.runWatchdog(env,{last_error:'boom'},state,{fetchImpl:gh,telegram,now});
+  assert.equal(first.sent,1);assert.equal(sent[0].chat_id,'42');assert.match(sent[0].text,/boom/);assert.equal(puts.length,1);
+  const second=await app.runWatchdog(env,{last_error:'boom'},state,{fetchImpl:gh,telegram,now:now+60000});
+  assert.equal(second.sent,0);assert.equal(puts.length,1,'no commit when nothing changed');
+  const healthy=await app.runWatchdog(env,{},state,{fetchImpl:gh,telegram,now:now+120000});
+  assert.equal(healthy.sent,1);assert.match(sent[1].text,/Восстановилось/);
+  // healthcheck: success vs fail ping, strict URL
+  const pings=[];const hc=async url=>{pings.push(String(url));return new Response('',{status:200});};
+  const withPing={...base,HEALTHCHECK_URL:'https://hc-ping.com/abc-123'};
+  await app.runWatchdog(withPing,{},state,{fetchImpl:hc,now});
+  await app.runWatchdog(withPing,{last_error:'x'},state,{fetchImpl:hc,now});
+  assert.deepEqual(pings,['https://hc-ping.com/abc-123','https://hc-ping.com/abc-123/fail']);
+  const bad=await app.runWatchdog({...base,HEALTHCHECK_URL:'https://evil.example/x'},{},state,{fetchImpl:hc,now});
+  assert.match(bad.ping_error,/hc-ping/);assert.equal(pings.length,2);
+});
