@@ -1542,9 +1542,9 @@ jobs:
             }
             return {eligible_candidates:candidates.length,queue_reasons:reasons,ready_by_queue:byQueue,already_sent_examples:alreadySent};
           }
-          export async function enqueueSnapshot(snapshot,env,worker,status='done',error=null,wait=WAIT) {
+          // Applies one worker's findings to an in-memory state; saving is the caller's job.
+          function applySnapshot(state,snapshot,env,worker,status,error,now) {
             if(!WORKER_ROLES.includes(worker))throw new Error('Unknown search worker');
-            const storage=new GitHubState(env,wait),state=await storage.load(),now=Date.now();
             const candidates=publishCandidates(snapshot,now);
             const additions=Object.fromEntries(candidates.map(candidate=>[candidate.key,
               {candidate,worker,observed_at:now}]));
@@ -1561,8 +1561,29 @@ jobs:
             state.worker_runs=mergeWorkerRuns({[run]:{[worker]:{
               status,updated_at:now,candidates:candidates.length,...diagnostics,
               partial:!!snapshot.partial,discovery:snapshot.discovery_stats||null,...(error ? {error:redact(error,env)} : {})}}},state.worker_runs);
-            await storage.save(state,'enqueue '+worker,wait);
             return {worker,status,...enqueueDiagnostics(candidates,state),queued:Object.keys(state.outbox||{}).length};
+          }
+          export async function enqueueSnapshot(snapshot,env,worker,status='done',error=null,wait=WAIT) {
+            const [result]=await enqueueSnapshots([{snapshot,worker,status,error}],env,wait);
+            return result;
+          }
+          // One load and one commit for all workers of a run. A worker whose findings cannot be applied is recorded
+          // as failed without discarding the others, and the state is left exactly as before that worker.
+          export async function enqueueSnapshots(entries,env,wait=WAIT) {
+            for(const entry of entries)if(!WORKER_ROLES.includes(entry.worker))throw new Error('Unknown search worker');
+            const storage=new GitHubState(env,wait),state=await storage.load(),now=Date.now(),results=[];
+            for(const {snapshot,worker,status='done',error=null} of entries) {
+              const before=cloneState(state);
+              try {results.push(applySnapshot(state,snapshot,env,worker,status,error,now));}
+              catch(failure) {
+                for(const key of Object.keys(state))delete state[key];
+                Object.assign(state,before);
+                results.push(applySnapshot(state,{reported_open:[],other_candidates:[]},env,worker,'failed',
+                  'Search results could not be applied: '+redact(failure,env),now));
+              }
+            }
+            await storage.save(state,entries.length===1?'enqueue '+entries[0].worker:'enqueue workers',wait);
+            return results;
           }
           function mergeWorkerRuns(local,remote) {
             const runs={};
@@ -2238,7 +2259,7 @@ jobs:
           }
           export async function importSearchResults(env,wait=WAIT) {
             if(!env.SQUARE_RESULT_DIR)return {imported:[],errors:[]};
-            const imported=[],errors=[],directory=env.SQUARE_RESULT_DIR.replace(/\/$/,'');
+            const imported=[],errors=[],directory=env.SQUARE_RESULT_DIR.replace(/\/$/,''),entries=[];
             for(const worker of WORKER_ROLES) {
               let result;
               try {
@@ -2257,11 +2278,14 @@ jobs:
                 summary('Результат поиска '+worker+' недоступен: '+message,env);
                 // A missing artifact must not prevent the other workers or an older
                 // durable queue from being processed, or leave the publisher waiting.
-                await enqueueSnapshot({reported_open:[],other_candidates:[]},env,worker,'failed','Search artifact unavailable: '+message,wait);
+                entries.push({snapshot:{reported_open:[],other_candidates:[]},worker,status:'failed',error:'Search artifact unavailable: '+message});
                 continue;
               }
-              const queued=await enqueueSnapshot(result.snapshot,env,worker,result.status,result.error||null,wait);
-              imported.push(worker);summary('Импорт результата: '+JSON.stringify(queued),env);
+              entries.push({snapshot:result.snapshot,worker,status:result.status,error:result.error||null});
+              imported.push(worker);
+            }
+            if(entries.length) {
+              for(const queued of await enqueueSnapshots(entries,env,wait))summary('Импорт результата: '+JSON.stringify(queued),env);
             }
             return {imported,errors};
           }
@@ -2408,7 +2432,8 @@ jobs:
           // The website reads this small file instead of the full delivery history. It is derived data:
           // failures here never affect Telegram delivery or the durable state.
           const PUBLIC_FEED_PATH = '.redpacket/public_feed.json';
-          const PUBLIC_FEED_REFRESH_MS = 15 * 60 * 1000;
+          const PUBLIC_FEED_MIN_INTERVAL_MS = 10 * 60 * 1000;
+          const PUBLIC_FEED_REFRESH_MS = 30 * 60 * 1000;
           export function buildPublicFeedFile(state,now=Date.now()) {
             return {version:1,items:{},generated_at:new Date(now).toISOString(),public_feed:compactPublicFeed(state?.public_feed,now)};
           }
@@ -2430,8 +2455,11 @@ jobs:
               sha=typeof metadata?.sha==='string'?metadata.sha:null;
               try {
                 const existing=JSON.parse(Buffer.from(String(metadata.content||''),'base64').toString('utf8'));
-                if(publicFeedFingerprint(existing)===publicFeedFingerprint(file) &&
-                   now-Date.parse(existing.generated_at||0)<PUBLIC_FEED_REFRESH_MS)return {changed:false,entries:Object.keys(file.public_feed).length};
+                // Every write is a repository commit: at most one per interval, and an unchanged feed only refreshes rarely.
+                const age=now-Date.parse(existing.generated_at||0);
+                if(age<PUBLIC_FEED_MIN_INTERVAL_MS ||
+                   (publicFeedFingerprint(existing)===publicFeedFingerprint(file) && age<PUBLIC_FEED_REFRESH_MS))
+                  return {changed:false,entries:Object.keys(file.public_feed).length};
               } catch {}
             } else throw new Error('Public feed read: HTTP '+current.status);
             const body=JSON.stringify(file);

@@ -279,14 +279,19 @@ test('public feed file is small, worker-compatible, and skips unchanged writes',
   };
   assert.equal((await app.exportPublicFeed(env,state,{fetchImpl,now})).changed,true);
   assert.deepEqual(calls,['GET','PUT']);
-  // only observed_at moved, file is fresh: no new commit
-  const moved={...state,public_feed:Object.fromEntries(Object.entries(state.public_feed).map(([k,e])=>[k,{...e,observed_at:now+60000}]))};
-  assert.equal((await app.exportPublicFeed(env,moved,{fetchImpl,now:now+60000})).changed,false);
-  assert.equal(calls.length,3);
-  // a new finding or a stale file triggers a write
-  const c=packet('812');
-  assert.equal((await app.exportPublicFeed(env,{...state,public_feed:{...state.public_feed,[c.key]:{candidate:c,observed_at:now}}},{fetchImpl,now:now+60000})).changed,true);
-  assert.equal((await app.exportPublicFeed(env,state,{fetchImpl,now:now+16*60000})).changed,true);
+  const minute=60000,c=packet('812');
+  const withNew={...state,public_feed:{...state.public_feed,[c.key]:{candidate:c,observed_at:now}}};
+  // only observed_at moved: no commit
+  const moved={...state,public_feed:Object.fromEntries(Object.entries(state.public_feed).map(([k,e])=>[k,{...e,observed_at:now+minute}]))};
+  assert.equal((await app.exportPublicFeed(env,moved,{fetchImpl,now:now+minute})).changed,false);
+  // a real change is held back until 10 minutes after the previous write
+  assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+9*minute})).changed,false);
+  assert.equal(calls.filter(m=>m==='PUT').length,1);
+  assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+11*minute})).changed,true);
+  assert.equal(calls.filter(m=>m==='PUT').length,2);
+  // an unchanged feed refreshes only after 30 minutes
+  assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+30*minute})).changed,false);
+  assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+42*minute})).changed,true);
   await assert.rejects(app.exportPublicFeed(env,state,{fetchImpl:async()=>new Response('x',{status:500}),now}),/HTTP 500/);
 });
 
@@ -449,4 +454,80 @@ test('publishDailyReport claims before sending, sends once and never throws into
   const before=sends.length;
   await app.publishDailyReport(s4,storage,{},'-100',configuration,dest,'ru',async()=>{},null,{connection_failures:0,uncertain:0},market(),{send,now:at});
   assert.equal(sends.length,before);
+});
+
+// ---- one commit for all search workers ----
+test('enqueueSnapshots writes all workers in a single commit and keeps each worker status',async()=>{
+  const proto=app.GitHubState.prototype,saved={readLatest:proto.readLatest,request:proto.request};
+  const remote={version:1,items:{},enabled_destination:null};const commits=[];
+  proto.readLatest=async function(){this.sha='s'+commits.length;return clone(remote);};
+  proto.request=async function(method,body){
+    const pending=JSON.parse(Buffer.from(body.content,'base64').toString('utf8'));
+    commits.push(body.message);Object.assign(remote,clone(pending));
+    return response(200,{content:{sha:'c'+commits.length}});
+  };
+  try {
+    const env={GITHUB_REPOSITORY:'o/r',GITHUB_REF_NAME:'main',GH_STATE_TOKEN:'ghs_testtoken0123456789',GITHUB_RUN_ID:'77',GITHUB_RUN_ATTEMPT:'1'};
+    const live={...packet('990').post,kind:'quiz'};
+    const entries=[
+      {worker:'posts',status:'done',snapshot:{reported_open:[packet('991').post],other_candidates:[]}},
+      {worker:'authors',status:'done',snapshot:{reported_open:[packet('992').post],other_candidates:[],packet_authors:[{uid:'author-uid-0001',name:'a'}]}},
+      {worker:'live',status:'failed',error:'boom',snapshot:{reported_open:[],other_candidates:[]}},
+      {worker:'community',status:'done',snapshot:{reported_open:[live],other_candidates:[]}}];
+    const results=await app.enqueueSnapshots(entries,env,async()=>{});
+    assert.equal(commits.length,1,'one commit, not one per worker');assert.match(commits[0],/enqueue workers/);
+    assert.deepEqual(results.map(r=>r.worker),['posts','authors','live','community']);
+    const runs=remote.worker_runs['77:1'];
+    assert.deepEqual(Object.fromEntries(Object.entries(runs).map(([w,r])=>[w,r.status])),{posts:'done',authors:'done',live:'failed',community:'done'});
+    assert.match(runs.live.error,/boom/);
+    const keys=Object.keys(remote.public_feed);
+    assert.ok(['post:991','post:992','post:990'].every(k=>keys.includes(k)),'findings from every worker are kept');
+    assert.deepEqual(remote.authors.map(a=>a.uid),['author-uid-0001']);
+    // single-worker calls keep the old commit message and behaviour
+    commits.length=0;
+    await app.enqueueSnapshot({reported_open:[],other_candidates:[]},env,'posts','done',null,async()=>{});
+    assert.deepEqual(commits,['Red Packet delivery: enqueue posts [skip ci]']);
+    await assert.rejects(app.enqueueSnapshots([{worker:'nope',snapshot:{}}],env,async()=>{}),/Unknown search worker/);
+  } finally {Object.assign(proto,saved);}
+});
+
+test('a worker whose findings cannot be applied is recorded as failed and the others still save',async()=>{
+  const proto=app.GitHubState.prototype,saved={readLatest:proto.readLatest,request:proto.request};
+  const remote={version:1,items:{},enabled_destination:null};let writes=0;
+  proto.readLatest=async function(){this.sha='s';return clone(remote);};
+  proto.request=async function(method,body){writes++;Object.assign(remote,clone(JSON.parse(Buffer.from(body.content,'base64').toString('utf8'))));return response(200,{content:{sha:'c'}});};
+  try {
+    const env={GITHUB_REPOSITORY:'o/r',GITHUB_REF_NAME:'main',GH_STATE_TOKEN:'ghs_testtoken0123456789',GITHUB_RUN_ID:'78',GITHUB_RUN_ATTEMPT:'1'};
+    const poison={get reported_open(){throw new Error('corrupt findings');},other_candidates:[]};
+    await app.enqueueSnapshots([
+      {worker:'posts',status:'done',snapshot:{reported_open:[packet('993').post],other_candidates:[]}},
+      {worker:'authors',status:'done',snapshot:poison},
+      {worker:'live',status:'done',snapshot:{reported_open:[packet('994').post],other_candidates:[]}}],env,async()=>{});
+    assert.equal(writes,1);
+    const runs=remote.worker_runs['78:1'];
+    assert.equal(runs.authors.status,'failed');assert.match(runs.authors.error,/corrupt findings/);
+    assert.equal(runs.posts.status,'done');assert.equal(runs.live.status,'done');
+    assert.ok(['post:993','post:994'].every(k=>k in remote.public_feed));
+  } finally {Object.assign(proto,saved);}
+});
+
+test('importSearchResults saves four result files in one commit and marks a missing file failed',async()=>{
+  const proto=app.GitHubState.prototype,saved={readLatest:proto.readLatest,request:proto.request};
+  const remote={version:1,items:{},enabled_destination:null},commits=[];
+  proto.readLatest=async function(){this.sha='s';return clone(remote);};
+  proto.request=async function(method,body){commits.push(body.message);Object.assign(remote,clone(JSON.parse(Buffer.from(body.content,'base64').toString('utf8'))));return response(200,{content:{sha:'c'}});};
+  const dir=fs.mkdtempSync(new URL('../',import.meta.url).pathname+'.tmp-results-');
+  try {
+    const env={GITHUB_REPOSITORY:'o/r',GITHUB_REF_NAME:'main',GH_STATE_TOKEN:'ghs_testtoken0123456789',GITHUB_RUN_ID:'80',
+      GITHUB_RUN_ATTEMPT:'1',SQUARE_RESULT_DIR:dir};
+    const file=(worker,id)=>fs.writeFileSync(dir+'/'+worker+'.json',JSON.stringify({version:1,worker,run_id:'80',run_attempt:1,status:'done',
+      snapshot:{reported_open:[packet(id).post],other_candidates:[]}}));
+    file('posts','995');file('authors','996');file('live','997');   // community.json is missing
+    const result=await app.importSearchResults(env,async()=>{});
+    assert.deepEqual(result.imported,['posts','authors','live']);assert.equal(result.errors.length,1);assert.equal(result.errors[0].worker,'community');
+    assert.equal(commits.length,1);assert.match(commits[0],/enqueue workers/);
+    const runs=remote.worker_runs['80:1'];
+    assert.deepEqual(Object.fromEntries(Object.entries(runs).map(([w,r])=>[w,r.status])),{posts:'done',authors:'done',live:'done',community:'failed'});
+    assert.ok(['post:995','post:996','post:997'].every(k=>k in remote.public_feed));
+  } finally {Object.assign(proto,saved);fs.rmSync(dir,{recursive:true,force:true});}
 });
