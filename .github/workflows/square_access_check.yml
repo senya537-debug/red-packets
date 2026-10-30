@@ -1068,10 +1068,8 @@ jobs:
             routes.sort((a,b)=>b.liquidity-a.liquidity);
             return routes[0]||null;
           }
-          // Square hides how many people share a packet, so the whole amount and the comment count are the
-          // only signals: total / comments is a rough competition-adjusted estimate, never a promised payout.
+          // Comments are a weak competition hint for display only; they never estimate payout per person or affect reward ranking.
           const BIG_PER_COMMENTER_USD = 0.5;
-          const COMMENTS_ASSUMED = 50;
           function totalAmount(post) {
             const total=hasValue(post?.amount) ? Number(post.amount) : NaN;
             return Number.isFinite(total) && total>0 ? total : null;
@@ -1318,30 +1316,39 @@ jobs:
             if(records.some(item=>Number(item.retry_at)>now))return 'retry_cooldown';
             return null;
           }
-          function averageRewardPriority(candidate) {
-            const post = candidate.post || {};
-            const currency = String(post.currency || '').toUpperCase();
+          function rewardRank(candidate) {
+            const post=candidate.post||{},currency=String(post.currency||'').toUpperCase(),worth=post.valuation;
+            // Tier 3: actual average reward per remaining place, never inferred from comments.
+            if(worth?.liquid && Number.isFinite(worth.avg_usd) && worth.avg_usd>0)
+              return {tier:3,value:worth.avg_usd,source:'verified_per_place_usd'};
+            if(USD_STABLE.has(currency)) {
+              const average=averagePerPerson(post);
+              if(average)return {tier:3,value:average.avg,source:'reported_per_place_stable'};
+            }
+            // Tier 2: known total pool. It is useful, but cannot be mistaken for a per-person payout.
+            if(worth?.liquid && Number.isFinite(worth.total_usd) && worth.total_usd>0)
+              return {tier:2,value:worth.total_usd,source:'liquid_total_pool_usd'};
+            if(USD_STABLE.has(currency)) {
+              const total=totalAmount(post);
+              if(total!==null)return {tier:2,value:total,source:'reported_total_pool_stable'};
+            }
+            // Tier 1: unknown or not reliably comparable. Keep the discovery reserve.
+            return {tier:1,value:0,source:'unknown'};
+          }
 
-            // Другие монеты сравниваются только по долларовой оценке с ликвидным рынком;
-            // без цены или с тонким рынком они остаются запасными, как неизвестные суммы.
-            const worth = post.valuation;
-            if (worth?.liquid && Number.isFinite(worth.avg_usd)) return worth.avg_usd;
-            // Whole amount shared by the commenters so far; unknown comment counts use a typical value.
-            if (worth?.liquid && Number.isFinite(worth.total_usd))
-              return worth.total_usd / Math.max(Number.isFinite(worth.comments) ? worth.comments : COMMENTS_ASSUMED, 1);
-            if (!USD_STABLE.has(currency)) return -1;
-
-            return averagePerPerson(post)?.avg ?? -1;
+          function compareRewardPriority(a,b) {
+            const left=rewardRank(a),right=rewardRank(b);
+            return right.tier-left.tier || right.value-left.value;
           }
 
           function retainRewardRankedEntries(entries,limit) {
-            const compare=(a,b)=>averageRewardPriority(b[1].candidate)-averageRewardPriority(a[1].candidate) ||
+            const compare=(a,b)=>compareRewardPriority(a[1].candidate,b[1].candidate) ||
               Number(b[1].observed_at)-Number(a[1].observed_at);
             const retained=[];
             for(const queue of ['posts','live']) {
               const group=entries.filter(([,entry])=>deliveryQueue(entry.candidate)===queue).sort(compare);
-              const known=group.filter(([,entry])=>averageRewardPriority(entry.candidate)>=0);
-              const unknown=group.filter(([,entry])=>averageRewardPriority(entry.candidate)<0);
+              const known=group.filter(([,entry])=>rewardRank(entry.candidate).tier>1);
+              const unknown=group.filter(([,entry])=>rewardRank(entry.candidate).tier===1);
               // Keep a 25% discovery reserve for rewards without a reliable USD valuation.
               // If either side is sparse, fill the remaining capacity from the other side.
               const reserve=Math.min(Math.floor(limit*0.25),unknown.length);
@@ -1372,15 +1379,14 @@ jobs:
                 c.post?.status !== 'unverified_code'
               )
               .sort((a, b) =>
-                averageRewardPriority(b) - averageRewardPriority(a) ||
+                compareRewardPriority(a,b) ||
                 (Date.parse(b.post?.published_at) || 0) -
                   (Date.parse(a.post?.published_at) || 0)
               );
 
             const ordered = [];
 
-            // Крупные известные средние награды идут первыми.
-            // Мелкие и неизвестные суммы остаются в очереди как запасные.
+            // Confirmed per-place values first, known total pools second, unknown rewards retained as reserve.
             while (posts.length || live.length) {
               for (const queue of [posts, live]) {
                 if (queue.length) ordered.push(queue.shift());
