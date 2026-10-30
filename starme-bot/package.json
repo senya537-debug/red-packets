@@ -1,0 +1,23 @@
+{
+  "name": "starme-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "StarMe AI Telegram bot: celebrity photo -> JSON design code -> client selfie -> personalized photo",
+  "main": "src/bot.mjs",
+  "scripts": {
+    "start": "node src/bot.mjs",
+    "demo": "node scripts/demo.mjs",
+    "check": "node scripts/check.mjs",
+    "dev": "node --watch src/bot.mjs",
+    "test": "node --test test/*.test.mjs",
+    "worker:facefusion": "python3 worker/facefusion_worker.py",
+    "worker:instantid": "python3 worker/instantid_worker.py"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "telegraf": "^4.16.3"
+  }
+}
