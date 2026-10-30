@@ -380,10 +380,12 @@ test('delivery ranking separates verified per-place rewards from total pools and
     samePoolManyComments=totalPacket('USDT',10,500,'965'),
     unknownComments=totalPacket('USDT',2,null,'964'),
     nothing=coinPacket('USDT',null,null,'966');
+  samePoolFewComments.post.published_at=new Date(now-60000).toISOString();
+  samePoolManyComments.post.published_at=new Date(now-1000).toISOString();
   const items=[nothing,smallPool,largePool,samePoolManyComments,unknownComments,samePoolFewComments,exact]
     .map(c=>({...c,post:app.valuedPost(c.post,m)}));
   const ordered=app.orderDeliveryCandidates(items).map(c=>c.key);
-  assert.deepEqual(ordered.slice(0,5),[exact.key,samePoolFewComments.key,samePoolManyComments.key,largePool.key,smallPool.key]);
+  assert.deepEqual(ordered.slice(0,5),[exact.key,samePoolManyComments.key,samePoolFewComments.key,largePool.key,smallPool.key]);
   assert.ok(ordered.indexOf(exact.key)<ordered.indexOf(largePool.key),'known per-place value outranks any total-pool estimate');
   assert.ok(ordered.indexOf(samePoolFewComments.key)<ordered.indexOf(samePoolManyComments.key),
     'comments do not change payout ranking; publication freshness is only a tie-breaker');
