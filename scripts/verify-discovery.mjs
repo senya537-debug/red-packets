@@ -35,7 +35,7 @@ assert.ok(added.some(result=>[...result.ids].some(id=>!baseline.has(id))),'addit
 let detailAudit=[];
 try {
   const feed=await app.fetchLatest(2,1,'en');
-  const samples=feed.filter(post=>post?.redEnvelop && /^\\d+$/.test(String(post.id||''))).slice(0,8);
+  const samples=feed.filter(post=>post?.redEnvelop && /^\d+$/.test(String(post.id||''))).slice(0,8);
   detailAudit=await Promise.all(samples.map(async post=>{
     const envelope=post.redEnvelop||{};
     const base={post_id:String(post.id),list:{
