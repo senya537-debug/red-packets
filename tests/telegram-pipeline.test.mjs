@@ -166,18 +166,18 @@ test('local packet phrases are discovery hints while code-only text stays inelig
   }
 });
 
-test('global discovery gets five times the following allocation while active publishers stay protected',()=>{
+test('personal following has no dedicated scan quota; global discoveries and active publishers fill the budget',()=>{
   const authors=[
     ...Array.from({length:150},(_,i)=>({uid:'active_'+String(i).padStart(5,'0'),last_packet_at:now-60000})),
-    ...Array.from({length:200},(_,i)=>({uid:'discover_'+String(i).padStart(5,'0'),discovered:true,last_marker_at:now-60000})),
+    ...Array.from({length:220},(_,i)=>({uid:'discover_'+String(i).padStart(5,'0'),discovered:true,last_marker_at:now-60000})),
     ...Array.from({length:150},(_,i)=>({uid:'follow_'+String(i).padStart(5,'0'),followed:true}))
   ];
   const selected=app.chooseFastAuthors(authors,now);
   assert.equal(selected.length,320);
   assert.equal(new Set(selected.map(a=>a.uid)).size,320);
   assert.equal(selected.filter(a=>a.scan_reason==='active_packet_publisher').length,128);
-  assert.equal(selected.filter(a=>a.scan_reason==='discovery').length,160);
-  assert.equal(selected.filter(a=>a.scan_reason==='following').length,32);
+  assert.equal(selected.filter(a=>a.scan_reason==='discovery').length,192);
+  assert.equal(selected.filter(a=>a.scan_reason==='following').length,0);
 });
 
 test('outbox and public feed retain the highest verified stablecoin reward-per-place candidates',()=>{
