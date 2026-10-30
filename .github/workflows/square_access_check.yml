@@ -742,9 +742,8 @@ jobs:
             return {text:lines.join('\n'),parse_mode:'HTML',link_preview_options:{is_disabled:true},reply_markup:{inline_keyboard:[[
               {text:en?'Open Gate stream':'Открыть эфир Gate',url:post.url}]]}};
           }
-          // Global Square feeds are requested without a language parameter. Do not spend
-          // the scan budget cycling through locale-specific copies of the same feed.
-          export function rotatingFeedLanguages(now=Date.now()) { return []; }
+          // Compatibility helper: return every supported locale on every cycle; no rotation.
+          export function rotatingFeedLanguages(now=Date.now()) { return GLOBAL_FEED_LANGUAGES.slice(); }
           export function buildDiscoveryFeeds(worker,now=Date.now()) {
             const legacy=worker==='all',scanLive=legacy || worker==='live',scanCommunity=legacy || worker==='community';
             const workerTags=legacy || worker==='posts' ? TAGS : [];
