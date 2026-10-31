@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "last_feed_generated_at": "2026-10-30T23:33:46.975Z",
-  "snapshots_processed": 4,
-  "updated_at": "2026-10-30T23:36:45.855Z",
+  "last_feed_generated_at": "2026-10-31T02:30:46.512Z",
+  "snapshots_processed": 5,
+  "updated_at": "2026-10-31T02:42:05.313Z",
   "records": {
     "post:382197711070565": {
       "key": "post:382197711070565",
@@ -33,8 +33,8 @@
       "url": "https://www.binance.com/en/square/post/382197711070565",
       "excerpt": "صوتو : هل سيصعد👆 سهم$CGPT  ام سيهبط 👇 ؟\n☘️🥀 صوّت واكسب 🧧🎁🧧🎁🧧🧧🧧🧧\nThe Answer is : Done+Space\n{spot}(CGPTUSDT)",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 4
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 5
     },
     "post:382755845896256": {
       "key": "post:382755845896256",
@@ -117,7 +117,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2902,
+      "comments": 3010,
       "published_at": "2026-10-27T04:52:13.000Z",
       "published_day": "2026-10-27",
       "published_hour_utc": "04",
@@ -129,8 +129,8 @@
       "url": "https://www.binance.com/en/square/post/381687943564353",
       "excerpt": "🎁Follow and like to claim🧧🧧🧧$CLS.US $BEB $COHRB ",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:381240782212089": {
       "key": "post:381240782212089",
@@ -277,7 +277,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1717,
+      "comments": 1723,
       "published_at": "2026-10-23T17:26:26.000Z",
       "published_day": "2026-10-23",
       "published_hour_utc": "17",
@@ -289,8 +289,8 @@
       "url": "https://www.binance.com/en/square/post/380457723108907",
       "excerpt": "Which one of the following coins you think will get listed on Binance Spot pair first?\n\n$IRYS $DOS $AKE \n{future}(AKEUSDT)\n{future}(DOSUSDT)\n{future}(IRYSUSDT)",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382612982639724": {
       "key": "post:382612982639724",
@@ -322,8 +322,8 @@
       "url": "https://www.binance.com/en/square/post/382612982639724",
       "excerpt": "#redpacket giveaway \n\nbuy soph it's going to breakout huge.whales accomodation best to buy under 0.0014 to 0.0016 \n#USMidtermElections #EarningsSeason #FedWatch #apple $NVDAB $SOPH $AMZNB ",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 4
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 5
     },
     "post:382344560069485": {
       "key": "post:382344560069485",
@@ -351,12 +351,12 @@
         "author:anw5YMsoyx5WoZAuCBU5HQ",
         "redpacketmission"
       ],
-      "worker": "authors",
+      "worker": "posts",
       "url": "https://www.binance.com/en/square/post/382344560069485",
       "excerpt": "$W bulls have already stepped up and proved their point.\n\nThe daily chart is clearly showing that the bounce off the 0.012 support level is already confirmed. We have seen strong, aggressive daily closes rejecting this zone—not just once, b",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 4
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 5
     },
     "post:381823862656588": {
       "key": "post:381823862656588",
@@ -535,7 +535,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 612,
+      "comments": 1303,
       "published_at": "2026-10-30T07:30:48.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "07",
@@ -547,8 +547,8 @@
       "url": "https://www.binance.com/en/square/post/382788603795214",
       "excerpt": " 机会常在，难得是始终相信。Opportunities abound; it’s belief that rarely lasts.",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382782797723084": {
       "key": "post:382782797723084",
@@ -823,7 +823,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2824,
+      "comments": 3781,
       "published_at": "2026-10-30T05:55:18.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "05",
@@ -835,8 +835,8 @@
       "url": "https://www.binance.com/en/square/post/382765132250189",
       "excerpt": "#币安神算子 你们算得准吗？会不会逆风翻转，有什么看法呢？",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382755529065714": {
       "key": "post:382755529065714",
@@ -1015,7 +1015,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 316,
+      "comments": 320,
       "published_at": "2026-10-30T03:42:50.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "03",
@@ -1027,8 +1027,8 @@
       "url": "https://www.binance.com/en/square/post/382732577218272",
       "excerpt": "#比特币突破78000美元 \n$BTC \n{future}(BTCUSDT)\n\n美好随时发生🧧\n评论666",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 4
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 5
     },
     "post:382728540631525": {
       "key": "post:382728540631525",
@@ -1495,7 +1495,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 141,
+      "comments": 142,
       "published_at": "2026-10-30T01:09:52.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "01",
@@ -1507,8 +1507,8 @@
       "url": "https://www.binance.com/en/square/post/382694984780834",
       "excerpt": "真怀念上了",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382688507027565": {
       "key": "post:382688507027565",
@@ -1731,8 +1731,8 @@
       "url": "https://www.binance.com/en/square/post/382679014040278",
       "excerpt": "🎁 Binance Red Packet is here! 🧧\n\nWho loves FREE crypto? 🚀🔥\n\nLet's share some crypto happiness! ❤️\nGood luck everyone! 🍀\n\n#Binance $#RedPacket #Crypto #BNB #Bitcoin #FreeCrypto ",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382662975076416": {
       "key": "post:382662975076416",
@@ -1815,7 +1815,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 449,
+      "comments": 872,
       "published_at": "2026-10-29T22:12:20.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "22",
@@ -1827,8 +1827,8 @@
       "url": "https://www.binance.com/en/square/post/382651355038401",
       "excerpt": "记录一下这个月的盈利 顺便反思一下 做单的耐心是有了 但是太过于格局和不止损了 还是遵守币圈宗旨舔一口就跑比较好  最好不要格局 也是我自己的坏毛病  希望可以改善 这也是我入圈币圈快半年来第一次盈利 我的实盘和仓位都是公开的 欢迎大家交流 $BTC $GOOGLB $ETH  再推荐我一直看的主播 胖哥和雨神 在我关注里可以找到  两位非常专业的主播",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T08:36:49.844Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382645091069552": {
       "key": "post:382645091069552",
@@ -1911,7 +1911,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 569,
+      "comments": 573,
       "published_at": "2026-10-29T20:26:25.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "20",
@@ -1923,8 +1923,8 @@
       "url": "https://www.binance.com/en/square/post/382625324634110",
       "excerpt": "真的新赛道来了，大的来了，这就是币安2026年度最终的产品。$BTC \n{future}(BTCUSDT)\n$ETH \n{future}(ETHUSDT)\n$BNB \n{future}(BNBUSDT)",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382622118209626": {
       "key": "post:382622118209626",
@@ -1975,7 +1975,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1726,
+      "comments": 1951,
       "published_at": "2026-10-29T19:11:20.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "19",
@@ -1987,8 +1987,8 @@
       "url": "https://www.binance.com/en/square/post/382606870620374",
       "excerpt": "🔥🧧 BNB RED PACKET GIVEAWAY IS LIVE 🧧🔥\n\n👀 What if your next crypto surprise comes in BNB? 💛🚀\n\nThe #Bilverse BNB Red Packet Drop is HERE! 🎁💰 It's time to spread the crypto vibes, rally your squad, and grab your chance to win! 🦾🔥\n\n\ud83c",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382606544269179": {
       "key": "post:382606544269179",
@@ -2007,7 +2007,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1093,
+      "comments": 1149,
       "published_at": "2026-10-29T19:10:00.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "19",
@@ -2019,8 +2019,8 @@
       "url": "https://www.binance.com/en/square/post/382606544269179",
       "excerpt": "🧧🧧🧧\n\n🕊️•  Holding onto the top deck railing with two hands, gazing at the beautiful ocean under the morning sun, and breathing in the fresh air—passing each day completely worry-free is an opportunity she couldn't let slip away, all tha",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382568685356064": {
       "key": "post:382568685356064",
@@ -2295,7 +2295,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 3014,
+      "comments": 3104,
       "published_at": "2026-10-29T15:44:29.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "15",
@@ -2307,8 +2307,8 @@
       "url": "https://www.binance.com/en/square/post/382556035444254",
       "excerpt": "Cho đi để nhận lại 🏆 \nNhận ngẫu nhiên bao lì xì có $USD1 \n- Follow @anh_ba_Cong  \n- Like\n- Comment: “COLE”",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382553149368048": {
       "key": "post:382553149368048",
@@ -2903,7 +2903,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1231,
+      "comments": 1239,
       "published_at": "2026-10-29T10:29:27.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "10",
@@ -2915,8 +2915,8 @@
       "url": "https://www.binance.com/en/square/post/382478614101315",
       "excerpt": "[Click link and Follow](https://app.binance.com/uni-qr/cpro/Four_iv?l=en&r=QI2QHXXY&uc=app_square_share_link&us=copylink)",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382466416145722": {
       "key": "post:382466416145722",
@@ -2979,8 +2979,8 @@
       "url": "https://www.binance.com/en/square/post/382464979818725",
       "excerpt": "🎁关注 点赞 领取🧧🧧🧧\n#股票财报季 ",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382456560785186": {
       "key": "post:382456560785186",
@@ -3031,7 +3031,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1410,
+      "comments": 1436,
       "published_at": "2026-10-29T08:58:50.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "08",
@@ -3043,8 +3043,8 @@
       "url": "https://www.binance.com/en/square/post/382456343391284",
       "excerpt": "风遇雨夜，我遇浪漫",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382455958942920": {
       "key": "post:382455958942920",
@@ -3383,7 +3383,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 3035,
+      "comments": 3048,
       "published_at": "2026-10-29T02:33:49.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "02",
@@ -3395,8 +3395,8 @@
       "url": "https://www.binance.com/en/square/post/382361720038479",
       "excerpt": "​不是看见光，才选择相信光；而是相信光，终得遇见光。\n\n比亚迪在简陋车间笃定国产电池的前路，小米凭着一套系统相信互联网手机的浪潮，华为在重重封锁里坚信自研的力量。不必等万众认可才坚守，不必等曙光乍现才启程，不必等尘埃落定才笃定。\n\n漫长沉寂里守住本心，穿过质疑、熬过寒冬，那些你坚定不移相信的光亮，终会冲破迷雾，奔赴而来。\n曙光往往出现在再坚持一下的努力之中，\n因为下一刻，就是柳暗花明。\n\n#LUCIC晚间会议 #谷歌财报能否守住基本盘 \n\n{future}(BNBUSDT)\n",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382361719791944": {
       "key": "post:382361719791944",
@@ -3671,7 +3671,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1617,
+      "comments": 1696,
       "published_at": "2026-10-28T19:09:28.000Z",
       "published_day": "2026-10-28",
       "published_hour_utc": "19",
@@ -3683,8 +3683,8 @@
       "url": "https://www.binance.com/en/square/post/382252517658569",
       "excerpt": " 🧧🧧🧧\n\n☘️ LUCIC is about to take off now. You still have a chance to buy the last cheap tickets—for trains, ships, or flights. \n\n☘️ If you can’t seize the opportunity, you’ll miss the only chance to change your fate.\n\n☘️ Don’t miss tonigh",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382249351743518": {
       "key": "post:382249351743518",
@@ -3831,7 +3831,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 927,
+      "comments": 929,
       "published_at": "2026-10-28T17:33:25.000Z",
       "published_day": "2026-10-28",
       "published_hour_utc": "17",
@@ -3843,8 +3843,8 @@
       "url": "https://www.binance.com/en/square/post/382228913753492",
       "excerpt": "#109亿美元比特币期权周五到期 \n$BTC \n{future}(BTCUSDT)\n评论666",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 4
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 5
     },
     "post:382208170228933": {
       "key": "post:382208170228933",
@@ -4343,7 +4343,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 886,
+      "comments": 888,
       "published_at": "2026-10-28T08:09:37.000Z",
       "published_day": "2026-10-28",
       "published_hour_utc": "08",
@@ -4355,8 +4355,8 @@
       "url": "https://www.binance.com/en/square/post/382090354587622",
       "excerpt": "#SK海力士拟追加约450亿美元股东回报 \n$SKHYB \n{spot}(SKHYBUSDT)",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 4
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 5
     },
     "post:382082746955839": {
       "key": "post:382082746955839",
@@ -4375,7 +4375,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 3026,
+      "comments": 3356,
       "published_at": "2026-10-28T07:38:40.000Z",
       "published_day": "2026-10-28",
       "published_hour_utc": "07",
@@ -4387,8 +4387,8 @@
       "url": "https://www.binance.com/en/square/post/382082746955839",
       "excerpt": "​🔥 ارفع مستوى تجربتك وانضم إلى عائلة BinaSsou ⚜️💸Vip على بايننس! 🔥\n​إذا كنت تبحث عن البيئة الحاضنة، الدعم الحقيقي، والأجواء الحماسية في عالم العملات الرقمية وتحديداً عملاق السوق البتكوين (Bitcoin)، فغرفتك المفضلة تنتظرك! 🚀\n​ما الذي نقدّ",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T08:36:49.844Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382061651520632": {
       "key": "post:382061651520632",
@@ -4471,7 +4471,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 384,
+      "comments": 433,
       "published_at": "2026-10-28T04:52:55.000Z",
       "published_day": "2026-10-28",
       "published_hour_utc": "04",
@@ -4483,8 +4483,8 @@
       "url": "https://www.binance.com/en/square/post/382042012279093",
       "excerpt": "#FOMC会议 \n\n这个会议使投资界，金融圈，四大州各大经济体都难眠的夜晚，美联储、特朗普、黄金、石油、Btc将何去何从。大12 w到5.7w，再上到8.7。这一波强势下跌却在8.0横盘。今晚將会见分晓了吗？\n   个人认为加息利空已消耗殆尽，中期选举也在不久的时间进行。懂王这个加密头子要提振信心，民心，必有所作为。大家拭目以待。\n$BTC \n   \n$BNB ",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382023405138102": {
       "key": "post:382023405138102",
@@ -5207,7 +5207,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 773,
+      "comments": 775,
       "published_at": "2026-10-24T09:52:54.000Z",
       "published_day": "2026-10-24",
       "published_hour_utc": "09",
@@ -5219,8 +5219,8 @@
       "url": "https://www.binance.com/en/square/post/380700156860109",
       "excerpt": "$SNDKB $BTC 这几天一直下跌，各个喊抄底，也有更多的选手在高位做空，博一博单车变摩托。有不有低风险高收益。没有，高收益必须高风险。前期调查很重要，关健是操盘的人，团队，社区，大家的价值取向，格局大小。种什么因得什么果。\n#deepseeekbug 是什么标的呢＂看看，了解一下。\n \n{web3_wallet_create}(560xce3b17123b2d650c5a57ab6bbdc4d40e42487777)\n\n{spot}(BNBUSDT)",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:380357647935697": {
       "key": "post:380357647935697",
@@ -5315,8 +5315,8 @@
       "url": "https://www.binance.com/en/square/post/381741874465143",
       "excerpt": "Is this for real? 😳🔥\n\nI just received 0.3 $BNB  through Red Packets! 🎉\nWhat should I do with it, crypto fam? Any advice? 🤔\n\n#bnb #cryptouniverseofficial #Binance #binanceredpacket #cryptofam $BNB \n\n{spot}(BNBUSDT)",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 4
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 5
     },
     "post:382802605358868": {
       "key": "post:382802605358868",
@@ -5335,7 +5335,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 757,
+      "comments": 808,
       "published_at": "2026-10-30T08:28:55.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "08",
@@ -5349,8 +5349,8 @@
       "url": "https://www.binance.com/en/square/post/382802605358868",
       "excerpt": "面对朝鲜黑客的大规模攻击，币安没有甩锅，而是迅速冻结资产、承诺全额覆盖损失、保障用户资金。这种担当值得支持。朝鲜这种以国家力量偷别人钱的行为，才是真正该被唾弃的。\n$BNB \n{spot}(BNBUSDT)",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382483423408196": {
       "key": "post:382483423408196",
@@ -5413,8 +5413,8 @@
       "url": "https://www.binance.com/en/square/post/382224712862139",
       "excerpt": "Join and Cilim Big Red Packet \n#RedPacketMission #reducecryptotax #EarningsSeason ",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 4
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 5
     },
     "post:381954370187454": {
       "key": "post:381954370187454",
@@ -5477,8 +5477,8 @@
       "url": "https://www.binance.com/en/square/post/380989318188702",
       "excerpt": "#redpacket redpacket on the wall\nwho is most generous creator on binance wall\n\nfollow bullsvsbears for red packets everyday\n\n#BinancePick #EarningsSeason #btc #ETH ",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 4
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 5
     },
     "post:380816336672075": {
       "key": "post:380816336672075",
@@ -5510,8 +5510,8 @@
       "url": "https://www.binance.com/en/square/post/380816336672075",
       "excerpt": "follow me guyz\n#redpacket \n#ClaimYourReward ",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 4
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 5
     },
     "post:382067170243873": {
       "key": "post:382067170243873",
@@ -5638,8 +5638,8 @@
       "url": "https://www.binance.com/en/square/post/381223997928081",
       "excerpt": "$CAP \n睡前开个3000美金空单.我感觉这个币旺我\n明天睡醒收米问题不大！",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:381175716798500": {
       "key": "post:381175716798500",
@@ -5830,12 +5830,12 @@
       "url": "https://www.binance.com/en/square/post/382788133385994",
       "excerpt": "1.Binance黑客集群持仓监控：涉案65个币种总计58.75亿美元，其中25.4亿美元已被冻结\n\n2.Binance：安全事件或涉DevOps工程师笔记本被入侵，预估影响约63亿美元\n\n3.分析：Binance凌晨被盗资产约34.3亿美元，黑客手持ETH已达46.7万枚\n\n4.数据：币安客户资产规模约为1294亿美元，此前快照储备金资产均大于等于100%，6大主流币总规模约1358亿美元，55个币种总规模约1661亿美元\n\n5.慢雾余弦：Binance攻击者链上操作粗糙且",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382786783596882": {
       "key": "post:382786783596882",
-      "identity": "post:382786783596882",
+      "identity": "packet:462800209031585792",
       "post_id": "382786783596882",
       "packet_id": "462800209031585792",
       "packet_code": "GY12UDM1",
@@ -5850,7 +5850,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 913,
+      "comments": 1001,
       "published_at": "2026-10-30T07:23:24.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "07",
@@ -5862,8 +5862,8 @@
       "url": "https://www.binance.com/en/square/post/382786783596882",
       "excerpt": "🌺 BAPE  线上线下联动，打响全域流量的第一枪！\n以初心赴山海，以聚力启新章——\nBAPE的全域生态新周期，邀你一起见证。\n\n【直播地点】币安广场 | @hpr2008 直播间\n【会议时间】2026年11月1日 12：00（UTC+8）\n\n提前预约，准时来\n\nBAPE 的200余天，我们这样走过…\n 200多天，不算短。\n市场起起伏伏，我们没喊过一句口号，只把每一步踩实——\n透明链上机制打底，全民社区自治聚心，全国地推共建铺路。\n不追风口，不赌运气，只信一件事：底盘稳了",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382783959612526": {
       "key": "post:382783959612526",
@@ -5882,7 +5882,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1449,
+      "comments": 1470,
       "published_at": "2026-10-30T07:11:55.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "07",
@@ -5894,8 +5894,8 @@
       "url": "https://www.binance.com/en/square/post/382783959612526",
       "excerpt": "一起赚钱一起飞，每天实时直播，实时单行情，喜欢的点我主页",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382783446088572": {
       "key": "post:382783446088572",
@@ -5978,7 +5978,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2918,
+      "comments": 3003,
       "published_at": "2026-10-30T08:18:55.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "08",
@@ -5990,8 +5990,8 @@
       "url": "https://www.binance.com/en/square/post/382800426318319",
       "excerpt": "#eth 多头断头台准不准？想学裸j交易吗？今晚八点继续直播讲解后续的思路看法。大家欠我的一个牛逼记得打字还我🤪🤪 我现在也是多头了",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382782585486943": {
       "key": "post:382782585486943",
@@ -6010,7 +6010,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2205,
+      "comments": 2310,
       "published_at": "2026-10-30T07:06:19.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "07",
@@ -6022,8 +6022,8 @@
       "url": "https://www.binance.com/en/square/post/382782585486943",
       "excerpt": "We are safe in #Binance \n$BTC \n{future}(BTCUSDT)\nWe are happy to be in this #Community \n\n$ETH \n{future}(ETHUSDT)\nWe are happy to support this #memecoin \n\nDo you know, what it is ? 👇🏻👇🏻👇🏻\n{web3_wallet_create}(10x42778037d69350508cdd34d",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382779482948608": {
       "key": "post:382779482948608",
@@ -6074,7 +6074,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 316,
+      "comments": 323,
       "published_at": "2026-10-30T06:59:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "06",
@@ -6086,8 +6086,8 @@
       "url": "https://www.binance.com/en/square/post/382761031605769",
       "excerpt": "人们不明白大多数伟人实际上有多么抑郁。\n\n*拿破仑在16岁时写了一篇名为“论自杀”的论文\n*汉密尔顿写信说，他“希望有一场战争”来成名\n*丘吉尔写了许多关于孤独的信件\n*林肯不断写下自己抑郁的心情\n*凯撒在亚历山大大帝的雕像前哭泣\n*牛顿写到自己在学校感到孤立\n*马斯克谈到“人们不会想成为我”\n*贝多芬写道，他的艺术阻止了他自杀\n\n这是贯穿历史的反复模式。许多伟人在年轻时都饱受抑郁之苦。而且往往，这正是他们行动的驱动力。他们通过纯粹的行动来应对痛苦。\n$SOL \n{spot}",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382780394358795": {
       "key": "post:382780394358795",
@@ -6202,7 +6202,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 271,
+      "comments": 278,
       "published_at": "2026-10-30T05:59:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "05",
@@ -6214,8 +6214,8 @@
       "url": "https://www.binance.com/en/square/post/382578151674074",
       "excerpt": "以前觉得星巴克咖啡好贵\n后来就有了便宜的瑞幸咖啡\n以前我觉得瑞幸咖啡已经很便宜了\n后来有了库迪咖啡\n等到蜜雪也开始卖咖啡的时候\n我对货币的购买力认知直接崩塌了\n论卷的程度\n中国人真的太能卷了 ​​​！\n$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382766055251942": {
       "key": "post:382766055251942",
@@ -6234,7 +6234,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 924,
+      "comments": 935,
       "published_at": "2026-10-30T05:59:03.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "05",
@@ -6246,8 +6246,8 @@
       "url": "https://www.binance.com/en/square/post/382766055251942",
       "excerpt": "成长最快的方式就是硬着头皮上，人生所有的机遇都藏在你的恐惧里。哪怕手脚发抖也要上，你可以一边害怕一边前行，因为真正的勇气不是无所畏惧，而是怀揣着恐惧，却依然前行。",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382765990078207": {
       "key": "post:382765990078207",
@@ -6330,7 +6330,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 418,
+      "comments": 462,
       "published_at": "2026-10-30T05:11:45.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "05",
@@ -6342,8 +6342,8 @@
       "url": "https://www.binance.com/en/square/post/382754429531290",
       "excerpt": "🎃 «truco o trato» 🍬\n$AAPLB ",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382752151235687": {
       "key": "post:382752151235687",
@@ -6374,8 +6374,8 @@
       "url": "https://www.binance.com/en/square/post/382752151235687",
       "excerpt": "今天的多空全胜利，77000各种多，全部吃嘛嘛香，吃的的晕碳了，兄弟们$BTC 实时单，公开给单\n{future}(BTCUSDT)",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382749473181384": {
       "key": "post:382749473181384",
@@ -6394,7 +6394,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 4170,
+      "comments": 4304,
       "published_at": "2026-10-30T04:51:35.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "04",
@@ -6406,8 +6406,8 @@
       "url": "https://www.binance.com/en/square/post/382749473181384",
       "excerpt": "币安这次损失 3 个月能赚回来么？",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382742307456529": {
       "key": "post:382742307456529",
@@ -6490,7 +6490,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2804,
+      "comments": 2889,
       "published_at": "2026-10-30T04:10:41.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "04",
@@ -6502,8 +6502,8 @@
       "url": "https://www.binance.com/en/square/post/382739421708816",
       "excerpt": "1、史上最贵的笔记本电脑。\n2、私钥没有泄露，是提款交易授权被攻破",
       "first_seen_at": "2026-10-30T08:36:49.844Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382736724483598": {
       "key": "post:382736724483598",
@@ -6690,12 +6690,12 @@
       "sources": [
         "author:eMoBSCMJwpBH4zC0aZ-G4A"
       ],
-      "worker": "posts",
+      "worker": "authors",
       "url": "https://www.binance.com/en/square/post/382820972028943",
       "excerpt": "ظرف 🎁 أحمر👇 🎁🧧🎁🧧👈$USDT \n🎁🎁🎁        🎁🎁🎁🎁🎁🎁\n👈🔗 انقر على زر المطالبة \n👈👥 يسعدني انضمامك: \n👈🔄 ادعم أصدقاءك: بإعادة النشر \n👈💬 شاركنا برأيك:👈 في التعليقك\n⏱️  بالتوفيق للجميع وشكراً لثقتكم المستمرة!\n#GIVEAWAY    #RedPacket",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382816259363625": {
       "key": "post:382816259363625",
@@ -7332,12 +7332,12 @@
         "redpacketgiveawaycampaign",
         "redpacketmission"
       ],
-      "worker": "authors",
+      "worker": "posts",
       "url": "https://www.binance.com/en/square/post/382900677599410",
       "excerpt": "Is this a discount buy or mass sell? \nWill $BNB recover?? \n#RedPacketMission #redpacketgiveawaycampaign ",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382900573045572": {
       "key": "post:382900573045572",
@@ -7772,7 +7772,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 304,
+      "comments": 369,
       "published_at": "2026-10-30T10:35:29.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "10",
@@ -7784,8 +7784,8 @@
       "url": "https://www.binance.com/en/square/post/382833988344668",
       "excerpt": "人生不是追赶别人，而是找到自己的节奏$SOL \n{future}(SOLUSDT)",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382833018906372": {
       "key": "post:382833018906372",
@@ -7836,7 +7836,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 966,
+      "comments": 2617,
       "published_at": "2026-10-30T10:25:43.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "10",
@@ -7848,8 +7848,8 @@
       "url": "https://www.binance.com/en/square/post/382831587354015",
       "excerpt": "#加密杠杆头寸24小时清算15亿美元 \n奔赴中原寻豫味，\n驴肉鲜汤暖肠胃，\n铁锅咕嘟，\n尝尽河南人间烟火。",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382831121160671": {
       "key": "post:382831121160671",
@@ -8028,7 +8028,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2727,
+      "comments": 3857,
       "published_at": "2026-10-30T09:26:44.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "09",
@@ -8040,8 +8040,8 @@
       "url": "https://www.binance.com/en/square/post/382817093854859",
       "excerpt": "分批挂单抄底\n机会都是留给有准备的人的！！\n$BTC \n{future}(BTCUSDT)",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382816090057190": {
       "key": "post:382816090057190",
@@ -8060,7 +8060,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1032,
+      "comments": 1517,
       "published_at": "2026-10-30T09:22:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "09",
@@ -8072,8 +8072,8 @@
       "url": "https://www.binance.com/en/square/post/382816090057190",
       "excerpt": "感谢币圈的朋友一直关注",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382814746428895": {
       "key": "post:382814746428895",
@@ -8092,7 +8092,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1433,
+      "comments": 2315,
       "published_at": "2026-10-30T09:17:11.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "09",
@@ -8104,8 +8104,8 @@
       "url": "https://www.binance.com/en/square/post/382814746428895",
       "excerpt": "1   🦋💫✨殿宇靜立，花園向陽。#BTC☀️ \n戴著華冠的🦋年年，靜靜蹲踞沃土之間，與大家一同栽下幼苗。\n身旁有相伴的知己，有滿懷好奇的孩童，灑下清泉、撫開泥土，一舉一動，皆是播撒希望。\n \n#年年 以善為冕，攜手Giggle Academy奔赴教育公益之路。\n一筆彩繪，畫出孩子心中的陽光與家園；一捧泥土，栽種屬於未來的無限可能。\n累計捐贈逾十萬美金，在國際助學貢獻榜上留下足跡。\n \n世間所有盛大的榮耀，終不及一顆願意托舉他人的心。\n宮牆華美是光景，內心善意才是王冠。",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382812446180560": {
       "key": "post:382812446180560",
@@ -8124,7 +8124,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1556,
+      "comments": 2609,
       "published_at": "2026-10-30T09:07:49.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "09",
@@ -8136,8 +8136,8 @@
       "url": "https://www.binance.com/en/square/post/382812446180560",
       "excerpt": "Cho đi để nhận lại 🏆\nNhận ngẫu nhiên bao lì xì có $USD1 \n- Follow @anh_ba_Cong \n- Like\n- Comment: “COLE”",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382811448115642": {
       "key": "post:382811448115642",
@@ -8412,7 +8412,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1024,
+      "comments": 1141,
       "published_at": "2026-10-29T17:51:39.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "17",
@@ -8424,8 +8424,8 @@
       "url": "https://www.binance.com/en/square/post/382528005777608",
       "excerpt": "感谢🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧#BTC☀ ",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382586049758976": {
       "key": "post:382586049758976",
@@ -8540,7 +8540,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 820,
+      "comments": 1286,
       "published_at": "2026-10-29T17:28:39.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "17",
@@ -8552,8 +8552,8 @@
       "url": "https://www.binance.com/en/square/post/382581635158262",
       "excerpt": "🎁🎁🎁 Free Gifts for Everyone 🎁🎁🎁\n\nJoin Live Stream for Best Crypto Knowledge 😍\n\n#Ethcryptohub ",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382579428896032": {
       "key": "post:382579428896032",
@@ -8668,7 +8668,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2804,
+      "comments": 2932,
       "published_at": "2026-10-29T15:13:01.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "15",
@@ -8680,8 +8680,8 @@
       "url": "https://www.binance.com/en/square/post/382548300373598",
       "excerpt": "能自愈，才是一个人顶级的能力$SOL \n{future}(SOLUSDT)",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382526853521843": {
       "key": "post:382526853521843",
@@ -8892,7 +8892,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 917,
+      "comments": 1816,
       "published_at": "2026-10-29T04:49:09.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "04",
@@ -8904,8 +8904,8 @@
       "url": "https://www.binance.com/en/square/post/382394979437890",
       "excerpt": "牛市狂暴，Meme当道！\nCYC开启新一轮波浪上涨🚀🚀🔥🔥\n锁定周周1688直播间\n时间：10月30号\n抽奖空投福利🧧等你来$BNB 🧧\n\n面对当前Meme赛道鱼龙混杂，Meme Fun 平台带着“币安阿尔法金标机制”与“CYC永动机共建模型”强势破局！本期AMA，我们将用最接地气的大实话，直击社区最关心的核心利益！\n\n🎙️ 重量级嘉宾阵容：\n🌟 Carmen老师：11年区块链运营实战经验、业内知名招商路演专家；超级信仰者与布道者！\n🌟 Nike尼克：美国无",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T15:18:10.423Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382351446195318": {
       "key": "post:382351446195318",
@@ -9756,7 +9756,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1322,
+      "comments": 1529,
       "published_at": "2026-10-30T14:07:33.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "14",
@@ -9768,12 +9768,12 @@
       "url": "https://www.binance.com/en/square/post/382886107027778",
       "excerpt": "深耕研究，才不容易被市场噪音干扰。\nIn-depth research shields you from market noise.\n#币安将上线PREDICT现货交易 ",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382883797104599": {
       "key": "post:382883797104599",
-      "identity": "packet:462851143050297344",
+      "identity": "post:382883797104599",
       "post_id": "382883797104599",
       "packet_id": "462851143050297344",
       "packet_code": "NYS1RD0P",
@@ -9788,7 +9788,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 988,
+      "comments": 1018,
       "published_at": "2026-10-30T13:58:09.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "13",
@@ -9800,8 +9800,8 @@
       "url": "https://www.binance.com/en/square/post/382883797104599",
       "excerpt": "🚨 AI SPENDING SHOCK! TECH GIANTS UNDER PRESSURE AS GLOBAL MARKETS REPRICE RISK!\n\nThe question is no longer whether AI has a future.\n\nIt's when massive AI investments will deliver real returns!\n\nAhead of the October 30 U.S. market open:\n\n📉",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382883110989023": {
       "key": "post:382883110989023",
@@ -9820,7 +9820,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 300,
+      "comments": 311,
       "published_at": "2026-10-30T13:55:22.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "13",
@@ -9832,8 +9832,8 @@
       "url": "https://www.binance.com/en/square/post/382883110989023",
       "excerpt": "英特尔近期的股价暴跌，是一份远逊于预期的业绩指引点燃的导火索，但其背后是PC业务结构性衰退、制造瓶颈、代工转型受挫等深层问题的一次集中爆发。\n\n💥 直接导火索：一份“令人失望”的业绩指引\n\n引发最近一轮暴跌（2026年10月30日）的直接原因，是英特尔对第四季度的业绩预测与市场预期存在巨大鸿沟：\n\n· 营收与利润指引双双“爆雷”：公司预计Q4营收仅为 150亿至160亿美元，远低于分析师预期的约170亿美元；调整后每股收益预计 0.25美元，也远逊于预期的0.43美元。\n·",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382882311614435": {
       "key": "post:382882311614435",
@@ -9852,7 +9852,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 300,
+      "comments": 304,
       "published_at": "2026-10-30T13:52:06.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "13",
@@ -9864,12 +9864,12 @@
       "url": "https://www.binance.com/en/square/post/382882311614435",
       "excerpt": "Hello Everyone 🫡\nClaim Reward 💥\nThanks 🥳",
       "first_seen_at": "2026-10-30T15:18:10.423Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 3
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 4
     },
     "post:382901637252348": {
       "key": "post:382901637252348",
-      "identity": "packet:462860905345515520",
+      "identity": "post:382901637252348",
       "post_id": "382901637252348",
       "packet_id": "462860905345515520",
       "packet_code": "YX2CRG73",
@@ -9884,21 +9884,23 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 48,
+      "comments": 51,
       "published_at": "2026-10-30T15:13:56.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "15",
       "expires_at": "2026-11-06T15:13:40.373Z",
       "sources": [
         "square:global:type2:page1",
-        "author:6INyiKp9uZv1cpmGyHTIRA"
+        "author:6INyiKp9uZv1cpmGyHTIRA",
+        "redpacket",
+        "square:global:type2:page2"
       ],
-      "worker": "authors",
+      "worker": "posts",
       "url": "https://www.binance.com/en/square/post/382901637252348",
       "excerpt": "Большинство поляков по-прежнему хотят быть частью Европейского Союза. #redpacket \nПремьер-министр Польши Дональд Туск отреагировал на слова председателя партии «Право и справедливость» Ярослава Качиньского о Польше в Евросоюзе, передает Pol",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382946659021461": {
       "key": "post:382946659021461",
@@ -9917,20 +9919,21 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 37,
+      "comments": 41,
       "published_at": "2026-10-30T18:13:56.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "18",
       "expires_at": "2026-10-31T18:13:49.827Z",
       "sources": [
-        "author:9SCPVemAjdrpeBYNFI5l_A"
+        "author:9SCPVemAjdrpeBYNFI5l_A",
+        "redpacket"
       ],
-      "worker": "authors",
+      "worker": "posts",
       "url": "https://www.binance.com/en/square/post/382946659021461",
       "excerpt": "Um bom fim de semana a todos, se cuidem e esperamos juntos dias melhores.\n\nQue a Binance possa reaver esse prejuízo e fortificar a comunidade 🙏🏻🍀🍃\n\n#redpacket #BinanceSquareTalks #binance",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382958253970801": {
       "key": "post:382958253970801",
@@ -9961,8 +9964,8 @@
       "url": "https://www.binance.com/en/square/post/382958253970801",
       "excerpt": "رمز الظرف\nLKF7ZH7M",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382939473369813": {
       "key": "post:382939473369813",
@@ -9993,8 +9996,8 @@
       "url": "https://www.binance.com/en/square/post/382939473369813",
       "excerpt": "متابعة please ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382938697708764": {
       "key": "post:382938697708764",
@@ -10089,8 +10092,8 @@
       "url": "https://www.binance.com/en/square/post/382957340379595",
       "excerpt": "WILL $BNB come down to 692 ?\nwhat do you think ?\npanic or opportunity.\n\n{future}(BNBUSDT)\n#Write2Earn ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382956016264422": {
       "key": "post:382956016264422",
@@ -10109,7 +10112,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 247,
+      "comments": 291,
       "published_at": "2026-10-30T18:56:06.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "18",
@@ -10121,8 +10124,8 @@
       "url": "https://www.binance.com/en/square/post/382956016264422",
       "excerpt": "🎁🎁🎁🎁🎁🎁 GOOD NIGHT \n\n🎁🎁🎁LIKE REPOST COMMENT \n\nAND CLAIM 🎁🎁🎁🎁🎁🎁\n\n$UVXY \n{future}(UVXYUSDT)\n$BLUR \n{future}(BLURUSDT)\n$SOXS \n{future}(SOXSUSDT)\n#RedPacketMission \n#write2earn🌐💹 \n#TradeHere☝️🤗 ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382939839595882": {
       "key": "post:382939839595882",
@@ -10141,7 +10144,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 982,
+      "comments": 1324,
       "published_at": "2026-10-30T18:44:15.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "18",
@@ -10153,8 +10156,8 @@
       "url": "https://www.binance.com/en/square/post/382939839595882",
       "excerpt": "🚨 $6.34 BILLION! BINANCE UNVEILS A MASSIVE RECOVERY RESERVE — CAN CONFIDENCE RETURN?\n\nAfter the security incident, the real test begins!\n\nBinance's October 30 update:\n\n💰 Over $6.34 billion in company funds reserved to cover incident losse",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382948611831514": {
       "key": "post:382948611831514",
@@ -10173,7 +10176,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 185,
+      "comments": 205,
       "published_at": "2026-10-30T18:21:53.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "18",
@@ -10185,8 +10188,8 @@
       "url": "https://www.binance.com/en/square/post/382948611831514",
       "excerpt": "$PREDICT 上现货后能不能突破5刀一枚？红包🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧🧧",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382968468249664": {
       "key": "post:382968468249664",
@@ -10217,8 +10220,8 @@
       "url": "https://www.binance.com/en/square/post/382968468249664",
       "excerpt": "بينما كانت العملات الكبرى تسجل خسائر حادة في 30 أكتوبر، لفتت هاتان العملتان الأنظار بتماسكهما وقدرتهما على تحقيق مكاسب. إليك السبب بلغة بسيطة:\n🟢 $SKY : أرباح حقيقية وليس مجرد كلام\n· نتائج مالية قوية: أعلنت مؤسسة SKY عن تقرير الربع الثالث ل",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382965645454246": {
       "key": "post:382965645454246",
@@ -10237,7 +10240,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 931,
+      "comments": 1320,
       "published_at": "2026-10-30T19:31:12.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "19",
@@ -10249,8 +10252,8 @@
       "url": "https://www.binance.com/en/square/post/382965645454246",
       "excerpt": "#牛来牛来牛来来 $BTC \n\n{future}(BTCUSDT)\n评论666",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382965312415300": {
       "key": "post:382965312415300",
@@ -10281,8 +10284,8 @@
       "url": "https://www.binance.com/en/square/post/382965312415300",
       "excerpt": "إعلان Binance الرسمي بشأن حادث الإختراق الأمني (بتاريخ 30 أكتوبر 2026):\n\n🚨 طبيعة الاختراق:\n· تشير التحقيقات الأولية إلى أن الحادث يعود إلى اختراق جهاز الكمبيوتر المحمول لأحد مهندسي العمليات (DevOps)، مما سمح للمهاجم بالوصول إلى حاوية خدمة ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382894565666335": {
       "key": "post:382894565666335",
@@ -10301,7 +10304,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 823,
+      "comments": 1186,
       "published_at": "2026-10-30T18:16:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "18",
@@ -10313,8 +10316,8 @@
       "url": "https://www.binance.com/en/square/post/382894565666335",
       "excerpt": "拾一片落叶，定格转瞬光影。\n#币安将上线PREDICT现货交易 \n#LUCIC第一片净土 ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382944180594214": {
       "key": "post:382944180594214",
@@ -10345,8 +10348,8 @@
       "url": "https://www.binance.com/en/square/post/382944180594214",
       "excerpt": "🚀 Weekend Crypto Recap – 30 Oct 2026 📈\n\n$BTC : $76,500–$78,000 after a sharp dip toward $76.5k on Binance security news before partial recovery  \nSpot BTC ETFs: small positive flow on the latest day (~+$17M) amid recent mixed/negative pri",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382577701005629": {
       "key": "post:382577701005629",
@@ -10365,7 +10368,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 361,
+      "comments": 421,
       "published_at": "2026-10-30T17:59:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "17",
@@ -10377,27 +10380,27 @@
       "url": "https://www.binance.com/en/square/post/382577701005629",
       "excerpt": "很多人印象里查理芒格是完美的\n但真正的现实世界里\n查理芒格起码有两次人生低谷\n比破产可能还要惨\n\n第一次是 1953 年（29 岁）\n离婚、儿子患白血病离世\n积蓄被医疗费掏空、负债\n接近破产\n身体心理和钱包都被掏空了\n\n第二次是1974 年（50 岁）\n合伙基金1973 年亏 31.9%、1974 年再亏 31.5%\n芒格用了一倍杠杆\n个人净资产大幅缩水\n当时感觉自己快要破产\n1975 年清算关闭这只合伙基金\n这是芒格的财富和信誉危机\n\n但是芒格活到了99.9岁\n那些苦难在他",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382912129809092": {
       "key": "post:382912129809092",
-      "identity": "post:382912129809092",
+      "identity": "packet:462865939380420608",
       "post_id": "382912129809092",
-      "packet_id": null,
-      "packet_code": null,
+      "packet_id": "462865939380420608",
+      "packet_code": "VRMJ1NUR",
       "kind": "quiz",
       "author": "云Z",
       "author_id": "spjM72NS0wA8Y9NQn69Z9Q",
       "currency": "SOL",
-      "amount": null,
+      "amount": "0.05",
       "available_amount": null,
       "available_receivers": null,
       "eligibility": "not_checked",
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 926,
+      "comments": 1166,
       "published_at": "2026-10-30T17:59:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "17",
@@ -10409,8 +10412,8 @@
       "url": "https://www.binance.com/en/square/post/382912129809092",
       "excerpt": "$SOL 👉👉🎁🎁🎁👉👉🧧🧧🧧🧧👈👈关注领一下，\n被盗事件本身是痛，但每次大事件都在倒逼运维安全、多签/阈值签名、快速冻结协作升级。社区链上追踪响应越来越快，用户整体安全意识也在提高。钱还在体系里，信心可以重建——这就是币圈从“野蛮生长”往“能抗打”走的过程。保持警惕，但别被吓跑。",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382900333341862": {
       "key": "post:382900333341862",
@@ -10429,7 +10432,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 116,
+      "comments": 131,
       "published_at": "2026-10-30T17:59:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "17",
@@ -10441,8 +10444,8 @@
       "url": "https://www.binance.com/en/square/post/382900333341862",
       "excerpt": "这几天没玩合约，避黑鹅的险呀，运气太好了吧～$🧧🧧🧧",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382942993118980": {
       "key": "post:382942993118980",
@@ -10461,7 +10464,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 948,
+      "comments": 1065,
       "published_at": "2026-10-30T17:59:01.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "17",
@@ -10473,8 +10476,8 @@
       "url": "https://www.binance.com/en/square/post/382942993118980",
       "excerpt": "HI BINANCE SQUARE Fam !!\nREPOST THE PINPOST !!!\nJOIN OUR Chatgroup \nTHANKS All.\nALL IS WELL\nBuy the Dip !\n#USMidtermElections \n$BNB \n{future}(BNBUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382940383826539": {
       "key": "post:382940383826539",
@@ -10505,8 +10508,8 @@
       "url": "https://www.binance.com/en/square/post/382940383826539",
       "excerpt": "Está publicación es únicamente para discúlpame con toda la comunidad del Portal Latino TG🛩️\n\nEl día de ayer eliminé accidentalmente el grupo, se qué muchos ya estan habituados a interactuar en el grupo por eso ofrezco mi mas sincera discul",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382935953165905": {
       "key": "post:382935953165905",
@@ -10525,7 +10528,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 143,
+      "comments": 156,
       "published_at": "2026-10-30T17:30:22.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "17",
@@ -10537,8 +10540,8 @@
       "url": "https://www.binance.com/en/square/post/382935953165905",
       "excerpt": "有一个字母能改变词的含义，有一个人能改变生活的味道……所以选择那些美丽的字母，它们能建造而不摧毁；选择那个忠诚的人，他会以真诚回报你，而不会背叛。\n{spot}(AAPLBUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382934770376199": {
       "key": "post:382934770376199",
@@ -10557,7 +10560,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1402,
+      "comments": 1693,
       "published_at": "2026-10-30T17:25:34.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "17",
@@ -10569,8 +10572,8 @@
       "url": "https://www.binance.com/en/square/post/382934770376199",
       "excerpt": "#eth bnb sol #cl 送给大家，来福州找老鱼喝酒呀😊",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382931809422139": {
       "key": "post:382931809422139",
@@ -10589,7 +10592,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1301,
+      "comments": 1654,
       "published_at": "2026-10-30T17:13:31.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "17",
@@ -10601,8 +10604,8 @@
       "url": "https://www.binance.com/en/square/post/382931809422139",
       "excerpt": "#eth bnb祝我的福清兄弟在海外赚usdt一起发",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382930972155465": {
       "key": "post:382930972155465",
@@ -10621,7 +10624,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2278,
+      "comments": 2729,
       "published_at": "2026-10-30T17:10:06.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "17",
@@ -10633,8 +10636,8 @@
       "url": "https://www.binance.com/en/square/post/382930972155465",
       "excerpt": "BOSS社區，扎根BNC美股董事會 👀\n熱度狂飆，下一步有什麼新動作？\nIEO 新動向 × 萬聖節神秘驚喜🎃\n\n🗓10月31日 11:40–14:00\n來我的幣安廣場直播間，一起揭曉！💛",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382759677857765": {
       "key": "post:382759677857765",
@@ -10653,7 +10656,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 378,
+      "comments": 442,
       "published_at": "2026-10-30T16:59:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "16",
@@ -10665,8 +10668,8 @@
       "url": "https://www.binance.com/en/square/post/382759677857765",
       "excerpt": "众所周知，伯克希尔哈撒韦公司是不买互联网股票的。它喜欢苹果/美国银行/可口可乐等，很稳。但2025年底开始重仓了谷歌，第一次买互联网股票。现在比较麻烦。根据最新的公开披露信息，伯克希尔·哈撒韦公司（Berkshire Hathaway）已经大举买入并持有了大量谷歌母公司 Alphabet 持仓1.06亿股。成为第三大重仓股，仅次于苹果和美国银行。\n$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382923560867069": {
       "key": "post:382923560867069",
@@ -10685,7 +10688,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 423,
+      "comments": 484,
       "published_at": "2026-10-30T16:39:57.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "16",
@@ -10697,8 +10700,8 @@
       "url": "https://www.binance.com/en/square/post/382923560867069",
       "excerpt": "想你的时候总喜欢一个人静静发呆$SOL ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382923315663104": {
       "key": "post:382923315663104",
@@ -10717,7 +10720,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1006,
+      "comments": 1526,
       "published_at": "2026-10-30T16:38:57.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "16",
@@ -10729,8 +10732,8 @@
       "url": "https://www.binance.com/en/square/post/382923315663104",
       "excerpt": " EL indice de Miedo y  Codicia!.\n📉 ¿Pánico o oportunidad? El pulso del mercado y el Índice de Miedo y Codicia  \n🔥Las recientes turbulencias y liquidaciones masivas en el mercado cripto nos han recordado lo rápido que cambian las cosas.\n🔥",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382920394984280": {
       "key": "post:382920394984280",
@@ -10749,7 +10752,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 3272,
+      "comments": 3763,
       "published_at": "2026-10-30T16:27:04.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "16",
@@ -10761,8 +10764,8 @@
       "url": "https://www.binance.com/en/square/post/382920394984280",
       "excerpt": "永远不死吧",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382920112278566": {
       "key": "post:382920112278566",
@@ -10781,7 +10784,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 233,
+      "comments": 255,
       "published_at": "2026-10-30T16:26:08.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "16",
@@ -10793,8 +10796,8 @@
       "url": "https://www.binance.com/en/square/post/382920112278566",
       "excerpt": "怎么看待B案被盗事件？\n$BTC \n{future}(BTCUSDT)\n$ETH \n{future}(ETHUSDT)\n$BNB \n{future}(BNBUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382918600643424": {
       "key": "post:382918600643424",
@@ -10845,7 +10848,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1455,
+      "comments": 1628,
       "published_at": "2026-10-30T16:06:30.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "16",
@@ -10857,8 +10860,8 @@
       "url": "https://www.binance.com/en/square/post/382915338456169",
       "excerpt": "$18.8k 能在经济上帮到你吗？？\n48小时之后\n我想给 5 个随机的人各寄 $18888。\n规则：点赞这条推文，评论“YES”，并转发。\n#bitcoin  在 48小时后选出 5个随机获奖者。\n希望能帮助到你！",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382912106247455": {
       "key": "post:382912106247455",
@@ -10877,7 +10880,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 706,
+      "comments": 1219,
       "published_at": "2026-10-30T15:53:20.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "15",
@@ -10889,8 +10892,8 @@
       "url": "https://www.binance.com/en/square/post/382912106247455",
       "excerpt": "刚刚，一姐視頻亲证资金安全：争取在周日截止期限前恢复提现，计划下周一公布完整储备证明\n\n更新 Binance 安全事件进展称，公司承诺以自有资金承担全部被盗损失，目前已预留超过 63.4 亿美元公司资金。其中，50 亿美元已以与受影响资产相同的币种持有，包括 USDC、USDT、BTC、ETH 及 BNB 等\n\n一姐强调，此次受影响的是 Binance 自身的热钱包，客户资金未受影响，绝大多数用户资产存放于冷钱包，仅在用户提现时才转入热钱包。其解释，公司日常经营所得大多以加密",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382906598485724": {
       "key": "post:382906598485724",
@@ -10909,7 +10912,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 232,
+      "comments": 261,
       "published_at": "2026-10-30T15:30:56.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "15",
@@ -10921,8 +10924,8 @@
       "url": "https://www.binance.com/en/square/post/382906598485724",
       "excerpt": "🧧🧧🧧今天早上起来，大家都在说币安被盗的事情，影响确实挺大的。不过，任何新事物都会经历很多挫折，时间会给出答案，加油。#virus病毒币 ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382905623266578": {
       "key": "post:382905623266578",
@@ -10941,7 +10944,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1880,
+      "comments": 2203,
       "published_at": "2026-10-30T15:26:58.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "15",
@@ -10953,8 +10956,8 @@
       "url": "https://www.binance.com/en/square/post/382905623266578",
       "excerpt": "#bnb 先买5个bnb等待走完下跌。买入100-200个。加入老鱼聊天室一起战斗。决定购买eth现货带入bnb现货 。合约eth多单等半个月入场。",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382902893559026": {
       "key": "post:382902893559026",
@@ -10973,7 +10976,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1121,
+      "comments": 1244,
       "published_at": "2026-10-30T15:15:51.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "15",
@@ -10985,8 +10988,8 @@
       "url": "https://www.binance.com/en/square/post/382902893559026",
       "excerpt": "“我正在币安广场收听语音直播“这行情！你还敢操作吗！来！实盘看看！”，和我一起在此处收听：”\n[https://app.binance.com/uni-qr/cspa/47862612750985?r=UJD1R9AB&l=zh-CN&source=share&uc=app_square_share_link&us=copylink](https://app.binance.com/uni-qr/cspa/47862612750985?r=UJD1R9AB&l=zh-CN&s",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382902077756793": {
       "key": "post:382902077756793",
@@ -11037,7 +11040,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 792,
+      "comments": 828,
       "published_at": "2026-10-30T15:11:45.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "15",
@@ -11049,8 +11052,8 @@
       "url": "https://www.binance.com/en/square/post/382901886430974",
       "excerpt": "$SOL  Gifts for my followers 🎁 💝 💝 🎁 💐 💝 🎁 💐 💝 \nclick here 👉[Join my Chatroom 💞💞](https://www.binance.com/groupChatLanding?channelToken=wa7LR-iLwuCiRsTI60bmNw&type=1&inviteBy=Gi6CzQPtigsiQ5nFg86XHw&entrySource=new_sharing_qrcode",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382899980541699": {
       "key": "post:382899980541699",
@@ -11069,7 +11072,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 53,
+      "comments": 55,
       "published_at": "2026-10-30T15:04:00.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "15",
@@ -11081,8 +11084,8 @@
       "url": "https://www.binance.com/en/square/post/382899980541699",
       "excerpt": "🎁 BIG SURPRISE FOR OUR COMMUNITY!\n\n💬 YES = ENTRY ✅ FOLLOW = QUALIFY 🔁 REPOST = SUPPORT\n\n💥 Follow • Repost • Comment • Claim Reward\n\nYour next surprise could be closer than you think! 🎉",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382760431062615": {
       "key": "post:382760431062615",
@@ -11101,7 +11104,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 340,
+      "comments": 383,
       "published_at": "2026-10-30T14:59:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "14",
@@ -11113,8 +11116,8 @@
       "url": "https://www.binance.com/en/square/post/382760431062615",
       "excerpt": "网上热传的“破坏力10倍金融危机”究竟怎么来的？其实高盛只提示了AI估值过高，桥水达里奥关注的是美债压力，却被国内自媒体添油加醋制造恐慌。面对市场的噪音与焦虑，普通投资者第一原则不是预测灾难，而是向巴菲特学习，看准长期周期，既防范风险又对长期趋势保持信心！\n$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382894413752802": {
       "key": "post:382894413752802",
@@ -11165,7 +11168,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 352,
+      "comments": 392,
       "published_at": "2026-10-30T14:33:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "14",
@@ -11177,8 +11180,8 @@
       "url": "https://www.binance.com/en/square/post/382837918279118",
       "excerpt": "最近听闻国内好几个朋友亏损几亿出局有感！！！\n\n很多人谈论投资，总在琢磨怎么赢大钱、抓大行情、押中十倍标的。可真正穿越周期的第一要义，从来不是赢，而是不下牌桌。\n\n什么叫不下牌桌？不是手里永远堆满筹码，而是始终保有留在桌上的资格。\n\n最近听到不少身边深耕科技赛道的朋友，亏得很重。几百万、几千万，甚至数亿本金折损，一场剧烈波动之后，直接被清出场。行情剧烈冲击的时候，人人都看见机会诱人，却容易忽略最残酷的一条规则：市场给你的机会，只留给还在桌上的人。\n\n不加杠杆，就是守住上桌资格",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382892267264457": {
       "key": "post:382892267264457",
@@ -11229,7 +11232,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 445,
+      "comments": 456,
       "published_at": "2026-10-30T14:31:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "14",
@@ -11241,8 +11244,8 @@
       "url": "https://www.binance.com/en/square/post/382892028522401",
       "excerpt": "七年前，如果你拿50万全仓猛干，现在早就躺在马尔代夫，抱着喜欢的姑娘或者小伙，眺望诗和远方。\n而历史不会重演，但会押韵。\n今天，LUCiC再次给你一个跨越财富阶层的机会，那就是：\n牛市前布局LUCiC现货和卡牌，满仓，拿住！\n这次光明社区带你穿越周期，实现人生自由！\n船票都买好了吗，不解释，登船！",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382891905056171": {
       "key": "post:382891905056171",
@@ -11261,7 +11264,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 78,
+      "comments": 105,
       "published_at": "2026-10-30T14:31:09.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "14",
@@ -11273,8 +11276,8 @@
       "url": "https://www.binance.com/en/square/post/382891905056171",
       "excerpt": "Direction: Long ✅ $PHA \n\nBest Entry Price: $0.04080 – $0.04120 😍\n\nStop Loss: $0.03970 🥹\n\nTarget 1 (TP1): $0.04250\n\nTarget 2 (TP2): $0.04400\n\nTarget 3 (TP3): $0.04650\n\nRecommended Leverage\n\nLeverage: 10x – 20x (Max safe limit)\n\nDisclaimer:",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382890673530885": {
       "key": "post:382890673530885",
@@ -11305,8 +11308,8 @@
       "url": "https://www.binance.com/en/square/post/382890673530885",
       "excerpt": "#币安钱包  10月钱包补贴🧧已全部发送，感谢各位粉丝支持。😇😇祝你们11月打到大金狗！小小🧧送上。\n——————————————\n币安钱包送福利咯，交易费返现30%的基础上，个人额外补贴20%，无需重新注册。怎么开：钱包首页 邀请好友→立即参与→输入GF123→确定 主页置顶帖也有教程。填完把截图放聊天室【土狗大王】即可。",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382882285485846": {
       "key": "post:382882285485846",
@@ -11337,8 +11340,8 @@
       "url": "https://www.binance.com/en/square/post/382882285485846",
       "excerpt": "Do you know , who is this guy?\nThis guy profit 3.1M USDT on futures market in\na month .\nAnd Total profit Almost 8.8M USDT in This account .\nIf the account were yours, what would you do?\n\n{future}(BNBUSDT)\n\n{future}(BTCUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382880504280437": {
       "key": "post:382880504280437",
@@ -11357,7 +11360,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 391,
+      "comments": 409,
       "published_at": "2026-10-30T13:44:45.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "13",
@@ -11369,8 +11372,8 @@
       "url": "https://www.binance.com/en/square/post/382880504280437",
       "excerpt": "📉 今天发生了什么：业绩“好到不真实”，股价却大跌\n\n闪迪2027财年Q1业绩几乎全面超预期：营收110.3亿美元，同比增长378%；调整后EPS 49.51美元，高于指引；毛利率高达85.1%。Q2指引同样强劲，营收122-126亿美元，调整后EPS 55-57美元，均高于市场预期。\n\n但市场选择抛售。直接诱因是“业绩未及高预期”——在股价已计入极高期待的情况下，仅仅“超预期”不够，需要的是“大幅碾压预期”。更深层的担忧在于：这种爆炸式增长能否持续？\n\n✅ 支持“抄底”逻",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382879376479268": {
       "key": "post:382879376479268",
@@ -11389,7 +11392,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1599,
+      "comments": 1737,
       "published_at": "2026-10-30T13:40:45.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "13",
@@ -11401,8 +11404,8 @@
       "url": "https://www.binance.com/en/square/post/382879376479268",
       "excerpt": "[领取红包](https://app.binance.com/uni-qr/L94Kn9oD) \n回复此贴：sol\n🧧🧧🧧🧧\n进入群聊每天发红包\n$SOL",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382877247841903": {
       "key": "post:382877247841903",
@@ -11438,7 +11441,7 @@
     },
     "post:382875738963377": {
       "key": "post:382875738963377",
-      "identity": "packet:462846957579649024",
+      "identity": "post:382875738963377",
       "post_id": "382875738963377",
       "packet_id": "462846957579649024",
       "packet_code": "PKCENSWK",
@@ -11453,7 +11456,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2912,
+      "comments": 3045,
       "published_at": "2026-10-30T13:25:22.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "13",
@@ -11465,8 +11468,8 @@
       "url": "https://www.binance.com/en/square/post/382875738963377",
       "excerpt": "关注领红包🧧\n\n热钱包再大也有边界，冷钱包+自托管仍是终极防线。事件还在调查中，别被谣言带节奏。官方已承诺全额覆盖并会出详细复盘。",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382874786010913": {
       "key": "post:382874786010913",
@@ -11497,8 +11500,8 @@
       "url": "https://www.binance.com/en/square/post/382874786010913",
       "excerpt": "🎁🎁👇Пока на рынке неопределенность, голосуем, какая монета из представленной тройки может улететь x5\nКандидат 1: $AIN   за последние 2 недели она уже сделала х10,  но свой максимум пока не обновила. \nКандидат 2: $Q  темп более медленный, ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382872793442854": {
       "key": "post:382872793442854",
@@ -11517,7 +11520,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 39,
+      "comments": 40,
       "published_at": "2026-10-30T13:13:23.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "13",
@@ -11529,8 +11532,8 @@
       "url": "https://www.binance.com/en/square/post/382872793442854",
       "excerpt": "宣发全网！今晚Virus正式突破6500万持币地址，年度目标向着7000万持币地址迈进！世界第一，全链第一！明年冲刺1亿持币地址！先塑造价值  再塑造价格！恭喜各位投资的世界冠军又向前一步！同时祝贺信封群今晚突破5000人！明年目标信封群突破10000人！\n{web3_wallet_create}(560xa1ed61902f13e162305f59e1b2475e269e647777)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382871700795948": {
       "key": "post:382871700795948",
@@ -11549,7 +11552,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 213,
+      "comments": 218,
       "published_at": "2026-10-30T13:08:56.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "13",
@@ -11561,8 +11564,8 @@
       "url": "https://www.binance.com/en/square/post/382871700795948",
       "excerpt": "关注领红包喽！！！！\n㊗️你们买的比稳步上涨！！！\n#DeepSeekbug 共同建设中。。。",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382870081794579": {
       "key": "post:382870081794579",
@@ -11581,7 +11584,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 3625,
+      "comments": 3829,
       "published_at": "2026-10-30T13:02:21.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "13",
@@ -11593,8 +11596,8 @@
       "url": "https://www.binance.com/en/square/post/382870081794579",
       "excerpt": "爽歪歪\n\n为什么不能添加多个交易？",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382869916053223": {
       "key": "post:382869916053223",
@@ -11613,7 +11616,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 829,
+      "comments": 869,
       "published_at": "2026-10-30T13:01:40.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "13",
@@ -11625,8 +11628,8 @@
       "url": "https://www.binance.com/en/square/post/382869916053223",
       "excerpt": "黑客攻击对象！\n\n接下来会是谁？",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382862300894542": {
       "key": "post:382862300894542",
@@ -11657,8 +11660,8 @@
       "url": "https://www.binance.com/en/square/post/382862300894542",
       "excerpt": "🎉 حل كلمتي اليوم:\n{future}(AKEUSDT)\n{future}(ZILUSDT)\n{future}(SSVUSDT)\n\n1️⃣ Credit (6 أحرف)\n💡 للحصول على كلمة ثانية:\n1. قم بحل الكلمة الأولى.\n2. شارك إجابتك مع الاصدقاء.\n3. وعندما يتم فتح الرابط من قبل أصدقائك ادخل على اللعبة للحصول على ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382856172812368": {
       "key": "post:382856172812368",
@@ -11677,7 +11680,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 911,
+      "comments": 943,
       "published_at": "2026-10-30T12:05:45.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "12",
@@ -11689,8 +11692,8 @@
       "url": "https://www.binance.com/en/square/post/382856172812368",
       "excerpt": "关注回复领取红包🎁🎁",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382855452095128": {
       "key": "post:382855452095128",
@@ -11709,7 +11712,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 122,
+      "comments": 123,
       "published_at": "2026-10-30T12:02:49.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "12",
@@ -11721,8 +11724,8 @@
       "url": "https://www.binance.com/en/square/post/382855452095128",
       "excerpt": "选择闪迪（SanDisk），通常是在技术可靠性、产品线广度和长期使用成本之间找一个稳妥的平衡点。它不一定在每个单项上都最拔尖，但综合来看，是“不容易选错”的那个。\n\n🛡️ 三十余年技术底子，颗粒品质有保障\n\n闪迪深耕闪存领域三十余年，拥有超过11,000项全球专利，这在存储行业里是实打实的工程积淀。更关键的是，它和东芝（现铠侠）联合研发的BiCS系列闪存颗粒，属于原厂嫡系，品质和口碑在摄影师等专业群体里认可度很高，被视作“标配”级的选择。\n\n🎯 产品线极广，几乎覆盖所有场",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382855416498522": {
       "key": "post:382855416498522",
@@ -11773,7 +11776,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 506,
+      "comments": 518,
       "published_at": "2026-10-30T11:28:36.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "11",
@@ -11785,8 +11788,8 @@
       "url": "https://www.binance.com/en/square/post/382847043296788",
       "excerpt": "这个天适合吃火锅$SOL 有约吗",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382846692754209": {
       "key": "post:382846692754209",
@@ -11837,7 +11840,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 405,
+      "comments": 419,
       "published_at": "2026-10-30T11:22:35.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "11",
@@ -11849,8 +11852,8 @@
       "url": "https://www.binance.com/en/square/post/382845565471545",
       "excerpt": "我已经把我在钱包的所有tonke都取出来了，然后转移到了一个安全的地方。\n\n这个地方#币安 是不二之选",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382836155944678": {
       "key": "post:382836155944678",
@@ -11901,7 +11904,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 384,
+      "comments": 394,
       "published_at": "2026-10-30T10:34:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "10",
@@ -11913,8 +11916,8 @@
       "url": "https://www.binance.com/en/square/post/382807072481764",
       "excerpt": "没必要悲观了，囤积现金吧，兄弟姐妹们，这一次美股科技的大风暴将会把未来十年最优质的科技企业价格打下来，我相信这是未来AI十年中最好的机会，我们在等待这个最佳击球区。如果你过去没参与AI，这将是未来十年最棒的机会！\n$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382825843025916": {
       "key": "post:382825843025916",
@@ -11933,7 +11936,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 78,
+      "comments": 79,
       "published_at": "2026-10-30T10:02:20.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "10",
@@ -11945,8 +11948,8 @@
       "url": "https://www.binance.com/en/square/post/382825843025916",
       "excerpt": "看到这种级别的攻击新闻，心里发慌是正常的，毕竟数字太吓人了。但如果你或你关心的人因为这件事焦虑，下面这段话或许可以帮你稍微定一定神：\n\n我知道这次币安被攻击的消息看起来很吓人，几十亿美元的规模，谁看了都会心里一紧。但先别让恐惧替你做判断——这次损失不由用户承担。\n\n币安已经明确表态：所有损失由 SAFU 基金和公司自有资金覆盖，用户资金是安全的，CZ 和何一也都公开承诺了全额赔付。而且事件发生后，平台已经联合链上伙伴冻结了约 30 亿美元的资产，不是干坐着等。目前也没有发现钱",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382825757467100": {
       "key": "post:382825757467100",
@@ -11965,7 +11968,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1282,
+      "comments": 1345,
       "published_at": "2026-10-30T10:01:59.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "10",
@@ -11977,8 +11980,8 @@
       "url": "https://www.binance.com/en/square/post/382825757467100",
       "excerpt": "震荡与连亏，是检验理念的试金石。它们让我看清自己是否真正忠于信念，也让我与随波逐流的人区分开来。",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382824350047798": {
       "key": "post:382824350047798",
@@ -11997,7 +12000,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 685,
+      "comments": 721,
       "published_at": "2026-10-30T09:56:16.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "09",
@@ -12009,8 +12012,8 @@
       "url": "https://www.binance.com/en/square/post/382824350047798",
       "excerpt": "今天看到很多人都在挣扎……我理解。\n\n我在做一个小型抽奖活动——给10个人每人$200。没有特别的原因，就是想传播一些正能量。\n\n回复一个usdt     我会随机挑选。",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382760503604812": {
       "key": "post:382760503604812",
@@ -12029,7 +12032,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 292,
+      "comments": 300,
       "published_at": "2026-10-30T09:01:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "09",
@@ -12041,8 +12044,8 @@
       "url": "https://www.binance.com/en/square/post/382760503604812",
       "excerpt": "我喜欢安静的人。聪明得要命。一点也不炫耀。没有表演。没有戏剧。只有一种平静的氛围。那些不是为了引人注意而大声喧哗的人。那些读深刻书籍的人。托尔斯泰、陀思妥耶夫斯基、尼采。那些能坐下来看一部两小时关于蜜蜂、外星人和章鱼的纪录片，并真正享受其中。那些在平凡事物中发现美的人。深思。少说多懂。在这个痴迷于“被看见”的世界里保持低调和私密。这些是我的同类。\n$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382807039987424": {
       "key": "post:382807039987424",
@@ -12061,7 +12064,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 389,
+      "comments": 404,
       "published_at": "2026-10-30T08:45:49.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "08",
@@ -12073,8 +12076,8 @@
       "url": "https://www.binance.com/en/square/post/382807039987424",
       "excerpt": "$INTC \n再次抄底一万美金\n等华尔街开盘拉起来\n这一单包赚",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382804843445983": {
       "key": "post:382804843445983",
@@ -12189,7 +12192,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 132,
+      "comments": 134,
       "published_at": "2026-10-30T03:02:16.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "03",
@@ -12201,8 +12204,8 @@
       "url": "https://www.binance.com/en/square/post/382722608771331",
       "excerpt": "心向暖阳，自在生长。\nHearts turn to warmth and grow freely.",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382716253062197": {
       "key": "post:382716253062197",
@@ -12221,7 +12224,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 61,
+      "comments": 63,
       "published_at": "2026-10-30T02:36:25.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "02",
@@ -12233,8 +12236,8 @@
       "url": "https://www.binance.com/en/square/post/382716253062197",
       "excerpt": "“我正在币安广场收听语音直播“昨天上午刚预警黑天鹅！结果就来了灰天鹅！空单盆满钵满！多单止损！接下来何去何从？”，和我一起在此处收听：”\n[https://app.binance.com/uni-qr/cspa/47839233714481?r=UJD1R9AB&l=zh-CN&source=share&uc=app_square_share_link&us=copylink](https://app.binance.com/uni-qr/cspa/4783923371448",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382716151275768": {
       "key": "post:382716151275768",
@@ -12265,8 +12268,8 @@
       "url": "https://www.binance.com/en/square/post/382716151275768",
       "excerpt": "💀🔥 TRIVIA NOCTURNA — PINK FLOYD 🔥💀\n\n🎸 THE WALL (1979)\n\nHay discos que marcaron generaciones, pero hay obras que cambiaron para siempre la historia del rock.\n\nThe Wall es una de ellas.\n\nEsta noche ponemos a prueba a quienes realmente co",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382714002100706": {
       "key": "post:382714002100706",
@@ -12285,7 +12288,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 3852,
+      "comments": 3935,
       "published_at": "2026-10-30T02:27:15.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "02",
@@ -12297,8 +12300,8 @@
       "url": "https://www.binance.com/en/square/post/382714002100706",
       "excerpt": "😢一觉醒来刷到币安被盗消息，BTC应声急跌。\n行情预判了无数种可能性，唯独没料到这起突发黑天鹅。网传被盗50亿，好在一半资金已成功冻结，实际损失可控，平台承诺全额赔付，交易所历史上也曾出现过被盗事件。\n \n比特币7.64万、前低7.5万这两个位置支撑较强，现货可以择机分批布局。这场意外下跌，对等待抄底的人来说，迎来了低价进场的机会。\n \n币圈的复苏节奏大概率要延后几周，好事多磨。扛过这一段震荡窗口期，后续行情才有机会向上。",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382710086610634": {
       "key": "post:382710086610634",
@@ -12413,7 +12416,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 793,
+      "comments": 815,
       "published_at": "2026-10-29T23:59:39.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "23",
@@ -12425,8 +12428,8 @@
       "url": "https://www.binance.com/en/square/post/382546031566112",
       "excerpt": "🧧🧧🧧长期主义不是死拿，而是持续做对的事。$牛来 ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382673586456459": {
       "key": "post:382673586456459",
@@ -12573,7 +12576,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 502,
+      "comments": 521,
       "published_at": "2026-10-29T19:59:39.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "19",
@@ -12585,8 +12588,8 @@
       "url": "https://www.binance.com/en/square/post/382545736941278",
       "excerpt": "🧧🧧🧧. 复利的第一前提不是收益率，而是活得久。#virus病毒币 $BNB ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382617398841593": {
       "key": "post:382617398841593",
@@ -12637,7 +12640,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 3208,
+      "comments": 3230,
       "published_at": "2026-10-29T18:43:22.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "18",
@@ -12649,8 +12652,8 @@
       "url": "https://www.binance.com/en/square/post/382599998922965",
       "excerpt": "#eth 加入老鱼聊天室。下看2150思路不变。明天找个机会加仓。但是也不会重仓了。简单参与一下以太坊空单。",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382513476312924": {
       "key": "post:382513476312924",
@@ -12669,7 +12672,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2046,
+      "comments": 2154,
       "published_at": "2026-10-29T18:06:15.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "18",
@@ -12681,8 +12684,8 @@
       "url": "https://www.binance.com/en/square/post/382513476312924",
       "excerpt": "水刚沸，杯已温，就差你推门带进来的那阵风。\n#FOMC会议 \n#LUCİC ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382578560307273": {
       "key": "post:382578560307273",
@@ -12701,7 +12704,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 407,
+      "comments": 409,
       "published_at": "2026-10-29T17:51:39.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "17",
@@ -12713,8 +12716,8 @@
       "url": "https://www.binance.com/en/square/post/382578560307273",
       "excerpt": "注意，这里采用的是将股息再投资的总回报口径。如果只看指数价格，不计算股息，恢复到此前高点的时间更长。\n\n也就是说，如果你在1929年高点投入100万美元，市场最低时可能只剩下不到20万美元的价值。\n\n即使你坚持持有、将股息继续投资，也需要经历漫长的等待才能恢复到此前的名义财富水平。 ​​​\n$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382571191691075": {
       "key": "post:382571191691075",
@@ -12733,7 +12736,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1014,
+      "comments": 1019,
       "published_at": "2026-10-29T16:46:09.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "16",
@@ -12745,8 +12748,8 @@
       "url": "https://www.binance.com/en/square/post/382571191691075",
       "excerpt": "Trading Setup👇 $Q \n\nDirection: Long✅\n\nBest Entry Price: $0.03800 – $0.03918 😉 \n\nStop Loss: $0.03650 🙄\n\n💕Take-Profit Targets:\n\nTP1: $0.04100 \n\nTP2: $0.04450 \n\nTP3: $0.04800",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382570844680306": {
       "key": "post:382570844680306",
@@ -12765,7 +12768,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2924,
+      "comments": 2936,
       "published_at": "2026-10-29T16:44:45.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "16",
@@ -12777,8 +12780,8 @@
       "url": "https://www.binance.com/en/square/post/382570844680306",
       "excerpt": "#eth 来福州找老鱼喝酒呀：酒喝一半反弹这么强吗。btc有概率去8.26w。eth以太坊突破2420-2450日线站稳空单撤退",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382526387952203": {
       "key": "post:382526387952203",
@@ -12797,7 +12800,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 766,
+      "comments": 773,
       "published_at": "2026-10-29T15:59:39.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "15",
@@ -12809,8 +12812,8 @@
       "url": "https://www.binance.com/en/square/post/382526387952203",
       "excerpt": "标普500 的历史图的波浪。该指数从1957年开始，至今69年了。长期上涨。跟它不断剔除烂股增加好股有直接关系。一个正常的股市应该是去芜存菁的，而不是鱼目混杂，滥竽充数。 ​​​$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382527527413711": {
       "key": "post:382527527413711",
@@ -12829,7 +12832,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 327,
+      "comments": 328,
       "published_at": "2026-10-29T14:59:39.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "14",
@@ -12841,8 +12844,8 @@
       "url": "https://www.binance.com/en/square/post/382527527413711",
       "excerpt": "标普500，2000年的时候股市，跌了9年多，绝大部分股票跌了90%。\n\n$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382535336210442": {
       "key": "post:382535336210442",
@@ -12861,7 +12864,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1252,
+      "comments": 1268,
       "published_at": "2026-10-29T14:20:16.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "14",
@@ -12873,8 +12876,8 @@
       "url": "https://www.binance.com/en/square/post/382535336210442",
       "excerpt": "Hello #BinanceSquareFamily  Join the WOLF Chatroom Today 🧧🎉\n\n1. Click & Join ✅\n2. Daily Trade Setups & Market Levels 🎯\n3. Simple Risk Management Tips 📊\n4. Daily Box Giveaways. 🎁 \n\nClick on my profile and tap Chatroom to join us today a",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382532216563927": {
       "key": "post:382532216563927",
@@ -12925,7 +12928,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 3258,
+      "comments": 3288,
       "published_at": "2026-10-29T12:50:48.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "12",
@@ -12937,8 +12940,8 @@
       "url": "https://www.binance.com/en/square/post/382513350805780",
       "excerpt": "#eth 加入老鱼聊天室一起玩。还会发红包以太坊加仓做空。好像广场很多人在做多。这里日线破位只要不突破2420就是断头台下去看2150",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382430283045509": {
       "key": "post:382430283045509",
@@ -12957,7 +12960,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 381,
+      "comments": 382,
       "published_at": "2026-10-29T11:59:39.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "11",
@@ -12969,8 +12972,8 @@
       "url": "https://www.binance.com/en/square/post/382430283045509",
       "excerpt": "Google财报：\n\n营收和Cloud强劲增长（尤其AI驱动），核心运营利润率提升，但股权投资波动拉低净利润，重资本开支继续压制自由现金流，目前盘后跌了10个点\n\nAI投入压制现金流，但是AI也的确带来了业务的增长。\n\n短期风险是已经破位了，涨回来可能需要时间，但目前谷歌的估值已经便宜到地板价了。\n\n$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382475996631118": {
       "key": "post:382475996631118",
@@ -12989,7 +12992,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 432,
+      "comments": 433,
       "published_at": "2026-10-29T11:59:39.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "11",
@@ -13001,8 +13004,8 @@
       "url": "https://www.binance.com/en/square/post/382475996631118",
       "excerpt": "你必须区分标普500和纳斯达克100\n\n两者并不完全相同。\n\n标普500：\n\n覆盖美国大型上市公司，行业分布相对广泛。\n科技股占有重要权重，但并非全部都是科技企业。\n仍然可能遭遇严重的长期回撤。\n\n纳斯达克100：\n\n更集中于纳斯达克上市的大型非金融企业。\n科技和成长型企业占据重要地位。\n对成长预期、估值变化以及科技行业周期更加敏感。\n\n纳斯达克100并不等于整个纳斯达克市场，也不能直接用纳斯达克综合指数的历史跌幅来替代它的历史表现。$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382428926526476": {
       "key": "post:382428926526476",
@@ -13033,8 +13036,8 @@
       "url": "https://www.binance.com/en/square/post/382428926526476",
       "excerpt": "很多人印象里查理芒格是完美的\n但真正的现实世界里\n查理芒格起码有两次人生低谷\n比破产可能还要惨\n\n第一次是 1953 年（29 岁）\n离婚、儿子患白血病离世\n积蓄被医疗费掏空、负债\n接近破产\n身体心理和钱包都被掏空了\n\n第二次是1974 年（50 岁）\n合伙基金1973 年亏 31.9%、1974 年再亏 31.5%\n芒格用了一倍杠杆\n个人净资产大幅缩水\n当时感觉自己快要破产\n1975 年清算关闭这只合伙基金\n这是芒格的财富和信誉危机\n\n但是芒格活到了99.9岁\n那些苦难在他",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382428138925548": {
       "key": "post:382428138925548",
@@ -13065,8 +13068,8 @@
       "url": "https://www.binance.com/en/square/post/382428138925548",
       "excerpt": "谷歌盘后大跌-10%\nAI是个地球上最烧钱的游戏\n把曾经浓眉大眼的一切优质现金流公司全部烧冒烟了\n\n谷歌如此 META如此 阿里如此 字节也是如此 \n\nAI投入上略显保守的苹果、反而成为资本避风得港湾了。 ​​​\n$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382367952190401": {
       "key": "post:382367952190401",
@@ -13085,7 +13088,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2613,
+      "comments": 2629,
       "published_at": "2026-10-29T02:59:10.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "02",
@@ -13097,8 +13100,8 @@
       "url": "https://www.binance.com/en/square/post/382367952190401",
       "excerpt": "关注我领取你的红包，另外我将从转发者中抽3人，每人送5美元\nFollow me to get your bonus. 3 reposters will win $5 each. $BTC      $SOXL ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382366248574366": {
       "key": "post:382366248574366",
@@ -13117,7 +13120,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 431,
+      "comments": 432,
       "published_at": "2026-10-29T02:52:14.000Z",
       "published_day": "2026-10-29",
       "published_hour_utc": "02",
@@ -13129,8 +13132,8 @@
       "url": "https://www.binance.com/en/square/post/382366248574366",
       "excerpt": "#eth 🧧🧧 eth小短线止盈7000usdt。加入老鱼聊天室昨天老鱼直播的吃到肉的打个6。最后一下极限小反弹2330附近就可以下跌了看2150了 。加入老鱼聊天室好吗🧧🧧",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382358044730440": {
       "key": "post:382358044730440",
@@ -13277,7 +13280,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 526,
+      "comments": 533,
       "published_at": "2026-10-28T19:34:49.000Z",
       "published_day": "2026-10-28",
       "published_hour_utc": "19",
@@ -13289,8 +13292,8 @@
       "url": "https://www.binance.com/en/square/post/382258748230842",
       "excerpt": "Today, I am so happy! 🥹❤️ I feel so lucky!\n\nFinally, the day has come! 🎉 Imagine opening the NIL CreatorPad leaderboard and seeing iQ Star at TOP 7 among the Top 100 creators! 🏆💙\n\nAfter spending hours researching projects, studying toke",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382247752791160": {
       "key": "post:382247752791160",
@@ -13309,7 +13312,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 716,
+      "comments": 718,
       "published_at": "2026-10-28T18:50:05.000Z",
       "published_day": "2026-10-28",
       "published_hour_utc": "18",
@@ -13321,8 +13324,8 @@
       "url": "https://www.binance.com/en/square/post/382247752791160",
       "excerpt": "#eth 第一次直播两个小时。发了9个红包。欢迎大家加入老鱼主页聊天室下次直播还给大家发红包。一起吹牛听老鱼讲解交易心态心得",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382113188831085": {
       "key": "post:382113188831085",
@@ -13341,7 +13344,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 4599,
+      "comments": 4621,
       "published_at": "2026-10-28T09:42:32.000Z",
       "published_day": "2026-10-28",
       "published_hour_utc": "09",
@@ -13353,8 +13356,8 @@
       "url": "https://www.binance.com/en/square/post/382113188831085",
       "excerpt": "华尔街悄悄进场？比特币持续低迷之际，ETF资金开始大举扫货！背后到底发生了什么？\n \n1. 如图可见，华尔街选择在这个节点出手抄底。比特币ETF资金结束前几周持续净流出的状态，转为净流入，近5天平均买入5亿！那BTC是不是要迎来反弹行情？\n​\n2. 机会正在逐步靠近！比特币本轮阴跌已经持续超一个月，调整周期拉长，反弹的概率也随之抬升。哪怕身处熊市，长时间下跌后也会迎来修复反弹。该离场的获利盘基本已经兑现离场，比特币反弹随时可能启动，只差一则利好消息引爆行情！\n​\n3. 重点留",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:381867890852919": {
       "key": "post:381867890852919",
@@ -13373,7 +13376,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2975,
+      "comments": 2985,
       "published_at": "2026-10-27T17:04:25.000Z",
       "published_day": "2026-10-27",
       "published_hour_utc": "17",
@@ -13385,8 +13388,8 @@
       "url": "https://www.binance.com/en/square/post/381867890852919",
       "excerpt": "$SNDKB 闪迪冲冲冲，家人们最后一天再帮忙助力一票，感谢感谢！\n\n点击👇进入投票，助力《慢就是快Mike》谢谢大家💖\n[投票链接](https://app.binance.com/uni-qr/cact26user/345?uc=app_square_share_link&us=copylink) ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:381703196473402": {
       "key": "post:381703196473402",
@@ -13417,8 +13420,8 @@
       "url": "https://www.binance.com/en/square/post/381703196473402",
       "excerpt": "⁉️ Что бы вы выбрали? \n\n1) 1 Bitcoin сейчас \nили\n2) 32 $ETH через год? \n\nХорошо посчитайте 💛",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:381525454041115": {
       "key": "post:381525454041115",
@@ -13449,8 +13452,8 @@
       "url": "https://www.binance.com/en/square/post/381525454041115",
       "excerpt": "“They take advantage of your votes withoutgiving you anything in return… Even the tiny amounts people send you come only after you’ve struggled and begged for them.\nVote for whoever you truly support, my friends, and don’t sell your votes f",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:381508895323851": {
       "key": "post:381508895323851",
@@ -13481,8 +13484,8 @@
       "url": "https://www.binance.com/en/square/post/381508895323851",
       "excerpt": "🧧🧧🧧今日送给粉丝们【20USDT】\n[Click for permanent 30% Binance Wallet trading fee rebate.🧧🧧🧧](https://web3.binance.com/referral?ref=GF123) \n[币安钱包交易费返佣30%，个人补助20%，每月最高388USDT🧧🧧奖励！](https://web3.binance.com/referral?ref=GF123) \n怎么开：钱包首页 邀请好友→立即参",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:381288561041023": {
       "key": "post:381288561041023",
@@ -13545,8 +13548,8 @@
       "url": "https://www.binance.com/en/square/post/380907568290670",
       "excerpt": "发红包了，速度来领！",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:380783123644631": {
       "key": "post:380783123644631",
@@ -13609,8 +13612,8 @@
       "url": "https://www.binance.com/en/square/post/380701899103601",
       "excerpt": "兄弟们领红包，速度领红包！\n\n1388刀送群友",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:378152609867945": {
       "key": "post:378152609867945",
@@ -13629,7 +13632,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 6034,
+      "comments": 6051,
       "published_at": "2026-10-17T09:46:19.000Z",
       "published_day": "2026-10-17",
       "published_hour_utc": "09",
@@ -13641,8 +13644,8 @@
       "url": "https://www.binance.com/en/square/post/378152609867945",
       "excerpt": "我所见证过的最棒的产品发布是在2007年1月，由史蒂夫·乔布斯推出的iPhone。差不多19年后，这一纪录终于被特斯拉所挑战。\n\n飞行汽车不再只是科幻小说。特斯拉Roadster的演示绝对是疯狂的。\n\n史蒂夫·乔布斯用iPhone改变了世界。埃隆·马斯克正在将世界带向下一个层次，我相信他的火星梦想很快就会实现。 ​​​\n\n🧧———$SOL \n{spot}(SOLUSDT)\n\n{spot}(BNBUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:377211612440265": {
       "key": "post:377211612440265",
@@ -13661,7 +13664,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 3253,
+      "comments": 3254,
       "published_at": "2026-10-14T14:25:42.000Z",
       "published_day": "2026-10-14",
       "published_hour_utc": "14",
@@ -13673,8 +13676,8 @@
       "url": "https://www.binance.com/en/square/post/377211612440265",
       "excerpt": "大米期货今年迄今上涨77%，是今年表现最好的资产之一，竟然超越很多指数。 ​​​\n\n————🧧$SOL \n{spot}(SOLUSDT)",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:291698414968337": {
       "key": "post:291698414968337",
@@ -13693,7 +13696,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1085,
+      "comments": 1259,
       "published_at": "2026-02-14T22:03:53.000Z",
       "published_day": "2026-02-14",
       "published_hour_utc": "22",
@@ -13705,8 +13708,8 @@
       "url": "https://www.binance.com/en/square/post/291698414968337",
       "excerpt": "#zec [公开群](https://app.binance.com/uni-qr/group-chat-landing?channelToken=CtHLYgnM4poAFNPNbsC9jg&type=1&entrySource=sharing_link) 可以扫码或者点击加入。看老鱼最新思路分享。准备做eth主升浪多单",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:381737651587519": {
       "key": "post:381737651587519",
@@ -13737,8 +13740,8 @@
       "url": "https://www.binance.com/en/square/post/381737651587519",
       "excerpt": "最后3天兄弟们，投票投票\n把排名冲上去\n👉👉[给酷酷的腾投票](https://app.binance.com/uni-qr/cact26user/358?uc=app_square_share_link&us=copylink) \n👉👉[给首席投票](https://app.binance.com/uni-qr/cact26user/283?uc=app_square_share_link&us=copylink) \n大家两个都给投投票，谢谢大家",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:381508124329560": {
       "key": "post:381508124329560",
@@ -13769,8 +13772,8 @@
       "url": "https://www.binance.com/en/square/post/381508124329560",
       "excerpt": "🧧省钱！每小时自动返八折手续费返佣！\n🔸注册时候手动填写邀请码：WQWQWQ\n🔸现货20%+合约20%手续费每小时自动返！\n🔸日积月累，手续费节省长期不可小觑\n🔸真诚、稳定、高效\n\n👇 所有没有返佣的老用户\n\n[老账号补绑链接](https://www.binance.com/activity/referral/bind-ref) \n\n❤️ 老用户补绑方法：\n\n补绑后在30天内能完成15万刀的交易量（杠杆和合约都算）\n\n第一步：点击上面链接申请补绑\n第二步：输入邀",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 2
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 3
     },
     "post:382958105597483": {
       "key": "post:382958105597483",
@@ -13789,7 +13792,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 85,
+      "comments": 790,
       "published_at": "2026-10-30T19:00:31.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "19",
@@ -13801,27 +13804,27 @@
       "url": "https://www.binance.com/en/square/post/382958105597483",
       "excerpt": "美股这不是洗盘，\n这完全就是耍流氓！$KORUB $INTWB $SOXLB ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382918713334244": {
       "key": "post:382918713334244",
-      "identity": "post:382918713334244",
+      "identity": "packet:462869456587374594",
       "post_id": "382918713334244",
-      "packet_id": null,
-      "packet_code": null,
+      "packet_id": "462869456587374594",
+      "packet_code": "ZLLDG702",
       "kind": "quiz",
       "author": "静心1688",
       "author_id": "VkQtL-xVq7C0G13P8Ade6g",
       "currency": "SOL",
-      "amount": null,
+      "amount": "0.011",
       "available_amount": null,
       "available_receivers": null,
       "eligibility": "not_checked",
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 456,
+      "comments": 1168,
       "published_at": "2026-10-30T18:29:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "18",
@@ -13833,8 +13836,8 @@
       "url": "https://www.binance.com/en/square/post/382918713334244",
       "excerpt": "🧧关注 点赞 领取🎁🎁🎁\n\n#瑞士首只现货比特币ETF预计11月上市  ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382946791146472": {
       "key": "post:382946791146472",
@@ -13853,7 +13856,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 403,
+      "comments": 1134,
       "published_at": "2026-10-30T18:14:28.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "18",
@@ -13865,27 +13868,27 @@
       "url": "https://www.binance.com/en/square/post/382946791146472",
       "excerpt": "Чи будуть інвестувати трейдери при таких вразливостях системи? Ось цікаве питання?)\nМожливо це лиш офіційна причина для виправдання 😝🧏‍♂️🥸🤣\nВ які активи ви інвестуєте пишіть в коментарях!👇✍️\nІ звісно хто ваш фаворит🪙🤷💵\n#GreedCore #b",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382907530092042": {
       "key": "post:382907530092042",
-      "identity": "post:382907530092042",
+      "identity": "packet:462863585360510976",
       "post_id": "382907530092042",
-      "packet_id": null,
-      "packet_code": null,
+      "packet_id": "462863585360510976",
+      "packet_code": "DBFXGWNO",
       "kind": "quiz",
       "author": "天龙敏姝-光明社区",
       "author_id": "0lsKXqWeXtbGgXfcoz6qmQ",
       "currency": "BNB",
-      "amount": null,
+      "amount": "0.02",
       "available_amount": null,
       "available_receivers": null,
       "eligibility": "not_checked",
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1323,
+      "comments": 2460,
       "published_at": "2026-10-30T18:08:15.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "18",
@@ -13897,8 +13900,8 @@
       "url": "https://www.binance.com/en/square/post/382907530092042",
       "excerpt": "❤️❤️❤️\n当别人在追逐速成时\n愿你成为那个\n与岁月把酒言欢的深耕者\n#LUCiC 🚀🚀🚀",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382944696256892": {
       "key": "post:382944696256892",
@@ -13917,7 +13920,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 1848,
+      "comments": 4046,
       "published_at": "2026-10-30T18:05:57.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "18",
@@ -13929,27 +13932,27 @@
       "url": "https://www.binance.com/en/square/post/382944696256892",
       "excerpt": "这么便宜的BNB\n你们不买还在等什么？\n520-680的BNB，闭着眼睛乱买\n还差60个升级到vip3\n这会我要猛猛加仓了",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382870350422850": {
       "key": "post:382870350422850",
-      "identity": "post:382870350422850",
+      "identity": "packet:462843985343856640",
       "post_id": "382870350422850",
-      "packet_id": null,
-      "packet_code": null,
+      "packet_id": "462843985343856640",
+      "packet_code": "BW2S7H7J",
       "kind": "quiz",
       "author": "一休哥168",
       "author_id": "3J90mVgmS_I-KPY1XjhoPQ",
       "currency": "USDT",
-      "amount": null,
+      "amount": "3.3",
       "available_amount": null,
       "available_receivers": null,
       "eligibility": "not_checked",
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 487,
+      "comments": 1169,
       "published_at": "2026-10-30T17:59:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "17",
@@ -13961,8 +13964,8 @@
       "url": "https://www.binance.com/en/square/post/382870350422850",
       "excerpt": "别人对你的好，不要忘得太快，那是你路上的光，你对别人的好，不要记得太轻，那是你心里的善。\n#币安将上线PREDICT现货交易 ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382939379502418": {
       "key": "post:382939379502418",
@@ -13981,7 +13984,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 524,
+      "comments": 866,
       "published_at": "2026-10-30T17:44:19.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "17",
@@ -13993,8 +13996,8 @@
       "url": "https://www.binance.com/en/square/post/382939379502418",
       "excerpt": "guys pala pala ",
       "first_seen_at": "2026-10-30T19:56:44.054Z",
-      "last_seen_at": "2026-10-30T19:56:44.054Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382972723277792": {
       "key": "post:382972723277792",
@@ -14019,18 +14022,19 @@
       "published_hour_utc": "20",
       "expires_at": "2026-10-31T19:59:09.667Z",
       "sources": [
-        "author:beupowm7zAp5ZJ7X8FBCWA"
+        "author:beupowm7zAp5ZJ7X8FBCWA",
+        "redpacket"
       ],
-      "worker": "authors",
+      "worker": "posts",
       "url": "https://www.binance.com/en/square/post/382972723277792",
       "excerpt": "#redpacket here↓",
       "first_seen_at": "2026-10-30T23:36:45.855Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382973262789979": {
       "key": "post:382973262789979",
-      "identity": "packet:462897998936227840",
+      "identity": "post:382973262789979",
       "post_id": "382973262789979",
       "packet_id": "462897998936227840",
       "packet_code": "5WXON584",
@@ -14051,14 +14055,15 @@
       "published_hour_utc": "20",
       "expires_at": "2026-11-06T20:01:51.205Z",
       "sources": [
-        "author:2n6TgMFDDkaCaPcUhyWe2w"
+        "author:2n6TgMFDDkaCaPcUhyWe2w",
+        "redpacketquiz"
       ],
-      "worker": "authors",
+      "worker": "posts",
       "url": "https://www.binance.com/en/square/post/382973262789979",
       "excerpt": "Do you want to Mine Cryptocurrencies?💵🎁🧧#redpacketquiz \nrollercoin.com/?r=juwe6hy6",
       "first_seen_at": "2026-10-30T23:36:45.855Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382974389160095": {
       "key": "post:382974389160095",
@@ -14089,8 +14094,8 @@
       "url": "https://www.binance.com/en/square/post/382974389160095",
       "excerpt": "Do you want to Mine Cryptocurrencies?💵🎁🧧#redpacketquiz  join here ↙️ \nrollercoin.com/?r=juwe6hy6",
       "first_seen_at": "2026-10-30T23:36:45.855Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:383005261651190": {
       "key": "post:383005261651190",
@@ -14141,7 +14146,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 149,
+      "comments": 605,
       "published_at": "2026-10-30T20:59:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "20",
@@ -14153,8 +14158,8 @@
       "url": "https://www.binance.com/en/square/post/382900622195224",
       "excerpt": "predict go！$🧧🧧🧧🧧",
       "first_seen_at": "2026-10-30T23:36:45.855Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382976024625838": {
       "key": "post:382976024625838",
@@ -14173,7 +14178,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 165,
+      "comments": 189,
       "published_at": "2026-10-30T20:13:26.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "20",
@@ -14185,8 +14190,8 @@
       "url": "https://www.binance.com/en/square/post/382976024625838",
       "excerpt": "$SOPH Claim A Big Gift here 🎁🎁🎁🎁🎁🎁🎁🎁🎁🧧🧧🧧🧧✅✅✅✅✅",
       "first_seen_at": "2026-10-30T23:36:45.855Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:383023437227979": {
       "key": "post:383023437227979",
@@ -14205,7 +14210,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 37,
+      "comments": 327,
       "published_at": "2026-10-30T23:26:21.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "23",
@@ -14217,8 +14222,8 @@
       "url": "https://www.binance.com/en/square/post/383023437227979",
       "excerpt": "易琳每日赠言:十月的最后一天，谢谢一直没放弃的自己。愿你所有的坚持，都在这深秋结出果实。",
       "first_seen_at": "2026-10-30T23:36:45.855Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:383019591719267": {
       "key": "post:383019591719267",
@@ -14269,7 +14274,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 18,
+      "comments": 214,
       "published_at": "2026-10-30T23:29:39.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "23",
@@ -14281,8 +14286,8 @@
       "url": "https://www.binance.com/en/square/post/382907351804133",
       "excerpt": "🧧🧧🧧 不操作也是一种操作，空仓也是一种仓位。最近不操作就是赚钱。#virus $BNB ",
       "first_seen_at": "2026-10-30T23:36:45.855Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382727505190697": {
       "key": "post:382727505190697",
@@ -14333,7 +14338,7 @@
       "status": "reported_open",
       "answer_verified": false,
       "reward_verified": false,
-      "comments": 2404,
+      "comments": 2636,
       "published_at": "2026-10-30T03:19:25.000Z",
       "published_day": "2026-10-30",
       "published_hour_utc": "03",
@@ -14345,8 +14350,8 @@
       "url": "https://www.binance.com/en/square/post/382726822501476",
       "excerpt": "🧧🎁  Comment to claim GIFT BOX🧧🎁\n🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁🎁",
       "first_seen_at": "2026-10-30T23:36:45.855Z",
-      "last_seen_at": "2026-10-30T23:36:45.855Z",
-      "observations": 1
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 2
     },
     "post:382724585735943": {
       "key": "post:382724585735943",
@@ -14762,6 +14767,1158 @@
       "excerpt": null,
       "first_seen_at": "2026-10-30T23:36:45.855Z",
       "last_seen_at": "2026-10-30T23:36:45.855Z",
+      "observations": 1
+    },
+    "post:383051676787384": {
+      "key": "post:383051676787384",
+      "identity": "post:383051676787384",
+      "post_id": "383051676787384",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "唐华斑竹",
+      "author_id": "VQVlLZAUglpCGWFL43ucsA",
+      "currency": "PEPE",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 33,
+      "published_at": "2026-10-31T01:24:52.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-07T01:24:24.691Z",
+      "sources": [
+        "redpacketmission"
+      ],
+      "worker": "posts",
+      "url": "https://www.binance.com/en/square/post/383051676787384",
+      "excerpt": "兄弟们继续来！助推老唐继续向着关注万人进发！\n老唐打算在币安广场广交朋友，先关注达到一万人！每天有时间就来关注，优先关注本帖下面留言的兄弟，倾力支持广场新人起号！ \n先发一轮红包，大家转发给朋友们都来领吧，只要在评论区留言 老唐要关注万人 即可获得代币红包一个，先发1000个，不够我再补，保证人人有份！\n红包7天内都可以领，到期后我会重新发帖再发新一轮红包！请大家关注我领红包。  #红包大派送  #RedPacketMission  $BNB \n\n{spot}(BNBUSDT",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383059247342447": {
+      "key": "post:383059247342447",
+      "identity": "post:383059247342447",
+      "post_id": "383059247342447",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "klxmBobo",
+      "author_id": "n5Dv9WSTJnAINGxRSKwnfg",
+      "currency": "BNB",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 205,
+      "published_at": "2026-10-31T01:52:04.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-01T01:51:57.841Z",
+      "sources": [
+        "author:n5Dv9WSTJnAINGxRSKwnfg"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383059247342447",
+      "excerpt": "#加密杠杆头寸24小时清算15亿美元 \n比特币 $BTC  从高位砸到大概7.6万多美元附近，以太坊$ETH  也跟着跌。\n价格一跌，杠杆就惨了。\n很多人用几倍甚至几十倍杠杆做多（赌涨），保证金撑不住，交易所就强制平仓。",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383057769188181": {
+      "key": "post:383057769188181",
+      "identity": "packet:462942385118691328",
+      "post_id": "383057769188181",
+      "packet_id": "462942385118691328",
+      "packet_code": "BAE11W35",
+      "kind": "quiz",
+      "author": "静姐6888",
+      "author_id": "Fb9rZxWmdbi1U6xBM4L1zA",
+      "currency": "USDT",
+      "amount": "3",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 99,
+      "published_at": "2026-10-31T01:46:03.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-03T01:45:52.603Z",
+      "sources": [
+        "author:Fb9rZxWmdbi1U6xBM4L1zA"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383057769188181",
+      "excerpt": "被满满的阳光包裹住的一天，\n暂时放下琐碎与焦虑，\n尽情感受当下这份轻松与欢喜。\n#LUCIC \n#加密杠杆头寸24小时清算15亿美元 \n\n{future}(BNBUSDT)\n{future}(BTCUSDT)",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:382928070771360": {
+      "key": "post:382928070771360",
+      "identity": "post:382928070771360",
+      "post_id": "382928070771360",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "哈达Hada-BNB",
+      "author_id": "H8gKQa54UXo4qPJLpM8dsw",
+      "currency": "SOL",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 112,
+      "published_at": "2026-10-31T01:43:39.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-01T01:09:05.632Z",
+      "sources": [
+        "author:H8gKQa54UXo4qPJLpM8dsw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/382928070771360",
+      "excerpt": "大家不要看现在大模型颠覆了谷歌的搜索，影响了广告收入，但是谷歌会最后获得大模型竞争的胜利。最终人工智能最赚钱的方向一定不是便宜到白菜的聊天，或者装在一具躯壳的玩具。 最后最赚钱的方向还是企业级服务，咨询之类的业务。 这需要最全的企业级数据基础，这方面谷歌应该是最有优势。\n\n$SOL \n\n{spot}(SOLUSDT)",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383055370728681": {
+      "key": "post:383055370728681",
+      "identity": "post:383055370728681",
+      "post_id": "383055370728681",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "HUSSAIN169",
+      "author_id": "BdmOBEZyid7Nn_DLFKDnZQ",
+      "currency": "USDC",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 48,
+      "published_at": "2026-10-31T01:36:17.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-01T01:36:08.256Z",
+      "sources": [
+        "author:BdmOBEZyid7Nn_DLFKDnZQ"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383055370728681",
+      "excerpt": "Good Morning Everyone Go 🚀 \nDaily Check-in Complete ✅ \n$BTC $BNB \n#BinancePick \n#UniswapA16zSeekDeFiExemptionFromIllinoisCryptoTax ",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383050916451018": {
+      "key": "post:383050916451018",
+      "identity": "packet:462938786320728064",
+      "post_id": "383050916451018",
+      "packet_id": "462938786320728064",
+      "packet_code": "695J1R6N",
+      "kind": "quiz",
+      "author": "逐浪字母哥",
+      "author_id": "e-wb-_BudoWk4pG-FG20TQ",
+      "currency": "USDT",
+      "amount": "2",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 129,
+      "published_at": "2026-10-31T01:18:10.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-02T01:18:03.715Z",
+      "sources": [
+        "author:e-wb-_BudoWk4pG-FG20TQ"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383050916451018",
+      "excerpt": "🧧🧧🧧\n转发➕评论$BTC   \n盈利不是靠频繁操作，而是等待高确定性机会$BNB    #FOMC会议",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383064241427327": {
+      "key": "post:383064241427327",
+      "identity": "post:383064241427327",
+      "post_id": "383064241427327",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "BARISYILDIZ",
+      "author_id": "tWbYY6UJ_4dA4DjRyapl_Q",
+      "currency": "BTTC",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 99,
+      "published_at": "2026-10-31T02:12:23.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "02",
+      "expires_at": "2026-11-01T02:12:16.351Z",
+      "sources": [
+        "author:tWbYY6UJ_4dA4DjRyapl_Q"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383064241427327",
+      "excerpt": "#HappyHalloween 🎃",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383061438133837": {
+      "key": "post:383061438133837",
+      "identity": "packet:462944318158716928",
+      "post_id": "383061438133837",
+      "packet_id": "462944318158716928",
+      "packet_code": "SK5UF8HE",
+      "kind": "quiz",
+      "author": "Sherry长得帅不如跑的快1688",
+      "author_id": "Xs55i47aRkGGM1xihIa5uw",
+      "currency": "USDT",
+      "amount": "2",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 168,
+      "published_at": "2026-10-31T02:00:58.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "02",
+      "expires_at": "2026-11-03T02:00:51.956Z",
+      "sources": [
+        "author:Xs55i47aRkGGM1xihIa5uw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383061438133837",
+      "excerpt": "🚨 USDT'S RESERVE BUFFER NEARLY DOUBLES! $1.5 BILLION IN QUARTERLY PROFIT — IS TETHER BECOMING A TREASURY GIANT?\n\nCrypto markets are volatile, but Tether just released financial figures worth watching!\n\nIts Q3 report, published October 30, ",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383060489039008": {
+      "key": "post:383060489039008",
+      "identity": "packet:462943353769459712",
+      "post_id": "383060489039008",
+      "packet_id": "462943353769459712",
+      "packet_code": "9EE92AH3",
+      "kind": "quiz",
+      "author": "sohailnasir_01",
+      "author_id": "pMJaGS1eNxSG0WDVCtbkPw",
+      "currency": "USDT",
+      "amount": "0.00004589",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 1,
+      "published_at": "2026-10-31T01:57:07.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-07T01:53:36.306Z",
+      "sources": [
+        "author:pMJaGS1eNxSG0WDVCtbkPw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383060489039008",
+      "excerpt": "$AMZNB $BTC \n🎁 Like , Comment , share 🎁\nFast claim Red packet 🎁 USDT 🎁🎁\nJust \"ok\" Comment claim Reward 🎁🎁🎁",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:382907709678282": {
+      "key": "post:382907709678282",
+      "identity": "post:382907709678282",
+      "post_id": "382907709678282",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "Virus平常心",
+      "author_id": "q46V7rZqy4spXSZ01062gw",
+      "currency": "USDT",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 123,
+      "published_at": "2026-10-31T00:59:39.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "00",
+      "expires_at": "2026-11-01T15:35:15.050Z",
+      "sources": [
+        "author:q46V7rZqy4spXSZ01062gw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/382907709678282",
+      "excerpt": "🧧短期波动是噪音，长期价值是信号。早上好。",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383038620245341": {
+      "key": "post:383038620245341",
+      "identity": "packet:462932929754988544",
+      "post_id": "383038620245341",
+      "packet_id": "462932929754988544",
+      "packet_code": "UEWH02AZ",
+      "kind": "quiz",
+      "author": "正乾--四条2",
+      "author_id": "o8BMKbJ9x81zVgm61TftPw",
+      "currency": "USDT",
+      "amount": "1",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 310,
+      "published_at": "2026-10-31T00:33:38.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "00",
+      "expires_at": "2026-11-07T00:32:53.537Z",
+      "sources": [
+        "author:o8BMKbJ9x81zVgm61TftPw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383038620245341",
+      "excerpt": "Web3 浪潮不息，新叙事、新技术、新项目轮番登场。 热度来得很快，宏大的故事也好写，但褪去喧嚣之后，两样东西最珍贵：能不能解决真实问题，有没有愿意留下来共建的同路人。#DeepSeekbug 打动我的地方，是一个简单却直击内心的思考： AI 越来越擅长帮我们处理各类问题，那属于 “人” 的成长，该由谁来记录？ 代码有迭代日志，交易有复盘记录，创业有成败复盘，每个人的人生，也该有属于自己的成长印记。 AI 赋能我们总结、优化；区块链让这份记录拥有可信、可追溯的载体。 所有美好",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383039601752040": {
+      "key": "post:383039601752040",
+      "identity": "packet:462932869696446464",
+      "post_id": "383039601752040",
+      "packet_id": "462932869696446464",
+      "packet_code": "00IYB7ID",
+      "kind": "quiz",
+      "author": "Hongjie宏姐",
+      "author_id": "5UG_weFb2oRoL6BUT3YmUg",
+      "currency": "USDT",
+      "amount": "0.01",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 40,
+      "published_at": "2026-10-31T00:32:07.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "00",
+      "expires_at": "2026-11-01T00:32:03.710Z",
+      "sources": [
+        "author:5UG_weFb2oRoL6BUT3YmUg"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383039601752040",
+      "excerpt": "                  好日子\n\n春节大IP全新登场！\n承载新春美好愿景，传递励志正能量。以喜庆国风诠释幸福生活，唤醒国人对美好生活的向往。融合年味与祝福，赋能文创、周边及新春活动，打造极具感染力的国民IP，伴大家奔赴新岁，开启全年红火好日子！\n\n#好日子   #加密货币  #ETH  ",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:382003590706299": {
+      "key": "post:382003590706299",
+      "identity": "post:382003590706299",
+      "post_id": "382003590706299",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "正乾--四条2",
+      "author_id": "o8BMKbJ9x81zVgm61TftPw",
+      "currency": "USDT",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 1442,
+      "published_at": "2026-10-28T02:21:46.000Z",
+      "published_day": "2026-10-28",
+      "published_hour_utc": "02",
+      "expires_at": "2026-11-04T02:21:34.903Z",
+      "sources": [
+        "author:o8BMKbJ9x81zVgm61TftPw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/382003590706299",
+      "excerpt": "以真实建立信任，以行动凝聚共识，让时间见证成长\n一个项目可以瞬间博取万千目光，但长久的建设，从来不是流量堆出来的。它需要靠谱的产品、稳定的执行、足够的透明度，以及一群愿意躬身参与的社区伙伴，一起托举。\n我希望 $DeepSeekbug，走一条踏实、慢而稳的路。 先把理念讲透，再打磨产品； 先沉淀真实的贡献，再搭建可持续的长期机制； 先倾听社区的声音，再迭代优化。\n我们不愿把尚在远方的愿景，包装成已经落地的结果； 也不靠夸大的许诺，换取转瞬即逝的热度。 功能尚在规划，我们坦诚告",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:380926387631910": {
+      "key": "post:380926387631910",
+      "identity": "post:380926387631910",
+      "post_id": "380926387631910",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "正乾--四条2",
+      "author_id": "o8BMKbJ9x81zVgm61TftPw",
+      "currency": "USDT",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 1021,
+      "published_at": "2026-10-25T01:20:53.000Z",
+      "published_day": "2026-10-25",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-01T01:20:43.027Z",
+      "sources": [
+        "author:o8BMKbJ9x81zVgm61TftPw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/380926387631910",
+      "excerpt": "一张 K 线图，看见 DeepSeekbug 这 9 天的故事。\n从上线之初的冲高回落，到漫长震荡洗盘，再到现在筑底完成、重新抬升；3690 个地址，是一步步沉淀下来的共识。\n\n价格曲线的起伏，就像 Web3 里所有人的修行：有躁动，有等待，有怀疑，也有坚持。\n我们做 DeepSeekbug，从来不是单纯炒一个标的。\n我们想搭建一个真正的共建社区：技术、内容、组织、分享，每个人都能发光。\n不做旁观者，一起解决问题；不空谈宏大叙事，每天落地一点点实事。\n\nK 线会波动，但一群愿",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:380701996609853": {
+      "key": "post:380701996609853",
+      "identity": "packet:461707878392176640",
+      "post_id": "380701996609853",
+      "packet_id": "461707878392176640",
+      "packet_code": "7S8ZQPS5",
+      "kind": "quiz",
+      "author": "正乾--四条2",
+      "author_id": "o8BMKbJ9x81zVgm61TftPw",
+      "currency": "USDT",
+      "amount": "1",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 1472,
+      "published_at": "2026-10-24T10:05:20.000Z",
+      "published_day": "2026-10-24",
+      "published_hour_utc": "10",
+      "expires_at": "2026-10-31T10:05:13.423Z",
+      "sources": [
+        "author:o8BMKbJ9x81zVgm61TftPw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/380701996609853",
+      "excerpt": "DeepSeekbug 设置双向各 3%、合计 6% 的交易手续费，所有手续费都回馈给长期同行的共识者： ▫️10% 销毁：持续通缩，总筹码不断缩减，从底层助推价值抬升 ▫️10% 回流底池：持续加厚流动性，稳住盘面，为长期收益保驾护航 ▫️80% 作为分红，定向发放给持仓≥10 万枚的持有者 ✅\n真正的长线玩家，在这里可以享受双重收益： 行情上行时，享受币价增值； 只要持仓达标，每一笔交易产生的手续费都会持续分红，做到持币生息，躺着收获持续现金流。\n丰厚的分红激励大家自愿锁",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "live:47882819403210": {
+      "key": "live:47882819403210",
+      "identity": "live:47882819403210",
+      "post_id": "47882819403210",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "live",
+      "author": "听澜321",
+      "author_id": "z10YfEffTnSgjUd7zmWQBA",
+      "currency": null,
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "live_badge",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": null,
+      "published_at": "2026-10-31T02:05:32.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "02",
+      "expires_at": null,
+      "sources": [
+        "square:live"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/audio?id=47882819403210",
+      "excerpt": null,
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "live:47880852143241": {
+      "key": "live:47880852143241",
+      "identity": "live:47880852143241",
+      "post_id": "47880852143241",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "live",
+      "author": "钞机八蛋",
+      "author_id": "ky7jfIdxhe3SFn2mqQdphQ",
+      "currency": null,
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "live_badge",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": null,
+      "published_at": "2026-10-31T01:01:29.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": null,
+      "sources": [
+        "square:live"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/audio?id=47880852143241",
+      "excerpt": null,
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "live:47882747526794": {
+      "key": "live:47882747526794",
+      "identity": "live:47882747526794",
+      "post_id": "47882747526794",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "live",
+      "author": "CRIPTOMONEDAS Y ACCIONES ",
+      "author_id": "c-GDyElK-xbfP7ODvCogNA",
+      "currency": null,
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "live_badge",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": null,
+      "published_at": "2026-10-31T02:03:11.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "02",
+      "expires_at": null,
+      "sources": [
+        "square:live"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/audio?id=47882747526794",
+      "excerpt": null,
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383067201925144": {
+      "key": "post:383067201925144",
+      "identity": "packet:462947221533417472",
+      "post_id": "383067201925144",
+      "packet_id": "462947221533417472",
+      "packet_code": "XKYP827Z",
+      "kind": "quiz",
+      "author": "BAPE   九欲",
+      "author_id": "ap42yOlEw3FCZeaj-PVvng",
+      "currency": "SOL",
+      "amount": "0.1",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 25,
+      "published_at": "2026-10-31T02:24:26.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "02",
+      "expires_at": "2026-11-01T02:24:17.875Z",
+      "sources": [
+        "author:ap42yOlEw3FCZeaj-PVvng"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383067201925144",
+      "excerpt": "BAPE线上线下联动，打响全域流量第一枪！\n以初心赴山海，以聚力启新章——\nBAPE的全域生态新周期，邀你一起见证。\n【直播地点】币安广场 | @听澜321直播间\n【会议时间】2026年11月1日 12：00（UTC+8）\n提前预约，准时来\nBAPE 的200余天，我们这样走过…\n200多天，不算短。\n市场起起伏伏，我们没喊过一句口号，只把每一步踩实——\n透明链上机制打底，全民社区自治聚心，全国地推共建铺路。\n不追风口，不赌运气，只信一件事：底盘稳了，才谈得上腾飞。\n如今，线",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383066446965283": {
+      "key": "post:383066446965283",
+      "identity": "post:383066446965283",
+      "post_id": "383066446965283",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "packet",
+      "author": "Leo Bull Square",
+      "author_id": "_KBVmM1PY1uqoFLyD3N65Q",
+      "currency": "USDC",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 1,
+      "published_at": "2026-10-31T02:21:21.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "02",
+      "expires_at": "2026-11-01T02:21:12.435Z",
+      "sources": [
+        "author:_KBVmM1PY1uqoFLyD3N65Q"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383066446965283",
+      "excerpt": "🚀 $ENS BULLS STRIKE BACK — $5.05 BREAKOUT NEXT? 🔥\n\n$ENS /USDT is gaining bullish momentum on the 1H chart, surging +7.07% to $5.00 after a sharp liquidity sweep near $4.55. Buyers have reclaimed the $4.89 zone, forming higher lows and sig",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383064923143519": {
+      "key": "post:383064923143519",
+      "identity": "post:383064923143519",
+      "post_id": "383064923143519",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "OmenX Official",
+      "author_id": "Pi7ii7fGAs0ddILDlt-v1Q",
+      "currency": "USDT",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 55,
+      "published_at": "2026-10-31T02:15:09.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "02",
+      "expires_at": "2026-11-01T02:15:04.524Z",
+      "sources": [
+        "author:Pi7ii7fGAs0ddILDlt-v1Q"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383064923143519",
+      "excerpt": "今天怎么涨1000个粉丝？",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383054782530466": {
+      "key": "post:383054782530466",
+      "identity": "post:383054782530466",
+      "post_id": "383054782530466",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "OmenX Official",
+      "author_id": "Pi7ii7fGAs0ddILDlt-v1Q",
+      "currency": "USDT",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 104,
+      "published_at": "2026-10-31T01:33:54.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-01T01:33:48.861Z",
+      "sources": [
+        "author:Pi7ii7fGAs0ddILDlt-v1Q"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383054782530466",
+      "excerpt": "早上好，你那边天气怎么样？",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383053696578923": {
+      "key": "post:383053696578923",
+      "identity": "packet:462940145429094400",
+      "post_id": "383053696578923",
+      "packet_id": "462940145429094400",
+      "packet_code": "Z306QAGS",
+      "kind": "quiz",
+      "author": "阿婧1688",
+      "author_id": "oW4L_Qmc5V1HxoCQ19fgtg",
+      "currency": "SOL",
+      "amount": "0.05",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 212,
+      "published_at": "2026-10-31T01:29:28.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-03T01:28:31.586Z",
+      "sources": [
+        "author:oW4L_Qmc5V1HxoCQ19fgtg"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383053696578923",
+      "excerpt": "$SOL $BNB \n🌹一笑，所有烦恼都被治愈🌿✨",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383051511394940": {
+      "key": "post:383051511394940",
+      "identity": "packet:462938974966054912",
+      "post_id": "383051511394940",
+      "packet_id": "462938974966054912",
+      "packet_code": "VUHNMWLD",
+      "kind": "quiz",
+      "author": "先生_Rehan17",
+      "author_id": "umnf7ictVQRMNddlGV492g",
+      "currency": "BNB",
+      "amount": "0.00165",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 269,
+      "published_at": "2026-10-31T01:20:35.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-02T01:20:21.895Z",
+      "sources": [
+        "author:umnf7ictVQRMNddlGV492g"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383051511394940",
+      "excerpt": "🎁🎁🎁🎁🎁 BNB RED PACKET 🎁🎁🎁🎁🎁\nCOMMENT ON IT \nSHARE IT\nLIKE IT\nTO CLAIM 🎁🎁🎁🎁🎁",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383049614117784": {
+      "key": "post:383049614117784",
+      "identity": "post:383049614117784",
+      "post_id": "383049614117784",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "安然Alpha",
+      "author_id": "4oCr9Dm90PhO33jf8UOxGw",
+      "currency": "BNB",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 178,
+      "published_at": "2026-10-31T01:12:52.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-03T01:12:42.883Z",
+      "sources": [
+        "author:4oCr9Dm90PhO33jf8UOxGw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383049614117784",
+      "excerpt": "#币安神算子 关注，领取🧧🧧🧧$BNB ➕$ZEC ➕$ETH #加密杠杆头寸24小时清算15亿美元 ",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383048264119135": {
+      "key": "post:383048264119135",
+      "identity": "packet:462937400944787456",
+      "post_id": "383048264119135",
+      "packet_id": "462937400944787456",
+      "packet_code": "0LDQKT9K",
+      "kind": "quiz",
+      "author": "北辰1688",
+      "author_id": "s42GdNQHLHQnK67VJRRlNw",
+      "currency": "BNB",
+      "amount": "0.0001",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 167,
+      "published_at": "2026-10-31T01:07:22.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-03T01:07:17.238Z",
+      "sources": [
+        "author:s42GdNQHLHQnK67VJRRlNw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383048264119135",
+      "excerpt": "#币安神算子 参与今天预测，签到，交易，发帖，领取积分，关注，领取🧧🧧🧧$BNB ",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383043966049986": {
+      "key": "post:383043966049986",
+      "identity": "packet:462936644948336640",
+      "post_id": "383043966049986",
+      "packet_id": "462936644948336640",
+      "packet_code": "D5S324K7",
+      "kind": "quiz",
+      "author": "狗蛋想退休",
+      "author_id": "mhk5XR5gSJeRmgJnj4qQlg",
+      "currency": "USDT",
+      "amount": "5",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 89,
+      "published_at": "2026-10-31T01:01:34.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "01",
+      "expires_at": "2026-11-03T01:01:19.564Z",
+      "sources": [
+        "author:mhk5XR5gSJeRmgJnj4qQlg"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383043966049986",
+      "excerpt": "The Nasdaq has suffered a sharp pullback recently, leaving many investors questioning the outlook for semiconductors, the backbone of the US tech market. Intel (INTC) became the trigger for this market selloff. Its disappointing quarterly g",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383037616881904": {
+      "key": "post:383037616881904",
+      "identity": "packet:462931832689901568",
+      "post_id": "383037616881904",
+      "packet_id": "462931832689901568",
+      "packet_code": "OVS76Q6C",
+      "kind": "quiz",
+      "author": "大东哥势不可挡",
+      "author_id": "ETgIwIFudUvEeMuRdQlIZQ",
+      "currency": "USDT",
+      "amount": "1",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 118,
+      "published_at": "2026-10-31T00:24:03.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "00",
+      "expires_at": "2026-11-01T00:23:59.022Z",
+      "sources": [
+        "author:ETgIwIFudUvEeMuRdQlIZQ"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383037616881904",
+      "excerpt": "龙一就是龙一，今天要准备破0，冲击千万市值了，兄弟们上车🚗，再不上车就汤都喝不着了",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383037035119219": {
+      "key": "post:383037035119219",
+      "identity": "packet:462931497593438209",
+      "post_id": "383037035119219",
+      "packet_id": "462931497593438209",
+      "packet_code": "N1PQUWDP",
+      "kind": "quiz",
+      "author": "仙子1688",
+      "author_id": "MkC8hWcbe-TfMK8-ngt-KQ",
+      "currency": "USDT",
+      "amount": "3",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 414,
+      "published_at": "2026-10-31T00:21:41.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "00",
+      "expires_at": "2026-11-02T00:21:26.372Z",
+      "sources": [
+        "author:MkC8hWcbe-TfMK8-ngt-KQ"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383037035119219",
+      "excerpt": "新的一天，火警猫再次起飞，你上车了吗？\n线上线下同步发力，长期建设稳扎稳打，想要同行的家人，记得关注火警猫，关注主播不迷路🚀不急一时爆发，深耕长期建设，线上线下并肩前行。同频相伴，一步一步，坚守长期建设，线上线下双线融合，稳扎稳打不浮躁。愿志同道合的伙伴一路同行，奔赴更远征程，越来越好，越飞越高！",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383029722384376": {
+      "key": "post:383029722384376",
+      "identity": "post:383029722384376",
+      "post_id": "383029722384376",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "CryptoBLACK",
+      "author_id": "-ySVC7LnguCuhX1AlIvruQ",
+      "currency": "DOGE",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 145,
+      "published_at": "2026-10-30T23:51:55.000Z",
+      "published_day": "2026-10-30",
+      "published_hour_utc": "23",
+      "expires_at": "2026-11-01T23:51:52.912Z",
+      "sources": [
+        "author:-ySVC7LnguCuhX1AlIvruQ"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383029722384376",
+      "excerpt": "Gm",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:382982682482920": {
+      "key": "post:382982682482920",
+      "identity": "post:382982682482920",
+      "post_id": "382982682482920",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "quiz",
+      "author": "Ahmed Ali Nizamani",
+      "author_id": "5QwAQUi2QQW93CFjL200gg",
+      "currency": "USDT",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 325,
+      "published_at": "2026-10-30T23:37:39.000Z",
+      "published_day": "2026-10-30",
+      "published_hour_utc": "23",
+      "expires_at": "2026-11-01T20:40:08.698Z",
+      "sources": [
+        "author:5QwAQUi2QQW93CFjL200gg"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/382982682482920",
+      "excerpt": "🎁🎁🎁 Freinds Repost thid post 🎁🎁🎁\n\nRepost this post and write yes repost done 🎁🎁🎁🎁🎁🎁👇👇",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383001595275896": {
+      "key": "post:383001595275896",
+      "identity": "packet:462912885135818752",
+      "post_id": "383001595275896",
+      "packet_id": "462912885135818752",
+      "packet_code": "LYKSLK8I",
+      "kind": "quiz",
+      "author": "U可爱小宝贝 - 光明社区 9",
+      "author_id": "JDXrcgLtep7aP0GvsNQftw",
+      "currency": "USDC",
+      "amount": "0.11278",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 296,
+      "published_at": "2026-10-30T21:57:28.000Z",
+      "published_day": "2026-10-30",
+      "published_hour_utc": "21",
+      "expires_at": "2026-11-01T21:57:25.514Z",
+      "sources": [
+        "author:JDXrcgLtep7aP0GvsNQftw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383001595275896",
+      "excerpt": "🎁🎁🎁\n\n🌊☀️ In the peaceful calm of the turquoise sea on a wooden boat, a woman in a white hijab serenely looks at *LUCiC* in her hands 📱💙, just like the beautiful and tranquil nature around her, LUCiC grows steadily and full of hope ✨🌿",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:383001035310811": {
+      "key": "post:383001035310811",
+      "identity": "packet:462912574057136128",
+      "post_id": "383001035310811",
+      "packet_id": "462912574057136128",
+      "packet_code": "5S4LZ584",
+      "kind": "quiz",
+      "author": "FerDanzigPY",
+      "author_id": "rC2P52LQeldihtidG0mOzQ",
+      "currency": "BNB",
+      "amount": "0.0005",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 169,
+      "published_at": "2026-10-30T21:55:12.000Z",
+      "published_day": "2026-10-30",
+      "published_hour_utc": "21",
+      "expires_at": "2026-10-31T21:54:54.407Z",
+      "sources": [
+        "author:rC2P52LQeldihtidG0mOzQ"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/383001035310811",
+      "excerpt": "🌎 LAT-IA NETWORK — La moneda del futuro de Latinoamérica 🪙\n \nLAT-IA no es solo una moneda digital, es el puente que conecta a toda Latinoamérica en el mundo Web3. Sin fronteras, sin intermediarios, construido por latinos para latinos.\n \n✅",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:382994783706809": {
+      "key": "post:382994783706809",
+      "identity": "packet:462909369705086976",
+      "post_id": "382994783706809",
+      "packet_id": "462909369705086976",
+      "packet_code": "JH8JRH79",
+      "kind": "quiz",
+      "author": "慧宝123",
+      "author_id": "kebYW9ux0HtXAnlw_uCUxg",
+      "currency": "SOL",
+      "amount": "0.02",
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 374,
+      "published_at": "2026-10-30T21:29:45.000Z",
+      "published_day": "2026-10-30",
+      "published_hour_utc": "21",
+      "expires_at": "2026-10-31T21:29:41.823Z",
+      "sources": [
+        "author:kebYW9ux0HtXAnlw_uCUxg"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/382994783706809",
+      "excerpt": "$BNB🐮\n\n孤舟枕波，\n\n不随俗流，\n\n潮平帆举，\n\n清梦横渡浩渺沧波！\n\nLonely boat rests on waves, following no vulgar currents; tides calm, sails rise, pure dreams cross boundless ocean waves！\n\n🚀🚀🚀🚀🚀🚀🚀🛸🛸",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "post:382988216309283": {
+      "key": "post:382988216309283",
+      "identity": "post:382988216309283",
+      "post_id": "382988216309283",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "packet",
+      "author": "SUNEEL KUMAR PERFECT",
+      "author_id": "mamGqT7PoQA6cKUkBn64Uw",
+      "currency": "LUNC",
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "reported_open",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": 1,
+      "published_at": "2026-10-30T21:03:02.000Z",
+      "published_day": "2026-10-30",
+      "published_hour_utc": "21",
+      "expires_at": "2026-10-31T07:10:40.957Z",
+      "sources": [
+        "author:mamGqT7PoQA6cKUkBn64Uw"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/post/382988216309283",
+      "excerpt": "#BinancePick \nSCAN QR 🤝👇",
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
+      "observations": 1
+    },
+    "live:47880634516465": {
+      "key": "live:47880634516465",
+      "identity": "live:47880634516465",
+      "post_id": "47880634516465",
+      "packet_id": null,
+      "packet_code": null,
+      "kind": "live",
+      "author": "BlueTokenCapital",
+      "author_id": "0S67_TeUn12xtP-MBO49qw",
+      "currency": null,
+      "amount": null,
+      "available_amount": null,
+      "available_receivers": null,
+      "eligibility": "not_checked",
+      "status": "live_badge",
+      "answer_verified": false,
+      "reward_verified": false,
+      "comments": null,
+      "published_at": "2026-10-31T00:54:24.000Z",
+      "published_day": "2026-10-31",
+      "published_hour_utc": "00",
+      "expires_at": null,
+      "sources": [
+        "square:live"
+      ],
+      "worker": "authors",
+      "url": "https://www.binance.com/en/square/audio?id=47880634516465",
+      "excerpt": null,
+      "first_seen_at": "2026-10-31T02:42:05.313Z",
+      "last_seen_at": "2026-10-31T02:42:05.313Z",
       "observations": 1
     }
   }
