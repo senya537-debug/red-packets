@@ -1202,7 +1202,7 @@ jobs:
             if (post.expires_at) {
               const countdown=formatExpiryCountdown(post.expires_at,Date.now(),language);
               if(countdown)lines.push(countdown);
-              lines.push(`⌛ ${t('До','Expires')}: ${escapeHtml(post.expires_at.replace('T',' ').replace(/\\.\\d{3}Z$/, ' UTC'),40)}`);
+              lines.push(\`⌛ \${t('До','Expires')}: \${escapeHtml(post.expires_at.replace('T',' ').replace(/\.\d{3}Z$/, ' UTC'),40)}\`);
             }
             if (post.published_at) {
               lines.push(`🕒 ${escapeHtml(post.published_at.replace("T"," ").replace(/\.\d{3}Z$/, " UTC"),40)}`);
