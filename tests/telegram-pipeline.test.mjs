@@ -32,6 +32,19 @@ test('standalone codes cannot enter discovery results, outbox, public feed or de
   }
 });
 
+test('discovery funnel counters expose each stage without changing eligibility',()=>{
+  const f={records_seen:4,unique_post_ids:new Set(['1','2','3']),marker_matches:2,
+    red_envelope_metadata:2,normalized_packets:2,reported_open:1,status_counts:{reported_open:1,unknown:1},
+    eligible_candidates:1,originals_planned:2,originals_checked:2,originals_verified:1};
+  assert.equal(f.records_seen-f.unique_post_ids.size,1,'duplicate source observations are measurable');
+  assert.equal(f.marker_matches,2);
+  assert.equal(f.red_envelope_metadata,2);
+  assert.equal(f.normalized_packets,2);
+  assert.equal(f.reported_open,1);
+  assert.equal(f.eligible_candidates,1);
+  assert.equal(f.originals_planned-f.originals_verified,1,'original-detail losses are measurable');
+});
+
 test('open packet/quiz remains eligible after 10 minutes; expired packets do not',()=>{
   const candidate=packet();
   assert.equal(app.isFreshPost(candidate.post,now),false);
