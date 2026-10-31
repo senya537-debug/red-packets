@@ -2673,9 +2673,12 @@ jobs:
           // Only the serialized publisher writes this branch, and this runs at the end of its job, so nothing else
           // can move the branch meanwhile. The tree (the data) is untouched; only the old commits become unreachable.
           const STATE_SQUASH_HOUR_UTC = 3;
-          export function stateSquashDue(headMessage,now=Date.now()) {
+          // The last snapshot is remembered by a tag on the snapshot commit: the branch head moves on after every
+          // run, so its message cannot tell whether today's squash already happened.
+          const STATE_SNAPSHOT_TAG = 'state-snapshot';
+          export function stateSquashDue(snapshotMessage,now=Date.now()) {
             if(new Date(now).getUTCHours()<STATE_SQUASH_HOUR_UTC)return false;
-            return !String(headMessage||'').startsWith('State snapshot '+new Date(now).toISOString().slice(0,10));
+            return !String(snapshotMessage||'').startsWith('State snapshot '+new Date(now).toISOString().slice(0,10));
           }
           export async function squashStateHistory(env,{fetchImpl=fetch,now=Date.now()}={}) {
             const branch=stateBranch(env),repo=`https://api.github.com/repos/${env.GITHUB_REPOSITORY}`;
@@ -2687,12 +2690,23 @@ jobs:
               if(!response.ok)throw new Error('State squash '+what+': HTTP '+response.status);
               return response.json();
             };
+            // Cheap checks first: before the squash hour, or after today's snapshot was taken, nothing else is read.
+            if(new Date(now).getUTCHours()<STATE_SQUASH_HOUR_UTC)return {squashed:false,reason:'too early'};
+            const tag=await call('GET','/git/ref/tags/'+STATE_SNAPSHOT_TAG);
+            let snapshotMessage='';
+            if(tag.ok) {
+              const tagged=(await tag.json())?.object?.sha;
+              if(typeof tagged==='string' && tagged) {
+                const taggedCommit=await call('GET','/git/commits/'+tagged);
+                if(taggedCommit.ok)snapshotMessage=(await taggedCommit.json())?.message||'';
+              }
+            } else if(tag.status!==404)throw new Error('State squash read snapshot tag: HTTP '+tag.status);
+            if(!stateSquashDue(snapshotMessage,now))return {squashed:false,reason:'already squashed today'};
             const ref=await call('GET','/git/ref/heads/'+encodeURIComponent(branch));
             if(ref.status===404)return {squashed:false,reason:'no state branch'};
             const head=(await json(ref,'read branch'))?.object?.sha;
             if(typeof head!=='string' || !head)throw new Error('State squash: branch has no commit');
             const commit=await json(await call('GET','/git/commits/'+head),'read commit');
-            if(!stateSquashDue(commit.message,now))return {squashed:false,reason:'already squashed today or too early'};
             const treeSha=commit.tree?.sha;
             if(typeof treeSha!=='string' || !treeSha)throw new Error('State squash: commit has no tree');
             // Never squash a branch that does not hold the state data.
@@ -2705,6 +2719,10 @@ jobs:
             const again=await json(await call('GET','/git/ref/heads/'+encodeURIComponent(branch)),'recheck branch');
             if(again?.object?.sha!==head)return {squashed:false,reason:'branch moved; will retry'};
             await json(await call('PATCH','/git/refs/heads/'+encodeURIComponent(branch),{sha:created.sha,force:true}),'update branch');
+            // Remember today's snapshot. If this fails the branch is still correct; the next run simply squashes again.
+            let tagged=await call('PATCH','/git/refs/tags/'+STATE_SNAPSHOT_TAG,{sha:created.sha,force:true});
+            if(tagged.status===404 || tagged.status===422)tagged=await call('POST','/git/refs',{ref:'refs/tags/'+STATE_SNAPSHOT_TAG,sha:created.sha});
+            if(!tagged.ok)throw new Error('State squash: the branch was squashed but the snapshot tag could not be saved (HTTP '+tagged.status+')');
             return {squashed:true,previous:head.slice(0,7),snapshot:created.sha.slice(0,7)};
           }
           export async function main(env=process.env) {
