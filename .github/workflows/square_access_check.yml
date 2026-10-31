@@ -575,6 +575,16 @@ jobs:
             }
             return new GitHubState(env).load();
           }
+          export function summarizeDiscoveryFunnel(funnel,extra={}) {
+            const unique=funnel?.unique_post_ids instanceof Set ? funnel.unique_post_ids.size : 0;
+            return {records_seen:Number(funnel?.records_seen)||0,unique_post_ids:unique,
+              duplicate_ingest_occurrences:Math.max(0,(Number(funnel?.records_seen)||0)-unique),
+              marker_matches:Number(funnel?.marker_matches)||0,red_envelope_metadata:Number(funnel?.red_envelope_metadata)||0,
+              normalized_packets:Number(funnel?.normalized_packets)||0,reported_open:Number(funnel?.reported_open)||0,
+              status_counts:{...(funnel?.status_counts||{})},...extra,
+              by_source:Object.fromEntries(Object.entries(funnel?.by_source||{}).map(([source,stats])=>[source,{
+                ...stats,status_counts:{...(stats.status_counts||{})}}]))};
+          }
           export function chooseMarkerPosts(posts,checks={},now=Date.now()) {
             const stamp=p=>epoch(p.date??p.firstReleaseTime??p.createTime)||0;
             const tier=p=>now-stamp(p)<=POST_MAX_AGE_MS ? 0 : now-stamp(p)<=86400000 ? 1 : 2;
@@ -832,7 +842,7 @@ jobs:
             function recordFunnel(post,source,markers,item) {
               const id=String(post?.id||post?.contentId||'');
               funnel.records_seen++;
-              if(/^\\d+$/.test(id))funnel.unique_post_ids.add(id);
+              if(/^\d+$/.test(id))funnel.unique_post_ids.add(id);
               if(markers.length)funnel.marker_matches++;
               if(post?.redEnvelop && typeof post.redEnvelop==='object')funnel.red_envelope_metadata++;
               const group=source.startsWith('author:')?'author_profiles':source;
@@ -1014,15 +1024,9 @@ jobs:
             const eligibleCandidates=publishCandidates({reported_open:items.filter(p=>p.status==='reported_open'),
               other_candidates:items.filter(p=>p.status!=='reported_open')}).length;
             const discoveryStats={global_posts_checked:globalPostIds.size,authors_seen:discovered.length,
-              funnel:{records_seen:funnel.records_seen,unique_post_ids:funnel.unique_post_ids.size,
-                duplicate_ingest_occurrences:Math.max(0,funnel.records_seen-funnel.unique_post_ids.size),
-                marker_matches:funnel.marker_matches,red_envelope_metadata:funnel.red_envelope_metadata,
-                normalized_packets:funnel.normalized_packets,reported_open:funnel.reported_open,
-                status_counts:{...funnel.status_counts},eligible_candidates:eligibleCandidates,
+              funnel:summarizeDiscoveryFunnel(funnel,{eligible_candidates:eligibleCandidates,
                 marker_posts_for_original_check:markerPosts.size,originals_planned:detailPosts.length,
-                originals_checked:markerChecked,originals_verified:markerVerified,
-                by_source:Object.fromEntries(Object.entries(funnel.by_source).map(([source,stats])=>[source,{
-                  ...stats,status_counts:{...stats.status_counts}}]))},
+                originals_checked:markerChecked,originals_verified:markerVerified}),
               localized_global_posts_checked:sourceChecks.filter(s=>s.language_requested && s.language_requested!=='en' && s.ok).reduce((n,s)=>n+(s.posts_checked||0),0),
               requested_feed_languages:[...feedPostIdsByLanguage.keys()],
               feed_coverage_by_language:Object.fromEntries([...feedPostIdsByLanguage].map(([language,ids])=>[language,{
