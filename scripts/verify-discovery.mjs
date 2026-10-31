@@ -32,21 +32,20 @@ assert.ok(added.some(result=>[...result.ids].some(id=>!baseline.has(id))),'addit
 
 // Read-only sample of original-post reward metadata. This determines whether detail
 // responses expose remaining amount/places that are absent from feed cards.
+const snapshot=await app.scan({SQUARE_STATE_SNAPSHOT:'.redpacket/delivery.json'},'posts');
 let detailAudit=[];
 try {
-  const [type1,type2]=await Promise.all([app.fetchLatest(1,1,'en'),app.fetchLatest(2,1,'en')]);
-  const feed=[...type1.map(post=>({...post,_audit_feed_type:1})),...type2.map(post=>({...post,_audit_feed_type:2}))];
-  const samples=feed.filter(post=>post?.redEnvelop && /^\d+$/.test(String(post.id||''))).slice(0,8);
-  detailAudit=await Promise.all(samples.map(async post=>{
-    const envelope=post.redEnvelop||{};
-    const base={post_id:String(post.id),feed_type:post._audit_feed_type,list:{
-      currency:envelope.currency??null,amount:envelope.amount??null,
-      availableAmount:envelope.availableAmount??null,availableNumber:envelope.availableNumber??null,
-      isExpired:envelope.isExpired??null,isRunOut:envelope.isRunOut??null,
-      expiredTime:envelope.expiredTime??null
+  const candidates=app.publishCandidates(snapshot)
+    .filter(candidate=>/^\\d+$/.test(String(candidate.post?.post_id||''))).slice(0,8);
+  detailAudit=await Promise.all(candidates.map(async candidate=>{
+    const post=candidate.post||{};
+    const base={post_id:String(post.post_id),list:{
+      currency:post.currency??null,amount:post.amount??null,
+      availableAmount:post.available_amount??null,availableNumber:post.available_receivers??null,
+      status:post.status??null
     }};
     try {
-      const original=await app.fetchOriginal(post.id),detail=original?.redEnvelop||{};
+      const original=await app.fetchOriginal(post.post_id),detail=original?.redEnvelop||{};
       return {...base,detail:{
         currency:detail.currency??null,amount:detail.amount??null,
         availableAmount:detail.availableAmount??null,availableNumber:detail.availableNumber??null,
@@ -55,13 +54,11 @@ try {
       },detail_has_redEnvelop:!!original?.redEnvelop};
     } catch(error) {return {...base,detail_error:String(error.message||error).slice(0,160)};}
   }));
-  if(!samples.length)detailAudit=[{type1_posts:type1.length,type2_posts:type2.length,packet_cards:0,reason:'No redEnvelop cards in first English pages'}];
+  if(!candidates.length)detailAudit=[{eligible_candidates:app.publishCandidates(snapshot).length,reason:'No eligible numeric post IDs to sample'}];
 } catch(error) {
   detailAudit=[{audit_error:String(error.message||error).slice(0,160)}];
 }
 console.log('ORIGINAL_REWARD_METADATA_AUDIT '+JSON.stringify(detailAudit));
-
-const snapshot=await app.scan({SQUARE_STATE_SNAPSHOT:'.redpacket/delivery.json'},'posts');
 console.log('FULL_SCAN '+JSON.stringify({all_sources_failed:snapshot.all_sources_failed,partial:snapshot.partial,
   discovery:snapshot.discovery_stats,eligible_candidates:app.publishCandidates(snapshot).length,
   sources:snapshot.sources.filter(s=>s.language_requested || s.tag==='square:feed-keywords' || /budget/.test(s.tag))}));
