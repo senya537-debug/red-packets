@@ -826,6 +826,28 @@ jobs:
               reason:'Remote keyword requests disabled after HTTP 400; marker matching in loaded feeds remains enabled'});
             const observedAuthors=[];
             const liveItems=[];
+            // Read-only funnel counters: these never affect source selection, eligibility or delivery.
+            const funnel={records_seen:0,unique_post_ids:new Set(),marker_matches:0,red_envelope_metadata:0,
+              normalized_packets:0,reported_open:0,status_counts:{},by_source:{}};
+            function recordFunnel(post,source,markers,item) {
+              const id=String(post?.id||post?.contentId||'');
+              funnel.records_seen++;
+              if(/^\\d+$/.test(id))funnel.unique_post_ids.add(id);
+              if(markers.length)funnel.marker_matches++;
+              if(post?.redEnvelop && typeof post.redEnvelop==='object')funnel.red_envelope_metadata++;
+              const group=source.startsWith('author:')?'author_profiles':source;
+              const stats=funnel.by_source[group] ||= {records_seen:0,marker_matches:0,red_envelope_metadata:0,
+                normalized_packets:0,reported_open:0,status_counts:{}};
+              stats.records_seen++;
+              if(markers.length)stats.marker_matches++;
+              if(post?.redEnvelop && typeof post.redEnvelop==='object')stats.red_envelope_metadata++;
+              if(item) {
+                funnel.normalized_packets++;stats.normalized_packets++;
+                funnel.status_counts[item.status]=(funnel.status_counts[item.status]||0)+1;
+                stats.status_counts[item.status]=(stats.status_counts[item.status]||0)+1;
+                if(item.status==='reported_open'){funnel.reported_open++;stats.reported_open++;}
+              }
+            }
             let lastProgressAt=0,lastProgressSignature='';
             async function checkpoint() {
               if(!onProgress || Date.now()-lastProgressAt<30000)return;
@@ -848,6 +870,7 @@ jobs:
               const liveBadge=/^\d+$/.test(id) && post?.liveRedEnvelopeInfo?.isDisplay===true && post.liveStatus===1;
               if(liveBadge)liveSeeds.set(id,post);
               const item=normalize(post,source,now);
+              recordFunnel(post,source,markers,item);
               if(item || markers.length || liveBadge) {
                 const uid=item?.author_id || post?.squareAuthorId || post?.squareUid;
                 if(uid)observedAuthors.push({uid,name:item?.author || post?.authorName || post?.displayName || post?.username || '',
@@ -988,7 +1011,18 @@ jobs:
             for (const p of items) statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
             const discovered=mergeAuthors(observedAuthors).filter(a=>a.discovered);
             const newAuthors=discovered.filter(a=>!knownBefore.has(a.uid));
+            const eligibleCandidates=publishCandidates({reported_open:items.filter(p=>p.status==='reported_open'),
+              other_candidates:items.filter(p=>p.status!=='reported_open')}).length;
             const discoveryStats={global_posts_checked:globalPostIds.size,authors_seen:discovered.length,
+              funnel:{records_seen:funnel.records_seen,unique_post_ids:funnel.unique_post_ids.size,
+                duplicate_ingest_occurrences:Math.max(0,funnel.records_seen-funnel.unique_post_ids.size),
+                marker_matches:funnel.marker_matches,red_envelope_metadata:funnel.red_envelope_metadata,
+                normalized_packets:funnel.normalized_packets,reported_open:funnel.reported_open,
+                status_counts:{...funnel.status_counts},eligible_candidates:eligibleCandidates,
+                marker_posts_for_original_check:markerPosts.size,originals_planned:detailPosts.length,
+                originals_checked:markerChecked,originals_verified:markerVerified,
+                by_source:Object.fromEntries(Object.entries(funnel.by_source).map(([source,stats])=>[source,{
+                  ...stats,status_counts:{...stats.status_counts}}]))},
               localized_global_posts_checked:sourceChecks.filter(s=>s.language_requested && s.language_requested!=='en' && s.ok).reduce((n,s)=>n+(s.posts_checked||0),0),
               requested_feed_languages:[...feedPostIdsByLanguage.keys()],
               feed_coverage_by_language:Object.fromEntries([...feedPostIdsByLanguage].map(([language,ids])=>[language,{
