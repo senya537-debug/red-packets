@@ -32,6 +32,27 @@ test('standalone codes cannot enter discovery results, outbox, public feed or de
   }
 });
 
+test('discovery funnel summary counts unique posts, duplicates and source stages',()=>{
+  const funnel={records_seen:5,unique_post_ids:new Set(['1','2','3']),marker_matches:3,
+    red_envelope_metadata:2,normalized_packets:2,reported_open:1,
+    status_counts:{reported_open:1,unknown:1},
+    by_source:{'square:global:ru:type1:page1':{records_seen:3,marker_matches:2,
+      red_envelope_metadata:1,normalized_packets:1,reported_open:1,status_counts:{reported_open:1}},
+      author_profiles:{records_seen:2,marker_matches:1,red_envelope_metadata:1,
+        normalized_packets:1,reported_open:0,status_counts:{unknown:1}}}};
+  const result=app.summarizeDiscoveryFunnel(funnel,{eligible_candidates:1,originals_planned:2,
+    originals_checked:2,originals_verified:1});
+  assert.equal(result.records_seen,5);
+  assert.equal(result.unique_post_ids,3);
+  assert.equal(result.duplicate_ingest_occurrences,2);
+  assert.equal(result.marker_matches,3);
+  assert.equal(result.red_envelope_metadata,2);
+  assert.equal(result.normalized_packets,2);
+  assert.equal(result.reported_open,1);
+  assert.equal(result.eligible_candidates,1);
+  assert.equal(result.by_source.author_profiles.status_counts.unknown,1);
+  assert.equal(result.originals_planned-result.originals_verified,1);
+});
 test('open packet/quiz remains eligible after 10 minutes; expired packets do not',()=>{
   const candidate=packet();
   assert.equal(app.isFreshPost(candidate.post,now),false);
