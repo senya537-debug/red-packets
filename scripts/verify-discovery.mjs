@@ -34,11 +34,12 @@ assert.ok(added.some(result=>[...result.ids].some(id=>!baseline.has(id))),'addit
 // responses expose remaining amount/places that are absent from feed cards.
 let detailAudit=[];
 try {
-  const feed=await app.fetchLatest(2,1,'en');
+  const [type1,type2]=await Promise.all([app.fetchLatest(1,1,'en'),app.fetchLatest(2,1,'en')]);
+  const feed=[...type1.map(post=>({...post,_audit_feed_type:1})),...type2.map(post=>({...post,_audit_feed_type:2}))];
   const samples=feed.filter(post=>post?.redEnvelop && /^\d+$/.test(String(post.id||''))).slice(0,8);
   detailAudit=await Promise.all(samples.map(async post=>{
     const envelope=post.redEnvelop||{};
-    const base={post_id:String(post.id),list:{
+    const base={post_id:String(post.id),feed_type:post._audit_feed_type,list:{
       currency:envelope.currency??null,amount:envelope.amount??null,
       availableAmount:envelope.availableAmount??null,availableNumber:envelope.availableNumber??null,
       isExpired:envelope.isExpired??null,isRunOut:envelope.isRunOut??null,
@@ -54,6 +55,7 @@ try {
       },detail_has_redEnvelop:!!original?.redEnvelop};
     } catch(error) {return {...base,detail_error:String(error.message||error).slice(0,160)};}
   }));
+  if(!samples.length)detailAudit=[{type1_posts:type1.length,type2_posts:type2.length,packet_cards:0,reason:'No redEnvelop cards in first English pages'}];
 } catch(error) {
   detailAudit=[{audit_error:String(error.message||error).slice(0,160)}];
 }
