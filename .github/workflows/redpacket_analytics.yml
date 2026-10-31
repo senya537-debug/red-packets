@@ -23,7 +23,16 @@ jobs:
           ref: main
           fetch-depth: 1
 
+      - name: Read the public feed from the state branch
+        run: |
+          # The feed lives on the state branch, so the code branch stays small. Keep it outside the working tree
+          # so the later rebase has nothing to complain about.
+          git fetch --quiet --depth 1 origin state
+          git show FETCH_HEAD:.redpacket/public_feed.json > "$RUNNER_TEMP/public_feed.json"
+
       - name: Build analytics from public feed
+        env:
+          FEED_PATH: ${{ runner.temp }}/public_feed.json
         run: node scripts/redpacket-analytics.mjs
 
       - name: Commit analytics data
