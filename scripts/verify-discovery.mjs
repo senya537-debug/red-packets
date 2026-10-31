@@ -36,7 +36,7 @@ const snapshot=await app.scan({SQUARE_STATE_SNAPSHOT:'.redpacket/delivery.json'}
 let detailAudit=[];
 try {
   const candidates=app.publishCandidates(snapshot)
-    .filter(candidate=>/^\\d+$/.test(String(candidate.post?.post_id||''))).slice(0,8);
+    .filter(candidate=>/^\d+$/.test(String(candidate.post?.post_id||''))).slice(0,8);
   detailAudit=await Promise.all(candidates.map(async candidate=>{
     const post=candidate.post||{};
     const base={post_id:String(post.post_id),list:{
