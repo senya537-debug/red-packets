@@ -393,6 +393,17 @@ test('delivery ranking separates verified per-place rewards from total pools and
 });
 
 // ---- watchdog: private alerts and healthcheck ping ----
+test('expiry countdown is localized, rounded up, and never shows expired or invalid deadlines',()=>{
+  const base=Date.parse('2026-10-31T08:00:00.000Z');
+  assert.equal(app.formatExpiryCountdown(new Date(base+17*60000).toISOString(),base,'ru'),'⏳ Осталось: 17 мин.');
+  assert.equal(app.formatExpiryCountdown(new Date(base+65*60000).toISOString(),base,'ru'),'⏳ Осталось: 1 ч 5 мин.');
+  assert.equal(app.formatExpiryCountdown(new Date(base+26*3600000).toISOString(),base,'ru'),'⏳ Осталось: 1 дн. 2 ч.');
+  assert.equal(app.formatExpiryCountdown(new Date(base+17*60000).toISOString(),base,'en'),'⏳ Time left: 17 min');
+  assert.equal(app.formatExpiryCountdown(new Date(base+65*60000).toISOString(),base,'en'),'⏳ Time left: 1 h 5 min');
+  assert.equal(app.formatExpiryCountdown(new Date(base-1).toISOString(),base,'ru'),null);
+  assert.equal(app.formatExpiryCountdown('not-a-date',base,'ru'),null);
+});
+
 test('equal-value opportunities with earlier expiry are delivered first without outranking higher reward tiers',()=>{
   const m=market();
   const perPlace=coinPacket('USDT',5,1,'968'); // $5 per remaining place

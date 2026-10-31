@@ -1119,6 +1119,16 @@ jobs:
             }
             throw new Error('Binance spot prices unavailable: '+String(lastError?.message||lastError).slice(0,120));
           }
+          export function formatExpiryCountdown(expiresAt,now=Date.now(),language='ru') {
+            const expiry=Date.parse(expiresAt),remaining=expiry-now;
+            if(!Number.isFinite(expiry) || !Number.isFinite(now) || remaining<=0)return null;
+            const minutes=Math.ceil(remaining/60000),en=language==='en';
+            if(minutes<60)return en?`⏳ Time left: ${minutes} min`:`⏳ Осталось: ${minutes} мин.`;
+            const hours=Math.floor(minutes/60),mins=minutes%60;
+            if(hours<24)return en?`⏳ Time left: ${hours} h ${mins} min`:`⏳ Осталось: ${hours} ч ${mins} мин.`;
+            const days=Math.floor(hours/24),rest=hours%24;
+            return en?`⏳ Time left: ${days} d ${rest} h`:`⏳ Осталось: ${days} дн. ${rest} ч.`;
+          }
           export function formatTelegramPost(post,language='ru') {
             if(post.kind==='code' || post.status==='unverified_code')throw new Error('Standalone code publishing is disabled');
             if(post.exchange==='gate')return formatGateTelegram(post,language);
@@ -1189,7 +1199,11 @@ jobs:
               ? t('По данным Square: пакет не истёк и не разобран.','Square reports that the packet has not expired or run out.')
               : t('Доступность награды не проверена.','Reward availability has not been verified.'));
             if (post.kind === "quiz" || post.kind === "quiz_answer") lines.push(t('Подсказка и ответ ещё не проверены получением пакета.','The hint and answer have not been verified by claiming the packet.'));
-            if (post.expires_at) lines.push(`⌛ ${t('До','Expires')}: ${escapeHtml(post.expires_at.replace('T',' ').replace(/\.\d{3}Z$/, ' UTC'),40)}`);
+            if (post.expires_at) {
+              const countdown=formatExpiryCountdown(post.expires_at,Date.now(),language);
+              if(countdown)lines.push(countdown);
+              lines.push(`⌛ ${t('До','Expires')}: ${escapeHtml(post.expires_at.replace('T',' ').replace(/\.\d{3}Z$/, ' UTC'),40)}`);
+            }
             if (post.published_at) {
               lines.push(`🕒 ${escapeHtml(post.published_at.replace("T"," ").replace(/\.\d{3}Z$/, " UTC"),40)}`);
             }
