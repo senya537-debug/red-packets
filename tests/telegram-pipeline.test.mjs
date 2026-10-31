@@ -722,24 +722,31 @@ test('migration also works when the state branch exists without the file',async(
 });
 
 // ---- daily squash of the state branch ----
-function fakeBranchApi({head='head-old',message='Red Packet delivery: sent [skip ci]',tree=[{path:'.redpacket',type:'tree'}],moveOnRecheck=false,missing=false}={}) {
-  const calls=[];let reads=0,branchHead=head;
+function fakeBranchApi({message='Red Packet delivery: sent [skip ci]',tree=[{path:'.redpacket',type:'tree'}],moveOnRecheck=false,missing=false,tagMessage=null}={}) {
+  const calls=[],commits={'head-old':{message,tree:{sha:'tree-1'},parents:[{sha:'p1'}]}};
+  let branchHead='head-old',reads=0,tag=null,created=0;
+  if(tagMessage!==null){commits['tag-commit']={message:tagMessage,tree:{sha:'tree-1'},parents:[]};tag='tag-commit';}
   const reply=(status,body)=>new Response(JSON.stringify(body??{}),{status});
   const fetchImpl=async(url,init={})=>{
     const method=init.method||'GET',path=new URL(url).pathname.replace('/repos/o/r',''),body=init.body?JSON.parse(init.body):null;
     calls.push(method+' '+path);
+    let m;
+    if(method==='GET' && path==='/git/ref/tags/state-snapshot')return tag?reply(200,{object:{sha:tag}}):reply(404);
     if(method==='GET' && path==='/git/ref/heads/state') {
       if(missing)return reply(404);
       reads++;if(moveOnRecheck && reads>1)branchHead='head-moved';
       return reply(200,{object:{sha:branchHead}});
     }
-    if(method==='GET' && path==='/git/commits/head-old')return reply(200,{message,tree:{sha:'tree-1'},parents:[{sha:'p1'},]});
+    if(method==='GET' && (m=path.match(/^\/git\/commits\/(.+)$/)))return commits[m[1]]?reply(200,commits[m[1]]):reply(404);
     if(method==='GET' && path==='/git/trees/tree-1')return reply(200,{tree});
-    if(method==='POST' && path==='/git/commits'){calls.push(JSON.stringify(body));return reply(201,{sha:'snapshot-1'});}
-    if(method==='PATCH' && path==='/git/refs/heads/state'){calls.push(JSON.stringify(body));return reply(200,{});}
+    if(method==='POST' && path==='/git/commits'){const sha='snapshot-'+(++created);commits[sha]={message:body.message,tree:{sha:body.tree},parents:[]};calls.push(JSON.stringify(body));return reply(201,{sha});}
+    if(method==='PATCH' && path==='/git/refs/heads/state'){branchHead=body.sha;calls.push(JSON.stringify(body));return reply(200,{});}
+    if(method==='PATCH' && path==='/git/refs/tags/state-snapshot'){if(!tag)return reply(404);tag=body.sha;calls.push(JSON.stringify(body));return reply(200,{});}
+    if(method==='POST' && path==='/git/refs'){tag=body.sha;calls.push(JSON.stringify(body));return reply(201,{});}
     throw new Error('unexpected '+method+' '+path);
   };
-  return {calls,fetchImpl};
+  const advance=()=>{branchHead='next-head';commits['next-head']={message:'Red Packet delivery: sent [skip ci]',tree:{sha:'tree-1'},parents:[{sha:'snapshot-1'}]};};
+  return {calls,fetchImpl,advance,head:()=>branchHead,tag:()=>tag};
 }
 test('state branch squash is due once a day after 03:00 UTC',()=>{
   const at=(d,h)=>Date.UTC(2026,9,d,h,0,0);
@@ -749,17 +756,37 @@ test('state branch squash is due once a day after 03:00 UTC',()=>{
   assert.equal(app.stateSquashDue('State snapshot 2026-10-30 [skip ci]',at(31,4)),true,'next day');
 });
 
-test('squash replaces the history with one parentless commit that has the same tree',async()=>{
+test('squash replaces the history with one parentless commit that has the same tree and remembers it with a tag',async()=>{
   const api=fakeBranchApi(),now2=Date.UTC(2026,9,30,5,0,0);
   const result=await app.squashStateHistory(stateEnv('squash'),{fetchImpl:api.fetchImpl,now:now2});
   assert.equal(result.squashed,true);
-  const created=JSON.parse(api.calls.find(c=>c.startsWith('{')&&c.includes('"parents"')));
-  assert.deepEqual(created,{message:'State snapshot 2026-10-30 [skip ci]',tree:'tree-1',parents:[]});
-  const patch=JSON.parse(api.calls.filter(c=>c.startsWith('{')).pop());
-  assert.deepEqual(patch,{sha:'snapshot-1',force:true});
-  // already squashed today: nothing is changed
-  const done=fakeBranchApi({message:'State snapshot 2026-10-30 [skip ci]'});
-  assert.equal((await app.squashStateHistory(stateEnv('squash'),{fetchImpl:done.fetchImpl,now:now2})).squashed,false);
+  const bodies=api.calls.filter(c=>c.startsWith('{')).map(c=>JSON.parse(c));
+  assert.deepEqual(bodies[0],{message:'State snapshot 2026-10-30 [skip ci]',tree:'tree-1',parents:[]});
+  assert.deepEqual(bodies[1],{sha:'snapshot-1',force:true},'branch moved to the snapshot');
+  assert.equal(api.head(),'snapshot-1');assert.equal(api.tag(),'snapshot-1','today\'s snapshot is remembered');
+});
+
+test('squash happens once a day even though the branch head moves after every run',async()=>{
+  const api=fakeBranchApi(),env=stateEnv('squash3'),morning=Date.UTC(2026,9,30,5,0,0);
+  assert.equal((await app.squashStateHistory(env,{fetchImpl:api.fetchImpl,now:morning})).squashed,true);
+  // the next publisher runs add commits on top of the snapshot; none of them may trigger another squash today
+  for(const minutes of [3,6,60,600]) {
+    api.advance();const before=api.calls.length;
+    const again=await app.squashStateHistory(env,{fetchImpl:api.fetchImpl,now:morning+minutes*60000});
+    assert.equal(again.squashed,false);assert.match(again.reason,/already squashed today/);
+    assert.ok(api.calls.slice(before).every(c=>c.startsWith('GET ')),'read-only after the first squash of the day');
+  }
+  assert.equal(api.head(),'next-head','the later commits were left alone');
+  // next UTC day: due again
+  api.advance();
+  assert.equal((await app.squashStateHistory(env,{fetchImpl:api.fetchImpl,now:Date.UTC(2026,9,31,4,0,0)})).squashed,true);
+  // too early in the day: nothing is read at all
+  const early=fakeBranchApi();
+  assert.equal((await app.squashStateHistory(env,{fetchImpl:early.fetchImpl,now:Date.UTC(2026,9,30,2,0,0)})).reason,'too early');
+  assert.equal(early.calls.length,0);
+  // a snapshot already taken today (tag present) is respected from the very first read
+  const done=fakeBranchApi({tagMessage:'State snapshot 2026-10-30 [skip ci]'});
+  assert.equal((await app.squashStateHistory(env,{fetchImpl:done.fetchImpl,now:morning})).squashed,false);
   assert.ok(done.calls.every(c=>c.startsWith('GET ')));
 });
 
