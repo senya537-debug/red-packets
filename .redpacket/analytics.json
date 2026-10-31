@@ -1,31 +1,31 @@
 {
   "version": 1,
-  "generated_at": "2026-10-31T19:16:53.999Z",
-  "snapshots_processed": 8,
+  "generated_at": "2026-10-31T22:28:05.434Z",
+  "snapshots_processed": 9,
   "coverage": {
-    "retained_unique_posts": 627,
-    "unique_packet_ids": 279,
-    "unique_codes": 279,
-    "unique_packet_or_code_groups": 627,
-    "records_seen_in_latest_feed": 202,
+    "retained_unique_posts": 637,
+    "unique_packet_ids": 283,
+    "unique_codes": 283,
+    "unique_packet_or_code_groups": 637,
+    "records_seen_in_latest_feed": 203,
     "history_retention_days": 365,
     "history_cap": 20000,
     "last_feed_changed": true
   },
   "kinds": {
-    "quiz": 521,
-    "packet": 76,
-    "live": 30
+    "quiz": 527,
+    "packet": 78,
+    "live": 32
   },
   "currencies": {
-    "USDT": 249,
-    "SOL": 90,
+    "USDT": 252,
+    "SOL": 93,
     "USDC": 53,
-    "BTTC": 44,
+    "BTTC": 45,
     "BNB": 43,
-    "unknown": 30,
+    "unknown": 32,
     "PEPE": 27,
-    "BTC": 15,
+    "BTC": 16,
     "SHIB": 11,
     "USTC": 10,
     "DOGE": 9,
@@ -50,27 +50,27 @@
     "PENGU": 1
   },
   "workers": {
-    "authors": 586,
+    "authors": 595,
     "live": 21,
     "posts": 17,
-    "community": 3
+    "community": 4
   },
   "eligibility": {
-    "not_checked": 627
+    "not_checked": 637
   },
   "statuses": {
-    "reported_open": 597,
-    "live_badge": 30
+    "reported_open": 605,
+    "live_badge": 32
   },
   "data_quality": {
-    "code_present": 279,
-    "packet_id_present": 279,
-    "amount_known": 279,
+    "code_present": 283,
+    "packet_id_present": 283,
+    "amount_known": 283,
     "available_amount_known": 0,
     "receivers_known": 0,
     "answer_verified": 0,
     "reward_verified": 0,
-    "expired_by_feed_timestamp": 225
+    "expired_by_feed_timestamp": 235
   },
   "daily": [
     {
@@ -119,7 +119,7 @@
     },
     {
       "date": "2026-10-29",
-      "count": 121
+      "count": 122
     },
     {
       "date": "2026-10-30",
@@ -127,7 +127,7 @@
     },
     {
       "date": "2026-10-31",
-      "count": 115
+      "count": 124
     }
   ],
   "hourly_utc": [
@@ -185,11 +185,11 @@
     },
     {
       "hour_utc": "13",
-      "count": 32
+      "count": 36
     },
     {
       "hour_utc": "14",
-      "count": 41
+      "count": 44
     },
     {
       "hour_utc": "15",
@@ -213,11 +213,11 @@
     },
     {
       "hour_utc": "20",
-      "count": 9
+      "count": 10
     },
     {
       "hour_utc": "21",
-      "count": 16
+      "count": 18
     },
     {
       "hour_utc": "22",
@@ -334,8 +334,8 @@
       "reward_verified": 0
     },
     {
-      "author": "葫芦胖老鱼",
-      "author_id": "Gf4oIOVHS1gLk6ey9zzDdg",
+      "author": "达哥k",
+      "author_id": "w1diw6Tpx_A1gFO7fB1uJw",
       "posts": 10,
       "quiz": 10,
       "packets": 0,
@@ -347,10 +347,10 @@
       "reward_verified": 0
     },
     {
-      "author": "达哥k",
-      "author_id": "w1diw6Tpx_A1gFO7fB1uJw",
-      "posts": 9,
-      "quiz": 9,
+      "author": "葫芦胖老鱼",
+      "author_id": "Gf4oIOVHS1gLk6ey9zzDdg",
+      "posts": 10,
+      "quiz": 10,
       "packets": 0,
       "live": 0,
       "codes": 1,
@@ -408,6 +408,19 @@
       "codes": 1,
       "packet_ids": 1,
       "amounts_known": 1,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "路飞社区糖宝Luffy",
+      "author_id": "JrGTZEbgETAQGQ1PLu_lrA",
+      "posts": 6,
+      "quiz": 4,
+      "packets": 0,
+      "live": 2,
+      "codes": 3,
+      "packet_ids": 3,
+      "amounts_known": 3,
       "answer_verified": 0,
       "reward_verified": 0
     },
@@ -473,19 +486,6 @@
       "codes": 5,
       "packet_ids": 5,
       "amounts_known": 5,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "路飞社区糖宝Luffy",
-      "author_id": "JrGTZEbgETAQGQ1PLu_lrA",
-      "posts": 5,
-      "quiz": 3,
-      "packets": 0,
-      "live": 2,
-      "codes": 3,
-      "packet_ids": 3,
-      "amounts_known": 3,
       "answer_verified": 0,
       "reward_verified": 0
     },
@@ -715,8 +715,8 @@
     {
       "author": "路飞社区糖宝Luffy",
       "author_id": "JrGTZEbgETAQGQ1PLu_lrA",
-      "posts": 5,
-      "quiz": 3,
+      "posts": 6,
+      "quiz": 4,
       "packets": 0,
       "live": 2,
       "codes": 3,
