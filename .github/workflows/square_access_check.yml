@@ -1069,7 +1069,7 @@ jobs:
             return routes[0]||null;
           }
           // Comments are a weak competition hint for display only; they never estimate payout per person or affect reward ranking.
-          const BIG_PER_COMMENTER_USD = 0.5;
+          const BIG_PER_COMMENTER_USD = 0.5; // Threshold applies only to a source-reported per-place reward.
           function totalAmount(post) {
             const total=hasValue(post?.amount) ? Number(post.amount) : NaN;
             return Number.isFinite(total) && total>0 ? total : null;
@@ -1996,9 +1996,14 @@ jobs:
             if(!active.length)return null;
             const fresh=active.filter(post=>now-(Date.parse(post.published_at)||0)<=86400000);
             const known=active.filter(post=>totalAmount(post)!==null);
-            const ranked=active.filter(post=>post.valuation?.liquid && Number.isFinite(post.valuation.per_commenter_usd))
-              .sort((a,b)=>b.valuation.per_commenter_usd-a.valuation.per_commenter_usd).slice(0,DAILY_TOP);
-            const notable=active.filter(post=>post.valuation?.liquid && post.valuation.per_commenter_usd>=BIG_PER_COMMENTER_USD).length;
+            const ranked=active.filter(post=>rewardRank(post).tier>1)
+              .sort((a,b)=>compareRewardPriority(a,b) ||
+                (Date.parse(b.published_at)||0)-(Date.parse(a.published_at)||0)).slice(0,DAILY_TOP);
+            // Only a source-reported per-place amount can count as a notable per-place reward.
+            const notable=active.filter(post=>{
+              const rank=rewardRank(post);
+              return rank.tier===3 && rank.value>=BIG_PER_COMMENTER_USD;
+            }).length;
             return {fresh:fresh.length,active:active.length,known:known.length,notable,top:ranked};
           }
           export function formatDailyReport(report,language='ru') {
@@ -2006,17 +2011,26 @@ jobs:
             const lines=[t('📊 <b>Red Packet Radar · итоги суток</b>','📊 <b>Red Packet Radar · daily summary</b>'),'',
               t(`🧧 Новых пакетов и викторин за 24 ч: <b>${report.fresh}</b>`,`🧧 New packets and quizzes in 24 h: <b>${report.fresh}</b>`),
               t(`✅ Сейчас активны: <b>${report.active}</b>`,`✅ Active now: <b>${report.active}</b>`),
-              t(`💰 С известной суммой: <b>${report.known}</b> из ${report.active}`,`💰 With a known amount: <b>${report.known}</b> of ${report.active}`),
-              t(`🔥 С заметной суммой и малой конкуренцией: <b>${report.notable}</b>`,`🔥 Notable amount, little competition: <b>${report.notable}</b>`)];
+              t(`💰 С известной суммой пакета: <b>${report.known}</b> из ${report.active}`,`💰 With a known total pool: <b>${report.known}</b> of ${report.active}`),
+              t(`🎯 С известной наградой на место ≥ 0.50 $: <b>${report.notable}</b>`,`🎯 With a reported reward per place ≥ $0.50: <b>${report.notable}</b>`)];
             if(report.top.length) {
-              lines.push('',t('<b>Лучшие по сумме на комментатора (оценка):</b>','<b>Best per commenter (estimate):</b>'));
+              lines.push('',t('<b>Лучшие доступные оценки (награда на место выше общей суммы):</b>','<b>Best available reward estimates (per-place values before total pools):</b>'));
               report.top.forEach((post,i)=>{
-                const worth=post.valuation,unit=USD_STABLE.has(String(post.currency).toUpperCase())?'$':escapeHtml(post.currency||'',24);
-                lines.push(`${i+1}. ${formatAverage(totalAmount(post))} ${unit} · ${t('комментариев','comments')}: ${worth.comments} · ≈ ${formatUsd(worth.per_commenter_usd)} $ · <a href="${escapeHtml(post.url||'',300)}">${t('пост','post')}</a>`);
+                const rank=rewardRank(post),worth=post.valuation,unit=escapeHtml(post.currency||'',24);
+                let rewardLabel;
+                if(rank.tier===3 && rank.source==='source_reported_per_place_usd')
+                  rewardLabel=t(`≈ ${formatUsd(rank.value)} $ на оставшееся место (оценка Square)`,`≈ ${formatUsd(rank.value)} $ per remaining place (Square-reported)`);
+                else if(rank.tier===3)
+                  rewardLabel=t(`≈ ${formatAverage(rank.value)} ${unit} на оставшееся место (данные Square)`,`≈ ${formatAverage(rank.value)} ${unit} per remaining place (Square-reported)`);
+                else if(rank.source==='liquid_total_pool_usd')
+                  rewardLabel=t(`Весь пакет: ${formatAverage(totalAmount(post))} ${unit} (≈ ${formatUsd(rank.value)} $, не на человека)`,`Total pool: ${formatAverage(totalAmount(post))} ${unit} (≈ ${formatUsd(rank.value)} $, not per person)`);
+                else
+                  rewardLabel=t(`Весь пакет: ${formatAverage(totalAmount(post))} ${unit} (не на человека)`,`Total pool: ${formatAverage(totalAmount(post))} ${unit} (not per person)`);
+                lines.push(`${i+1}. ${rewardLabel} · <a href="${escapeHtml(post.url||'',300)}">${t('пост','post')}</a>`);
               });
             }
-            lines.push('',t('Суммы — это весь пакет целиком; сколько человек его делят, Square не показывает.','Amounts are for the whole packet; Square does not show how many people share it.'));
-            return {parse_mode:'HTML',link_preview_options:{is_disabled:true},text:lines.join('\n')};
+            lines.push('',t('Общая сумма пакета не означает выплату одному участнику. Награда на место показывается отдельно только когда Square сообщает сумму и оставшиеся места.','A packet total is not a payout to one participant. Per-place reward is shown separately only when Square reports both the amount and remaining places.'));
+            return {parse_mode:'HTML',link_preview_options:{is_disabled:true},text:lines.join('\\n')};
           }
           // Same claim-before-send discipline as affiliate messages, but a failure here never blocks packet delivery.
           export async function publishDailyReport(state,storage,sendEnv,chatId,configuration,destination,language,wait,budget,stats,market,
