@@ -44,21 +44,31 @@ try {
       availableAmount:post.available_amount??null,availableNumber:post.available_receivers??null,
       status:post.status??null
     }};
+    const relevantKey=/amount|number|count|receiver|packet|red|envelop|reward|remain|claim|currency|coin|total|expire|runout|type|share|quantity/i;
+    const result={...base};
     try {
       const original=await app.fetchOriginal(post.post_id),detail=original?.redEnvelop||{};
-      const relevantKey=/amount|number|count|receiver|packet|red|envelop|reward|remain|claim|currency|coin|total|expire|runout|type|share|quantity/i;
       const nestedKeyMap=Object.fromEntries(Object.entries(original||{})
         .filter(([,value])=>value && typeof value==='object' && !Array.isArray(value))
         .map(([key,value])=>[key,Object.keys(value).filter(name=>relevantKey.test(name))]));
-      return {...base,detail:{
+      result.regular_detail={
         currency:detail.currency??null,amount:detail.amount??null,
-        availableAmount:detail.availableAmount??null,availableNumber:detail.availableNumber??null,
-        isExpired:detail.isExpired??null,isRunOut:detail.isRunOut??null,
-        expiredTime:detail.expiredTime??null
-      },detail_has_redEnvelop:!!original?.redEnvelop,
-      detail_keys:Object.keys(detail),original_relevant_keys:Object.keys(original||{}).filter(key=>relevantKey.test(key)),
-      nested_relevant_keys:nestedKeyMap};
-    } catch(error) {return {...base,detail_error:String(error.message||error).slice(0,160)};}
+        availableAmount:detail.availableAmount??null,number:detail.number??null,
+        availableNumber:detail.availableNumber??null,isExpired:detail.isExpired??null,
+        isRunOut:detail.isRunOut??null,expiredTime:detail.expiredTime??null,
+        keys:Object.keys(detail),original_relevant_keys:Object.keys(original||{}).filter(key=>relevantKey.test(key)),
+        nested_relevant_keys:nestedKeyMap};
+    } catch(error) {result.regular_detail_error=String(error.message||error).slice(0,160);}
+    try {
+      const special=await app.fetchSpecialDetail(post.post_id),detail=special?.redEnvelop||{};
+      result.special_detail={
+        currency:detail.currency??null,amount:detail.amount??null,
+        availableAmount:detail.availableAmount??null,number:detail.number??null,
+        availableNumber:detail.availableNumber??null,isExpired:detail.isExpired??null,
+        isRunOut:detail.isRunOut??null,expiredTime:detail.expiredTime??null,
+        keys:Object.keys(detail),top_level_keys:Object.keys(special||{}).filter(key=>relevantKey.test(key))};
+    } catch(error) {result.special_detail_error=String(error.message||error).slice(0,160);}
+    return result;
   }));
   if(!candidates.length)detailAudit=[{eligible_candidates:app.publishCandidates(snapshot).length,reason:'No eligible numeric post IDs to sample'}];
 } catch(error) {
