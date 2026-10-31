@@ -355,31 +355,41 @@ test('message shows total amount, competition estimate and honest wording (RU/EN
   const low=app.valuedPost(totalPacket('USDT',5,5,'950').post,m);
   const ru=fmt(low,'ru'),en=fmt(low,'en');
   assert.match(ru,/Всего в пакете ≈ 5 \$/);assert.match(ru,/Square не показывает/);
-  assert.match(ru,/Комментариев: 5 · ≈ 1 \$ на комментатора \(оценка\)/);assert.match(ru,/мало конкурентов/);
-  assert.match(en,/Total in the packet ≈ 5 \$/);assert.match(en,/per commenter \(estimate\)/);assert.match(en,/little competition/);
+  assert.match(ru,/Конкуренция \(грубая оценка\): 5 комментариев · ≈ 1 \$ на комментарий, не выплата/);assert.match(ru,/Сумма заметная относительно числа комментариев/);
+  assert.match(en,/Total in the packet ≈ 5 \$/);assert.match(en,/per comment, not a payout/);assert.match(en,/Notable pool relative to comment count/);
   assert.doesNotMatch(ru,/на человека/);
   const crowded=fmt(app.valuedPost(totalPacket('USDT',5,500,'951').post,m),'ru');
-  assert.match(crowded,/≈ 0\.01 \$ на комментатора/);assert.doesNotMatch(crowded,/мало конкурентов/);
+  assert.match(crowded,/≈ 0\.01 \$ на комментарий, не выплата/);assert.doesNotMatch(crowded,/мало конкурентов/);
   const noComments=fmt(app.valuedPost(totalPacket('USDT',5,null,'952').post,m),'ru');
   assert.match(noComments,/Всего в пакете ≈ 5 \$/);assert.doesNotMatch(noComments,/Комментариев/);
   const doge=fmt(app.valuedPost(totalPacket('DOGE',100,10,'953').post,m),'ru');
-  assert.match(doge,/Всего в пакете ≈ 100 DOGE \(≈ 20 \$\)/);assert.match(doge,/≈ 2 \$ на комментатора/);
+  assert.match(doge,/Всего в пакете ≈ 100 DOGE \(≈ 20 \$\)/);assert.match(doge,/≈ 2 \$ на комментарий, не выплата/);
   const thin=fmt(app.valuedPost(totalPacket('TINY',100000,2,'954').post,m),'ru');
-  assert.doesNotMatch(thin,/на комментатора/);assert.doesNotMatch(thin,/мало конкурентов/);assert.match(thin,/мало торгуется/);
+  assert.doesNotMatch(thin,/на комментарий, не выплата/);assert.doesNotMatch(thin,/мало конкурентов/);assert.match(thin,/мало торгуется/);
   const unpriced=fmt(app.valuedPost(totalPacket('NOPE',77,2,'955').post,m),'ru');
   assert.match(unpriced,/Всего в пакете ≈ 77 NOPE/);assert.doesNotMatch(unpriced,/\$\)/);
   assert.match(fmt(coinPacket('USDT',null,null,'956').post,'ru'),/Размер награды неизвестен/);
 });
 
-test('delivery order prefers a big total with few comments, then unknowns',()=>{
+test('delivery ranking separates verified per-place rewards from total pools and ignores comments as payout math',()=>{
   const m=market();
-  const exact=coinPacket('USDT',30,10,'960'),     // real average 3 $
-    quiet=totalPacket('USDT',5,5,'961'),          // 1 $ per commenter
-    crowded=totalPacket('USDT',50,500,'962'),     // 0.1 $ per commenter
-    unknownComments=totalPacket('USDT',2,null,'963'), // 2 / 50 assumed
-    nothing=coinPacket('USDT',null,null,'964');
-  const items=[nothing,crowded,unknownComments,quiet,exact].map(c=>({...c,post:app.valuedPost(c.post,m)}));
-  assert.deepEqual(app.orderDeliveryCandidates(items).map(c=>c.key).slice(0,4),[exact.key,quiet.key,crowded.key,unknownComments.key]);
+  const exact=coinPacket('USDT',30,10,'960'),     // verified average 3 $ per remaining place
+    smallPool=totalPacket('USDT',5,5,'961'),
+    largePool=totalPacket('USDT',50,500,'962'),
+    samePoolFewComments=totalPacket('USDT',10,5,'963'),
+    samePoolManyComments=totalPacket('USDT',10,500,'965'),
+    unknownComments=totalPacket('USDT',2,null,'964'),
+    nothing=coinPacket('USDT',null,null,'966');
+  samePoolFewComments.post.published_at=new Date(now-60000).toISOString();
+  samePoolManyComments.post.published_at=new Date(now-1000).toISOString();
+  const items=[nothing,smallPool,largePool,samePoolManyComments,unknownComments,samePoolFewComments,exact]
+    .map(c=>({...c,post:app.valuedPost(c.post,m)}));
+  const ordered=app.orderDeliveryCandidates(items).map(c=>c.key);
+  assert.deepEqual(ordered.slice(0,5),[exact.key,largePool.key,samePoolManyComments.key,samePoolFewComments.key,smallPool.key]);
+  assert.ok(ordered.indexOf(exact.key)<ordered.indexOf(largePool.key),'known per-place value outranks any total-pool estimate');
+  assert.ok(ordered.indexOf(samePoolManyComments.key)<ordered.indexOf(samePoolFewComments.key),
+    'equal total pools are ordered by freshness, not comment count');
+  assert.ok(ordered.indexOf(unknownComments.key)<ordered.indexOf(nothing.key),'unknown stablecoin totals remain rankable; missing values stay last');
 });
 
 // ---- watchdog: private alerts and healthcheck ping ----
@@ -456,16 +466,19 @@ test('daily report is due once per UTC day after the report hour and respects cl
   assert.equal(app.dailyReportDue({items:{[key]:{state:'sent'}}},dest,Date.UTC(2026,9,31,8)),dest+':daily:2026-10-31','next day is due again');
 });
 
-test('daily report summarizes the feed honestly and ranks by estimated amount per commenter',()=>{
+test('daily report ranks real per-place values ahead of total pools and never treats comments as payout',()=>{
   const m=market(),report=app.buildDailyReport(dailyState(),m,now);
   assert.equal(report.active,5);assert.equal(report.fresh,4,'three-day-old post is not new');
   assert.equal(report.known,4);
-  // per commenter: 974 = 9 $, 972 (20 $ of DOGE / 10) = 2 $, 970 = 1 $, 971 = 0.01 $; 973 has no amount
-  assert.deepEqual(report.top.map(p=>p.post_id),['974','972','970','971']);
-  assert.equal(report.notable,3,'only estimates of 0.5 $ or more count');
+  // No fixture reports remaining places: rank by total USD pool, never total divided by comments.
+  assert.deepEqual(report.top.map(p=>p.post_id),['972','974','970','971']);
+  assert.equal(report.notable,0,'comment counts cannot create a per-place reward estimate');
   const ru=app.formatDailyReport(report,'ru').text,en=app.formatDailyReport(report,'en').text;
-  assert.match(ru,/итоги суток/);assert.match(ru,/Новых пакетов и викторин за 24 ч: <b>4<\/b>/);assert.match(ru,/Square не показывает/);
-  assert.match(en,/daily summary/);assert.match(en,/<a href="https:\/\/www\.binance\.com\/en\/square\/post\/\d+">post<\/a>/);
+  assert.match(ru,/итоги суток/);assert.match(ru,/Новых пакетов и викторин за 24 ч: <b>4<\/b>/);
+  assert.match(ru,/Весь пакет: 100 DOGE \(≈ 20 \$, не на человека\)/);
+  assert.match(ru,/награда на место показывается отдельно/i);
+  assert.match(en,/daily summary/);assert.match(en,/Total pool: 100 DOGE \(≈ 20 \$, not per person\)/);
+  assert.match(en,/<a href="https:\/\/www\.binance\.com\/en\/square\/post\/\d+">post<\/a>/);
   assert.equal(app.buildDailyReport({items:{},public_feed:{}},m,now),null,'nothing to report, nothing is sent');
 });
 
