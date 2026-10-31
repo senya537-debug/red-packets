@@ -393,6 +393,23 @@ test('delivery ranking separates verified per-place rewards from total pools and
 });
 
 // ---- watchdog: private alerts and healthcheck ping ----
+test('equal-value opportunities with earlier expiry are delivered first without outranking higher reward tiers',()=>{
+  const m=market();
+  const perPlace=coinPacket('USDT',5,1,'968'); // $5 per remaining place
+  const expiring=totalPacket('USDT',10,100,'967');
+  const later=totalPacket('USDT',10,1,'966');
+  expiring.post.expires_at=new Date(now+30*60*1000).toISOString();
+  expiring.post.published_at=new Date(now-2*3600000).toISOString();
+  later.post.expires_at=new Date(now+12*3600000).toISOString();
+  later.post.published_at=new Date(now-5*60000).toISOString();
+  const urgentHugePool=totalPacket('USDT',10000,1,'969');
+  urgentHugePool.post.expires_at=new Date(now+5*60*1000).toISOString();
+  const items=[later,urgentHugePool,expiring,perPlace].map(c=>({...c,post:app.valuedPost(c.post,m)}));
+  const ordered=app.orderDeliveryCandidates(items).map(c=>c.key);
+  assert.deepEqual(ordered,[perPlace.key,urgentHugePool.key,expiring.key,later.key],
+    'per-place reward tier and total pool value stay primary; expiry urgency breaks equal-value ties');
+});
+
 test('watchdog findings cover errors, failed searches, price outage and silence',()=>{
   const hour=3600000,sentState=(ageH,seenH)=>({items:{a:{state:'sent',updated_at:now-ageH*hour},b:{state:'queued',updated_at:now}},
     public_feed:{x:{observed_at:now-seenH*hour}}});
