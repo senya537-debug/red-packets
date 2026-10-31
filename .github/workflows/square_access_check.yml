@@ -1996,12 +1996,12 @@ jobs:
             if(!active.length)return null;
             const fresh=active.filter(post=>now-(Date.parse(post.published_at)||0)<=86400000);
             const known=active.filter(post=>totalAmount(post)!==null);
-            const ranked=active.filter(post=>rewardRank(post).tier>1)
-              .sort((a,b)=>compareRewardPriority(a,b) ||
+            const ranked=active.filter(post=>rewardRank({post}).tier>1)
+              .sort((a,b)=>compareRewardPriority({post:a},{post:b}) ||
                 (Date.parse(b.published_at)||0)-(Date.parse(a.published_at)||0)).slice(0,DAILY_TOP);
             // Only a source-reported per-place amount can count as a notable per-place reward.
             const notable=active.filter(post=>{
-              const rank=rewardRank(post);
+              const rank=rewardRank({post});
               return rank.tier===3 && rank.value>=BIG_PER_COMMENTER_USD;
             }).length;
             return {fresh:fresh.length,active:active.length,known:known.length,notable,top:ranked};
@@ -2016,7 +2016,7 @@ jobs:
             if(report.top.length) {
               lines.push('',t('<b>Лучшие доступные оценки (награда на место выше общей суммы):</b>','<b>Best available reward estimates (per-place values before total pools):</b>'));
               report.top.forEach((post,i)=>{
-                const rank=rewardRank(post),worth=post.valuation,unit=escapeHtml(post.currency||'',24);
+                const rank=rewardRank({post}),worth=post.valuation,unit=escapeHtml(post.currency||'',24);
                 let rewardLabel;
                 if(rank.tier===3 && rank.source==='source_reported_per_place_usd')
                   rewardLabel=t(`≈ ${formatUsd(rank.value)} $ на оставшееся место (оценка Square)`,`≈ ${formatUsd(rank.value)} $ per remaining place (Square-reported)`);
