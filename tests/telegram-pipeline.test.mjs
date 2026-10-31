@@ -466,16 +466,19 @@ test('daily report is due once per UTC day after the report hour and respects cl
   assert.equal(app.dailyReportDue({items:{[key]:{state:'sent'}}},dest,Date.UTC(2026,9,31,8)),dest+':daily:2026-10-31','next day is due again');
 });
 
-test('daily report summarizes the feed honestly and ranks by estimated amount per commenter',()=>{
+test('daily report ranks real per-place values ahead of total pools and never treats comments as payout',()=>{
   const m=market(),report=app.buildDailyReport(dailyState(),m,now);
   assert.equal(report.active,5);assert.equal(report.fresh,4,'three-day-old post is not new');
   assert.equal(report.known,4);
-  // per commenter: 974 = 9 $, 972 (20 $ of DOGE / 10) = 2 $, 970 = 1 $, 971 = 0.01 $; 973 has no amount
-  assert.deepEqual(report.top.map(p=>p.post_id),['974','972','970','971']);
-  assert.equal(report.notable,3,'only estimates of 0.5 $ or more count');
+  // No fixture reports remaining places: rank by total USD pool, never total divided by comments.
+  assert.deepEqual(report.top.map(p=>p.post_id),['972','974','970','971']);
+  assert.equal(report.notable,0,'comment counts cannot create a per-place reward estimate');
   const ru=app.formatDailyReport(report,'ru').text,en=app.formatDailyReport(report,'en').text;
-  assert.match(ru,/итоги суток/);assert.match(ru,/Новых пакетов и викторин за 24 ч: <b>4<\/b>/);assert.match(ru,/Square не показывает/);
-  assert.match(en,/daily summary/);assert.match(en,/<a href="https:\/\/www\.binance\.com\/en\/square\/post\/\d+">post<\/a>/);
+  assert.match(ru,/итоги суток/);assert.match(ru,/Новых пакетов и викторин за 24 ч: <b>4<\/b>/);
+  assert.match(ru,/Весь пакет: 100 DOGE \(≈ 20 \$, не на человека\)/);
+  assert.match(ru,/награда на место показывается отдельно/i);
+  assert.match(en,/daily summary/);assert.match(en,/Total pool: 100 DOGE \(≈ 20 \$, not per person\)/);
+  assert.match(en,/<a href="https:\/\/www\.binance\.com\/en\/square\/post\/\d+">post<\/a>/);
   assert.equal(app.buildDailyReport({items:{},public_feed:{}},m,now),null,'nothing to report, nothing is sent');
 });
 
