@@ -616,3 +616,177 @@ test('importSearchResults saves four result files in one commit and marks a miss
     assert.ok(['post:995','post:996','post:997'].every(k=>k in remote.public_feed));
   } finally {Object.assign(proto,saved);fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+// ---- delivery history on its own branch ----
+const stateEnv=token=>({GITHUB_REPOSITORY:'o/r',GITHUB_REF_NAME:'main',GH_STATE_TOKEN:'ghs_'+token+'0123456789abcdef'});
+const noWait=async()=>{};
+const STATE_FILE='.redpacket/delivery.json';
+function fakeGitHub(initial) {
+  const branches=clone(initial),calls=[],objects={blobs:{},trees:{},commits:{}};let counter=0;
+  const next=prefix=>prefix+(++counter),reply=(status,body)=>new Response(JSON.stringify(body??{}),{status});
+  const fetchImpl=async(url,init={})=>{
+    const u=new URL(url),method=init.method||'GET',path=u.pathname.replace('/repos/o/r',''),body=init.body?JSON.parse(init.body):null;
+    calls.push(method+' '+path+(u.searchParams.get('ref')?'?ref='+u.searchParams.get('ref'):''));
+    let m;
+    if(method==='GET' && (m=path.match(/^\/contents\/(.+)$/))) {
+      const file=branches[u.searchParams.get('ref')]?.[m[1]];
+      if(!file)return reply(404,{message:'Not Found'});
+      if(String(new Headers(init.headers).get('accept')).includes('raw'))return new Response(file.text,{status:200});
+      return reply(200,{type:'file',sha:file.sha,encoding:'base64',content:Buffer.from(file.text).toString('base64')});
+    }
+    if(method==='PUT' && (m=path.match(/^\/contents\/(.+)$/))) {
+      const branch=branches[body.branch];if(!branch)return reply(422,{message:'Branch not found'});
+      const file=branch[m[1]];if(file && file.sha!==body.sha)return reply(409,{message:'sha mismatch'});
+      branch[m[1]]={text:Buffer.from(body.content,'base64').toString('utf8'),sha:next('sha-')};
+      return reply(200,{content:{sha:branch[m[1]].sha}});
+    }
+    if(method==='POST' && path==='/git/blobs'){const sha=next('blob-');objects.blobs[sha]=body.content;return reply(201,{sha});}
+    if(method==='POST' && path==='/git/trees'){const sha=next('tree-');objects.trees[sha]=body.tree.map(e=>({path:e.path,blob:e.sha}));return reply(201,{sha});}
+    if(method==='POST' && path==='/git/commits'){const sha=next('commit-');objects.commits[sha]={tree:body.tree,parents:body.parents};return reply(201,{sha});}
+    if(method==='POST' && path==='/git/refs') {
+      const name=body.ref.replace('refs/heads/','');if(branches[name])return reply(422,{message:'Reference already exists'});
+      const tree=objects.trees[objects.commits[body.sha].tree];
+      branches[name]=Object.fromEntries(tree.map(e=>[e.path,{text:objects.blobs[e.blob],sha:next('sha-')}]));
+      return reply(201,{ref:body.ref});
+    }
+    throw new Error('unexpected request '+method+' '+path);
+  };
+  return {branches,calls,fetchImpl};
+}
+async function withFetch(fetchImpl,run) {
+  const original=globalThis.fetch;globalThis.fetch=fetchImpl;
+  try {return await run();} finally {globalThis.fetch=original;}
+}
+const historyState=()=>({version:1,items:{[destination+':post:1']:{state:'sent',post_id:'1',identity_keys:['post:1'],updated_at:now}},
+  enabled_destination:destination});
+
+test('state branch name defaults to "state" and can be overridden',()=>{
+  assert.equal(app.stateBranch({}),'state');assert.equal(app.stateBranch({STATE_BRANCH:'history'}),'history');
+});
+
+test('history moves to the state branch once, keeps every record, leaves a safe marker and then writes only to the branch',async()=>{
+  const original=historyState(),fake=fakeGitHub({main:{[STATE_FILE]:{text:JSON.stringify(original),sha:'old-sha'}}});
+  await withFetch(fake.fetchImpl,async()=>{
+    const storage=new app.GitHubState(stateEnv('migrate'),noWait),state=await storage.load();
+    assert.deepEqual(state.items,original.items,'no delivery record is lost');assert.equal(state.enabled_destination,destination);
+    assert.deepEqual(JSON.parse(fake.branches.state[STATE_FILE].text),original);
+    const marker=JSON.parse(fake.branches.main[STATE_FILE].text);
+    assert.ok(marker.retired);assert.deepEqual(marker.items,{});assert.equal(marker.enabled_destination,null,'old code cannot resume sending from the marker');
+    state.items.other={state:'sent',post_id:'2',identity_keys:['post:2'],updated_at:now};
+    await storage.save(state,'after move');
+    assert.ok(JSON.parse(fake.branches.state[STATE_FILE].text).items.other);
+    assert.ok(JSON.parse(fake.branches.main[STATE_FILE].text).retired,'the code branch is never written again');
+  });
+});
+
+test('no migration when the state branch already has the history, or when there is no history at all',async()=>{
+  const existing=fakeGitHub({main:{[STATE_FILE]:{text:'{"retired":"x","version":1,"items":{}}',sha:'m'}},state:{[STATE_FILE]:{text:JSON.stringify(historyState()),sha:'s'}}});
+  await withFetch(existing.fetchImpl,async()=>{
+    const state=await new app.GitHubState(stateEnv('existing'),noWait).load();
+    assert.equal(Object.keys(state.items).length,1);
+  });
+  assert.ok(existing.calls.every(c=>c.startsWith('GET ')),'read-only: '+existing.calls.join(', '));
+  const fresh=fakeGitHub({main:{}});
+  await withFetch(fresh.fetchImpl,async()=>{
+    const state=await new app.GitHubState(stateEnv('fresh'),noWait).load();
+    assert.deepEqual(state.items,{});
+  });
+  assert.ok(fresh.calls.every(c=>c.startsWith('GET ')),'a fresh install writes nothing before the first save');
+});
+
+test('a missing state branch never restarts delivery from an empty history',async()=>{
+  const retired=fakeGitHub({main:{[STATE_FILE]:{text:JSON.stringify({version:1,retired:'moved',items:{},enabled_destination:null}),sha:'m'}}});
+  await withFetch(retired.fetchImpl,async()=>{
+    await assert.rejects(new app.GitHubState(stateEnv('retired'),noWait).load(),/retired|refusing/);
+  });
+  assert.ok(retired.calls.every(c=>c.startsWith('GET ')));
+  const damaged=fakeGitHub({main:{[STATE_FILE]:{text:'{not json',sha:'m'}}});
+  await withFetch(damaged.fetchImpl,async()=>{
+    await assert.rejects(new app.GitHubState(stateEnv('damaged'),noWait).load(),/not valid JSON/);
+  });
+  assert.ok(damaged.calls.every(c=>c.startsWith('GET ')));
+  const wrong=fakeGitHub({main:{[STATE_FILE]:{text:JSON.stringify({version:2,items:{}}),sha:'m'}}});
+  await withFetch(wrong.fetchImpl,async()=>{
+    await assert.rejects(new app.GitHubState(stateEnv('wrong'),noWait).load(),/damaged/);
+  });
+});
+
+test('migration also works when the state branch exists without the file',async()=>{
+  const original=historyState(),fake=fakeGitHub({main:{[STATE_FILE]:{text:JSON.stringify(original),sha:'old'}},state:{}});
+  await withFetch(fake.fetchImpl,async()=>{
+    const state=await new app.GitHubState(stateEnv('emptybranch'),noWait).load();
+    assert.deepEqual(state.items,original.items);
+  });
+  assert.deepEqual(JSON.parse(fake.branches.state[STATE_FILE].text),original);
+  assert.ok(JSON.parse(fake.branches.main[STATE_FILE].text).retired);
+});
+
+// ---- daily squash of the state branch ----
+function fakeBranchApi({head='head-old',message='Red Packet delivery: sent [skip ci]',tree=[{path:'.redpacket',type:'tree'}],moveOnRecheck=false,missing=false}={}) {
+  const calls=[];let reads=0,branchHead=head;
+  const reply=(status,body)=>new Response(JSON.stringify(body??{}),{status});
+  const fetchImpl=async(url,init={})=>{
+    const method=init.method||'GET',path=new URL(url).pathname.replace('/repos/o/r',''),body=init.body?JSON.parse(init.body):null;
+    calls.push(method+' '+path);
+    if(method==='GET' && path==='/git/ref/heads/state') {
+      if(missing)return reply(404);
+      reads++;if(moveOnRecheck && reads>1)branchHead='head-moved';
+      return reply(200,{object:{sha:branchHead}});
+    }
+    if(method==='GET' && path==='/git/commits/head-old')return reply(200,{message,tree:{sha:'tree-1'},parents:[{sha:'p1'},]});
+    if(method==='GET' && path==='/git/trees/tree-1')return reply(200,{tree});
+    if(method==='POST' && path==='/git/commits'){calls.push(JSON.stringify(body));return reply(201,{sha:'snapshot-1'});}
+    if(method==='PATCH' && path==='/git/refs/heads/state'){calls.push(JSON.stringify(body));return reply(200,{});}
+    throw new Error('unexpected '+method+' '+path);
+  };
+  return {calls,fetchImpl};
+}
+test('state branch squash is due once a day after 03:00 UTC',()=>{
+  const at=(d,h)=>Date.UTC(2026,9,d,h,0,0);
+  assert.equal(app.stateSquashDue('Red Packet delivery: sent',at(30,2)),false);
+  assert.equal(app.stateSquashDue('Red Packet delivery: sent',at(30,3)),true);
+  assert.equal(app.stateSquashDue('State snapshot 2026-10-30 [skip ci]',at(30,12)),false,'already done today');
+  assert.equal(app.stateSquashDue('State snapshot 2026-10-30 [skip ci]',at(31,4)),true,'next day');
+});
+
+test('squash replaces the history with one parentless commit that has the same tree',async()=>{
+  const api=fakeBranchApi(),now2=Date.UTC(2026,9,30,5,0,0);
+  const result=await app.squashStateHistory(stateEnv('squash'),{fetchImpl:api.fetchImpl,now:now2});
+  assert.equal(result.squashed,true);
+  const created=JSON.parse(api.calls.find(c=>c.startsWith('{')&&c.includes('"parents"')));
+  assert.deepEqual(created,{message:'State snapshot 2026-10-30 [skip ci]',tree:'tree-1',parents:[]});
+  const patch=JSON.parse(api.calls.filter(c=>c.startsWith('{')).pop());
+  assert.deepEqual(patch,{sha:'snapshot-1',force:true});
+  // already squashed today: nothing is changed
+  const done=fakeBranchApi({message:'State snapshot 2026-10-30 [skip ci]'});
+  assert.equal((await app.squashStateHistory(stateEnv('squash'),{fetchImpl:done.fetchImpl,now:now2})).squashed,false);
+  assert.ok(done.calls.every(c=>c.startsWith('GET ')));
+});
+
+test('squash never touches a missing branch, a branch without state data, or one that moved',async()=>{
+  const at=Date.UTC(2026,9,30,5,0,0),env=stateEnv('squash2');
+  const missing=fakeBranchApi({missing:true});
+  assert.equal((await app.squashStateHistory(env,{fetchImpl:missing.fetchImpl,now:at})).squashed,false);
+  const empty=fakeBranchApi({tree:[{path:'README.md',type:'blob'}]});
+  await assert.rejects(app.squashStateHistory(env,{fetchImpl:empty.fetchImpl,now:at}),/state data is missing/);
+  assert.ok(!empty.calls.some(c=>c.startsWith('PATCH')));
+  const moved=fakeBranchApi({moveOnRecheck:true});
+  assert.match((await app.squashStateHistory(env,{fetchImpl:moved.fetchImpl,now:at})).reason,/moved/);
+  assert.ok(!moved.calls.some(c=>c.startsWith('PATCH')));
+  await assert.rejects(app.squashStateHistory(env,{fetchImpl:async()=>new Response('{}',{status:500}),now:at}),/HTTP 500/);
+});
+
+test('public feed and watchdog files are written to the state branch',async()=>{
+  const seen=[];
+  const fetchImpl=async(url,init={})=>{
+    const method=init.method||'GET';
+    if(method==='GET'){seen.push('GET '+new URL(url).searchParams.get('ref'));return new Response('{}',{status:404});}
+    seen.push('PUT '+JSON.parse(init.body).branch);return new Response('{}',{status:200});
+  };
+  await app.exportPublicFeed(stateEnv('feedbranch'),{items:{},public_feed:{}},{fetchImpl,now});
+  assert.deepEqual(seen,['GET state','PUT state']);
+  seen.length=0;
+  await app.runWatchdog({...stateEnv('watchbranch'),TG_ALERT_CHAT_ID:'1'},{last_error:'boom'},{items:{},public_feed:{}},
+    {fetchImpl,telegram:async()=>({ok:true,status:200}),now});
+  assert.deepEqual(seen,['GET state','PUT state']);
+});

@@ -3,7 +3,7 @@
 # RU keeps the existing delivery history; EN has a separate receipt namespace. Questions, answers and codes stay original.
 # Run telegram_test first. Run publish manually to enable automatic posting.
 # Preview and test never enable the schedule. No Binance account/API keys needed.
-# Deduplication history stays in .redpacket/delivery.json; it is never reset. Claims are persisted before sending.
+# Deduplication history stays in .redpacket/delivery.json on the state branch; it is never reset. Claims are persisted before sending.
 # Public state contains hashed destination, post IDs and delivery status, no tokens.
 # Only failures proven to precede the HTTP request retry (up to 3 attempts). Ambiguous sends stay blocked.
 # Telegram uses fresh IPv4 TLS connections; no HTTP payload is written until TLS is ready.
@@ -106,6 +106,25 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
+      - name: Read delivery history snapshot from the state branch
+        shell: bash
+        run: |
+          # The search jobs only read the history. Once the history moved to the state branch, the copy on the code
+          # branch is a marker, so a failed read must stop this job instead of searching with empty memory.
+          mkdir -p .redpacket
+          for attempt in 1 2 3; do
+            if git fetch --quiet --depth 1 origin state 2>/dev/null && git show FETCH_HEAD:.redpacket/delivery.json > .redpacket/delivery.json.new 2>/dev/null; then
+              mv .redpacket/delivery.json.new .redpacket/delivery.json
+              echo "Read the history snapshot from the state branch."
+              break
+            fi
+            rm -f .redpacket/delivery.json.new
+            sleep $((attempt * 3))
+          done
+          if grep -q '"retired"' .redpacket/delivery.json 2>/dev/null; then
+            echo "::error::The state branch could not be read and the code branch only has a retirement marker."
+            exit 1
+          fi
       - name: Search Square and save local findings
         shell: bash
         env:
@@ -1448,6 +1467,9 @@ jobs:
           import {createHash,randomUUID} from 'node:crypto';
 
           const STATE_PATH = '.redpacket/delivery.json';
+          // Delivery history lives on its own branch, so its frequent commits never bloat the code branch and the
+          // branch history can be squashed. STATE_BRANCH can override the name.
+          export const stateBranch = env => String(env?.STATE_BRANCH||'state');
           const WAIT = ms => new Promise(resolve => setTimeout(resolve,ms));
           function redact(value,env,limit=300) {
             let text = String(value?.message || value);
@@ -1719,19 +1741,63 @@ jobs:
               if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(env.GITHUB_REPOSITORY || '') || !env.GITHUB_REF_NAME || !env.GH_STATE_TOKEN) {
                 throw new Error('GitHub state configuration missing');
               }
-              this.env=env;this.wait=wait;this.sha=null;this.base=null;
-              this.url=`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/contents/${STATE_PATH}`;
-              this.cacheKey=this.url+':'+env.GITHUB_REF_NAME+':'+createHash('sha256').update(env.GH_STATE_TOKEN).digest('hex');
+              this.env=env;this.wait=wait;this.sha=null;this.base=null;this.branch=stateBranch(env);
+              this.repo=`https://api.github.com/repos/${env.GITHUB_REPOSITORY}`;
+              this.url=`${this.repo}/contents/${STATE_PATH}`;
+              this.cacheKey=this.url+':'+this.branch+':'+createHash('sha256').update(env.GH_STATE_TOKEN).digest('hex');
+            }
+            async api(method,path,body,accept='application/vnd.github+json') {
+              return fetch(this.repo+path,{method,redirect:'error',signal:AbortSignal.timeout(30000),
+                headers:{Accept:accept,Authorization:'Bearer '+this.env.GH_STATE_TOKEN,'X-GitHub-Api-Version':'2026-03-10',
+                  'User-Agent':'SquareTelegramPublisher','Content-Type':'application/json','Cache-Control':'no-cache'},
+                ...(body?{body:JSON.stringify(body)}:{})});
+            }
+            // One-time move of the history from the code branch to the state branch. The publisher is serialized, so
+            // nothing else writes the old copy while this runs. The old copy is then replaced by a marker so that a
+            // missing state branch can never silently restart delivery from an empty history.
+            async migrateFromCodeBranch() {
+              const source=this.env.GITHUB_REF_NAME,ref=encodeURIComponent(source),path='/contents/'+STATE_PATH;
+              const meta=await this.api('GET',path+'?ref='+ref);
+              if(meta.status===404)return false;
+              if(!meta.ok)throw new Error('State migration: reading the old copy failed with HTTP '+meta.status);
+              const sourceSha=(await meta.json())?.sha;
+              const raw=await this.api('GET',path+'?ref='+ref,null,'application/vnd.github.raw+json');
+              if(!raw.ok)throw new Error('State migration: reading the old copy failed with HTTP '+raw.status);
+              const text=await raw.text();let old;
+              try {old=JSON.parse(text);} catch {throw new Error('State migration: old copy is not valid JSON; refusing to continue');}
+              if(old?.retired)throw new Error('Delivery history branch "'+this.branch+'" is missing and the old copy was retired; refusing to start from an empty history');
+              if(old?.version!==1 || !old.items || Array.isArray(old.items) || typeof old.items!=='object')throw new Error('State migration: old copy is damaged; refusing to continue');
+              const step=async(method,path2,body)=>{
+                const response=await this.api(method,path2,body);
+                if(!response.ok && response.status!==422)throw new Error('State migration '+path2+': HTTP '+response.status);
+                return {response,body:await response.json().catch(()=>null)};
+              };
+              const blob=await step('POST','/git/blobs',{content:text,encoding:'utf-8'});
+              const tree=blob.body?.sha&&await step('POST','/git/trees',{tree:[{path:STATE_PATH,mode:'100644',type:'blob',sha:blob.body.sha}]});
+              const commit=tree?.body?.sha&&await step('POST','/git/commits',{message:'Initialize state branch [skip ci]',tree:tree.body.sha,parents:[]});
+              if(!commit?.body?.sha)throw new Error('State migration: could not create the state commit');
+              const created=await step('POST','/git/refs',{ref:'refs/heads/'+this.branch,sha:commit.body.sha});
+              if(created.response.status===422) {
+                // The branch already exists without the file; add it there.
+                const put=await this.api('PUT',path,{message:'Restore state file [skip ci]',branch:this.branch,content:Buffer.from(text).toString('base64')});
+                if(!put.ok)throw new Error('State migration: HTTP '+put.status+' while adding the file to the existing branch');
+              }
+              const marker={version:1,retired:'Delivery history moved to branch "'+this.branch+'"',items:{},enabled_destination:null};
+              const retire=await this.api('PUT',path,{message:'Retire old state copy; history moved to branch '+this.branch+' [skip ci]',branch:source,sha:sourceSha,
+                content:Buffer.from(JSON.stringify(marker)).toString('base64')});
+              if(!retire.ok)console.log('State migration: could not retire the old copy (HTTP '+retire.status+'); continuing');
+              console.log('State migration: delivery history copied to branch '+this.branch);
+              return true;
             }
             async request(method,body,accept='application/vnd.github.object+json',extraHeaders={}) {
-              const url = method==='GET' ? this.url+'?ref='+encodeURIComponent(this.env.GITHUB_REF_NAME) : this.url;
+              const url = method==='GET' ? this.url+'?ref='+encodeURIComponent(this.branch) : this.url;
               return fetch(url, {method, redirect:'error', signal:AbortSignal.timeout(20000),
                 headers:{Accept:accept,Authorization:'Bearer '+this.env.GH_STATE_TOKEN,
                   'X-GitHub-Api-Version':'2026-03-10','User-Agent':'SquareTelegramPublisher','Content-Type':'application/json',
                   'Cache-Control':'no-cache',...extraHeaders},
                 ...(body ? {body:JSON.stringify(body)} : {})});
             }
-            async readLatest(fresh=false) {
+            async readLatest(fresh=false,allowMigration=true) {
               if(fresh)STATE_READ_CACHE.delete(this.cacheKey);
               const cached=STATE_READ_CACHE.get(this.cacheKey);
               const {response,body:metadata}=await readApiWithRetry('GitHub state GET',()=>
@@ -1743,6 +1809,7 @@ jobs:
               if (response.status===404) {
                 STATE_READ_CACHE.delete(this.cacheKey);
                 if(this.sha!==null || cached?.sha)throw new Error('GitHub delivery history disappeared; publishing stopped');
+                if(allowMigration && await this.migrateFromCodeBranch())return this.readLatest(true,false);
                 this.sha=null;return {version:1,items:{},enabled_destination:null};
               }
               if (!response.ok) throw new Error('GitHub state read: HTTP '+response.status);
@@ -1781,7 +1848,7 @@ jobs:
                 let response,result,failure;
                 try {
                   response=await this.request('PUT',{
-                    message:`Red Packet delivery: ${reason} [skip ci]`,branch:this.env.GITHUB_REF_NAME,
+                    message:`Red Packet delivery: ${reason} [skip ci]`,branch:this.branch,
                     content:Buffer.from(JSON.stringify(pending)).toString('base64'),...(this.sha?{sha:this.sha}:{})});
                   result=await response.json().catch(()=>null);
                 } catch(error){failure=error;}
@@ -2505,7 +2572,7 @@ jobs:
             const url=`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/contents/${PUBLIC_FEED_PATH}`;
             const headers={Accept:'application/vnd.github.object+json',Authorization:'Bearer '+env.GH_STATE_TOKEN,
               'X-GitHub-Api-Version':'2026-03-10','User-Agent':'SquareTelegramPublisher','Cache-Control':'no-cache'};
-            const current=await fetchImpl(url+'?ref='+encodeURIComponent(env.GITHUB_REF_NAME),{headers,signal:AbortSignal.timeout(20000),redirect:'error'});
+            const current=await fetchImpl(url+'?ref='+encodeURIComponent(stateBranch(env)),{headers,signal:AbortSignal.timeout(20000),redirect:'error'});
             let sha=null;
             if(current.status===404)sha=null;
             else if(current.ok) {
@@ -2522,7 +2589,7 @@ jobs:
             } else throw new Error('Public feed read: HTTP '+current.status);
             const body=JSON.stringify(file);
             const saved=await fetchImpl(url,{method:'PUT',headers:{...headers,'Content-Type':'application/json'},signal:AbortSignal.timeout(20000),redirect:'error',
-              body:JSON.stringify({message:'Public feed [skip ci]',branch:env.GITHUB_REF_NAME,content:Buffer.from(body).toString('base64'),...(sha?{sha}:{})})});
+              body:JSON.stringify({message:'Public feed [skip ci]',branch:stateBranch(env),content:Buffer.from(body).toString('base64'),...(sha?{sha}:{})})});
             if(!saved.ok)throw new Error('Public feed write: HTTP '+saved.status);
             return {changed:true,entries:Object.keys(file.public_feed).length,bytes:Buffer.byteLength(body)};
           }
@@ -2565,7 +2632,7 @@ jobs:
             const url=`https://api.github.com/repos/${env.GITHUB_REPOSITORY}/contents/${path}`;
             const headers={Accept:'application/vnd.github.object+json',Authorization:'Bearer '+env.GH_STATE_TOKEN,
               'X-GitHub-Api-Version':'2026-03-10','User-Agent':'SquareTelegramPublisher','Cache-Control':'no-cache'};
-            const response=await fetchImpl(url+'?ref='+encodeURIComponent(env.GITHUB_REF_NAME),{headers,signal:AbortSignal.timeout(20000),redirect:'error'});
+            const response=await fetchImpl(url+'?ref='+encodeURIComponent(stateBranch(env)),{headers,signal:AbortSignal.timeout(20000),redirect:'error'});
             if(response.status===404)return {url,headers,sha:null,value:null};
             if(!response.ok)throw new Error('Repository file read: HTTP '+response.status);
             const metadata=await response.json();
@@ -2597,10 +2664,48 @@ jobs:
             }
             const saved=await fetchImpl(file.url,{method:'PUT',redirect:'error',signal:AbortSignal.timeout(20000),
               headers:{...file.headers,'Content-Type':'application/json'},
-              body:JSON.stringify({message:'Watchdog state [skip ci]',branch:env.GITHUB_REF_NAME,
+              body:JSON.stringify({message:'Watchdog state [skip ci]',branch:stateBranch(env),
                 content:Buffer.from(JSON.stringify({version:1,alerts:plan.next})).toString('base64'),...(file.sha?{sha:file.sha}:{})})});
             if(!saved.ok)throw new Error('Watchdog state write: HTTP '+saved.status);
             return result;
+          }
+          // ---- Keep the state branch small: once a day replace its history with one snapshot commit ----
+          // Only the serialized publisher writes this branch, and this runs at the end of its job, so nothing else
+          // can move the branch meanwhile. The tree (the data) is untouched; only the old commits become unreachable.
+          const STATE_SQUASH_HOUR_UTC = 3;
+          export function stateSquashDue(headMessage,now=Date.now()) {
+            if(new Date(now).getUTCHours()<STATE_SQUASH_HOUR_UTC)return false;
+            return !String(headMessage||'').startsWith('State snapshot '+new Date(now).toISOString().slice(0,10));
+          }
+          export async function squashStateHistory(env,{fetchImpl=fetch,now=Date.now()}={}) {
+            const branch=stateBranch(env),repo=`https://api.github.com/repos/${env.GITHUB_REPOSITORY}`;
+            const call=(method,path,body)=>fetchImpl(repo+path,{method,redirect:'error',signal:AbortSignal.timeout(30000),
+              headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+env.GH_STATE_TOKEN,'X-GitHub-Api-Version':'2026-03-10',
+                'User-Agent':'SquareTelegramPublisher','Content-Type':'application/json','Cache-Control':'no-cache'},
+              ...(body?{body:JSON.stringify(body)}:{})});
+            const json=async(response,what)=>{
+              if(!response.ok)throw new Error('State squash '+what+': HTTP '+response.status);
+              return response.json();
+            };
+            const ref=await call('GET','/git/ref/heads/'+encodeURIComponent(branch));
+            if(ref.status===404)return {squashed:false,reason:'no state branch'};
+            const head=(await json(ref,'read branch'))?.object?.sha;
+            if(typeof head!=='string' || !head)throw new Error('State squash: branch has no commit');
+            const commit=await json(await call('GET','/git/commits/'+head),'read commit');
+            if(!stateSquashDue(commit.message,now))return {squashed:false,reason:'already squashed today or too early'};
+            const treeSha=commit.tree?.sha;
+            if(typeof treeSha!=='string' || !treeSha)throw new Error('State squash: commit has no tree');
+            // Never squash a branch that does not hold the state data.
+            const tree=await json(await call('GET','/git/trees/'+treeSha),'read tree');
+            if(!Array.isArray(tree.tree) || !tree.tree.some(entry=>entry.path===STATE_PATH.split('/')[0] && entry.type==='tree'))
+              throw new Error('State squash: the state data is missing from the branch; nothing changed');
+            const created=await json(await call('POST','/git/commits',{message:'State snapshot '+new Date(now).toISOString().slice(0,10)+' [skip ci]',tree:treeSha,parents:[]}),'create commit');
+            if(typeof created?.sha!=='string' || !created.sha)throw new Error('State squash: no commit created');
+            // The branch must still be where we read it; otherwise leave it alone and try again on the next run.
+            const again=await json(await call('GET','/git/ref/heads/'+encodeURIComponent(branch)),'recheck branch');
+            if(again?.object?.sha!==head)return {squashed:false,reason:'branch moved; will retry'};
+            await json(await call('PATCH','/git/refs/heads/'+encodeURIComponent(branch),{sha:created.sha,force:true}),'update branch');
+            return {squashed:true,previous:head.slice(0,7),snapshot:created.sha.slice(0,7)};
           }
           export async function main(env=process.env) {
             const mode=env.RUN_MODE||'preview',role=env.WORKER_ROLE||'publisher';
@@ -2616,6 +2721,10 @@ jobs:
             if(mode!=='telegram_test') {
               try {stats.watchdog=await runWatchdog(env,stats,await new GitHubState(env).readLatest(true));}
               catch(error) {stats.watchdog={error:redact(error,env)};}
+            }
+            if(mode!=='telegram_test' && !stats.last_error) {
+              try {stats.state_squash=await squashStateHistory(env);}
+              catch(error) {stats.state_squash={error:redact(error,env)};}
             }
             summary('## Telegram\n\n'+JSON.stringify(stats,null,2),env);
             if(stats.last_error)process.exitCode=1;

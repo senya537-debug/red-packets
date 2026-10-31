@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 
-const FEED_PATH = '.redpacket/public_feed.json';
+// The live feed is written to the state branch; the workflow copies it here (FEED_PATH) before running.
+const FEED_PATH = process.env.FEED_PATH || '.redpacket/public_feed.json';
 const HISTORY_PATH = '.redpacket/analytics_history.json';
 const REPORT_PATH = '.redpacket/analytics.json';
 const MAX_RECORDS = 20000;
