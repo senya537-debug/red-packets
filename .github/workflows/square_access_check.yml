@@ -1352,8 +1352,19 @@ jobs:
             return right.tier-left.tier || right.value-left.value;
           }
 
+          function compareDeliveryPriority(a,b) {
+            const reward=compareRewardPriority(a,b);
+            if(reward)return reward;
+            const expiryA=Date.parse(a.post?.expires_at),expiryB=Date.parse(b.post?.expires_at);
+            const hasExpiryA=Number.isFinite(expiryA),hasExpiryB=Number.isFinite(expiryB);
+            // Among equal reward tiers and values, a known earlier expiry gets priority.
+            if(hasExpiryA!==hasExpiryB)return hasExpiryA?-1:1;
+            if(hasExpiryA && expiryA!==expiryB)return expiryA-expiryB;
+            return (Date.parse(b.post?.published_at)||0)-(Date.parse(a.post?.published_at)||0);
+          }
+
           function retainRewardRankedEntries(entries,limit) {
-            const compare=(a,b)=>compareRewardPriority(a[1].candidate,b[1].candidate) ||
+            const compare=(a,b)=>compareDeliveryPriority(a[1].candidate,b[1].candidate) ||
               Number(b[1].observed_at)-Number(a[1].observed_at);
             const retained=[];
             for(const queue of ['posts','live']) {
@@ -1389,11 +1400,7 @@ jobs:
                 !['live', 'code'].includes(c.post?.kind) &&
                 c.post?.status !== 'unverified_code'
               )
-              .sort((a, b) =>
-                compareRewardPriority(a,b) ||
-                (Date.parse(b.post?.published_at) || 0) -
-                  (Date.parse(a.post?.published_at) || 0)
-              );
+              .sort(compareDeliveryPriority);
 
             const ordered = [];
 
@@ -2008,8 +2015,7 @@ jobs:
             const fresh=active.filter(post=>now-(Date.parse(post.published_at)||0)<=86400000);
             const known=active.filter(post=>totalAmount(post)!==null);
             const ranked=active.filter(post=>rewardRank({post}).tier>1)
-              .sort((a,b)=>compareRewardPriority({post:a},{post:b}) ||
-                (Date.parse(b.published_at)||0)-(Date.parse(a.published_at)||0)).slice(0,DAILY_TOP);
+              .sort((a,b)=>compareDeliveryPriority({post:a},{post:b})).slice(0,DAILY_TOP);
             // Only a source-reported per-place amount can count as a notable per-place reward.
             const notable=active.filter(post=>{
               const rank=rewardRank({post});
