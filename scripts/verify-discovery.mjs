@@ -46,12 +46,18 @@ try {
     }};
     try {
       const original=await app.fetchOriginal(post.post_id),detail=original?.redEnvelop||{};
+      const relevantKey=/amount|number|count|receiver|packet|red|envelop|reward|remain|claim|currency|coin|total|expire|runout|type|share|quantity/i;
+      const nestedKeyMap=Object.fromEntries(Object.entries(original||{})
+        .filter(([,value])=>value && typeof value==='object' && !Array.isArray(value))
+        .map(([key,value])=>[key,Object.keys(value).filter(name=>relevantKey.test(name))]));
       return {...base,detail:{
         currency:detail.currency??null,amount:detail.amount??null,
         availableAmount:detail.availableAmount??null,availableNumber:detail.availableNumber??null,
         isExpired:detail.isExpired??null,isRunOut:detail.isRunOut??null,
         expiredTime:detail.expiredTime??null
-      },detail_has_redEnvelop:!!original?.redEnvelop};
+      },detail_has_redEnvelop:!!original?.redEnvelop,
+      detail_keys:Object.keys(detail),original_relevant_keys:Object.keys(original||{}).filter(key=>relevantKey.test(key)),
+      nested_relevant_keys:nestedKeyMap};
     } catch(error) {return {...base,detail_error:String(error.message||error).slice(0,160)};}
   }));
   if(!candidates.length)detailAudit=[{eligible_candidates:app.publishCandidates(snapshot).length,reason:'No eligible numeric post IDs to sample'}];
