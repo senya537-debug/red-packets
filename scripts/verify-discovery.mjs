@@ -32,6 +32,25 @@ assert.ok(added.some(result=>[...result.ids].some(id=>!baseline.has(id))),'addit
 
 // Read-only sample of original-post reward metadata. This determines whether detail
 // responses expose remaining amount/places that are absent from feed cards.
+// Read-only hashtag and keyword endpoint audit. These probes do not enter the publisher.
+const candidateTags=['cryptobox','cryptoboxgiveaway','redpacketgiveaway','redpacketrewards','redpacketdrop',
+  'binanceairdrop','airdrop','giveaway','红包活动','红包奖励','红包任务','红包领取'];
+const tagProbes=await Promise.all(candidateTags.map(async tag=>{
+  try {
+    const posts=await app.fetchTag(tag,1);
+    return {tag,ok:true,posts:posts.length,red_envelope_metadata:posts.filter(p=>p?.redEnvelop && typeof p.redEnvelop==='object').length,
+      marker_matches:posts.filter(p=>app.searchMarkers(p).length).length,
+      reported_open:posts.filter(p=>app.normalize(p,'tag-probe')?.status==='reported_open').length};
+  } catch(error) {return {tag,ok:false,error:String(error.message||error).slice(0,160)};}
+}));
+console.log('HASHTAG_SOURCE_AUDIT '+JSON.stringify(tagProbes));
+const keywordProbes=await Promise.all(['Red Packet','Crypto Box'].map(async term=>{
+  try {const posts=await app.fetchKeyword(term);return {term,ok:true,posts:posts.length,
+    red_envelope_metadata:posts.filter(p=>p?.redEnvelop && typeof p.redEnvelop==='object').length,
+    marker_matches:posts.filter(p=>app.searchMarkers(p).length).length};}
+  catch(error){return {term,ok:false,error:String(error.message||error).slice(0,160)};}
+}));
+console.log('KEYWORD_SOURCE_AUDIT '+JSON.stringify(keywordProbes));
 const snapshot=await app.scan({SQUARE_STATE_SNAPSHOT:'.redpacket/delivery.json'},'posts');
 let detailAudit=[];
 try {
