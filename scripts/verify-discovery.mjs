@@ -48,7 +48,8 @@ try {
       sample_keys:Object.keys(items[0]||{}).slice(0,30)}))}));
 } catch(error) {console.log('NEWS_FEED_SOURCE_AUDIT '+JSON.stringify({ok:false,error:String(error.message||error).slice(0,180)}));}
 // Read-only hashtag and keyword endpoint audit. These probes do not enter the publisher.
-const candidateTags=['cryptobox','redpacketgiveaway','binanceairdrop','giveaway','红包活动',\n  'binance','airdrop','cryptogiveaway','红包','抽奖','freecrypto'];
+const candidateTags=['cryptobox','redpacketgiveaway','binanceairdrop','giveaway','红包活动',
+  'binance','airdrop','cryptogiveaway','红包','抽奖','freecrypto'];
 const tagProbes=await Promise.all(candidateTags.flatMap(tag=>[1,2,3].map(async page=>{
   try {
     const posts=await app.fetchTag(tag,page);
