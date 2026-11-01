@@ -33,17 +33,16 @@ assert.ok(added.some(result=>[...result.ids].some(id=>!baseline.has(id))),'addit
 // Read-only sample of original-post reward metadata. This determines whether detail
 // responses expose remaining amount/places that are absent from feed cards.
 // Read-only hashtag and keyword endpoint audit. These probes do not enter the publisher.
-const candidateTags=['cryptobox','cryptoboxgiveaway','redpacketgiveaway','redpacketrewards','redpacketdrop',
-  'binanceairdrop','airdrop','giveaway','红包活动','红包奖励','红包任务','红包领取'];
-const tagProbes=await Promise.all(candidateTags.map(async tag=>{
+const candidateTags=['cryptobox','redpacketgiveaway','binanceairdrop','giveaway','红包活动'];
+const tagProbes=await Promise.all(candidateTags.flatMap(tag=>[1,2,3].map(async page=>{
   try {
-    const posts=await app.fetchTag(tag,1);
-    return {tag,ok:true,posts:posts.length,red_envelope_metadata:posts.filter(p=>p?.redEnvelop && typeof p.redEnvelop==='object').length,
-      marker_matches:posts.filter(p=>app.searchMarkers(p).length).length,
-      reported_open:posts.filter(p=>app.normalize(p,'tag-probe')?.status==='reported_open').length};
-  } catch(error) {return {tag,ok:false,error:String(error.message||error).slice(0,160)};}
-}));
-console.log('HASHTAG_SOURCE_AUDIT '+JSON.stringify(tagProbes));
+    const posts=await app.fetchTag(tag,page);
+    const eligible=posts.map(p=>app.normalize(p,'tag-probe')).filter(p=>p && app.isEligiblePost(p));
+    return {tag,page,ok:true,posts:posts.length,red_envelope_metadata:posts.filter(p=>p?.redEnvelop && typeof p.redEnvelop==='object').length,
+      marker_matches:posts.filter(p=>app.searchMarkers(p).length).length,eligible_ids:eligible.map(p=>p.post_id)};
+  } catch(error) {return {tag,page,ok:false,error:String(error.message||error).slice(0,160)};}
+})));
+console.log('HASHTAG_SOURCE_AUDIT '+JSON.stringify(tagProbes.map(({eligible_ids,...row})=>({...row,eligible_count:eligible_ids?.length||0}))));
 const keywordProbes=await Promise.all(['Red Packet','Crypto Box'].map(async term=>{
   try {const posts=await app.fetchKeyword(term);return {term,ok:true,posts:posts.length,
     red_envelope_metadata:posts.filter(p=>p?.redEnvelop && typeof p.redEnvelop==='object').length,
@@ -52,6 +51,11 @@ const keywordProbes=await Promise.all(['Red Packet','Crypto Box'].map(async term
 }));
 console.log('KEYWORD_SOURCE_AUDIT '+JSON.stringify(keywordProbes));
 const snapshot=await app.scan({SQUARE_STATE_SNAPSHOT:'.redpacket/delivery.json'},'posts');
+const existingCandidates=new Set(app.publishCandidates(snapshot).map(c=>String(c.post.post_id)));
+const additionalHashtagCandidates=tagProbes.flatMap(row=>(row.eligible_ids||[]).map(id=>({tag:row.tag,page:row.page,post_id:id})))
+  .filter(row=>!existingCandidates.has(row.post_id));
+console.log('HASHTAG_INCREMENTAL_CANDIDATES '+JSON.stringify({existing_candidates:existingCandidates.size,
+  additional_unique_candidates:additionalHashtagCandidates.length,items:additionalHashtagCandidates.slice(0,50)}));
 let detailAudit=[];
 try {
   const candidates=app.publishCandidates(snapshot)
