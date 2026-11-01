@@ -72,6 +72,14 @@ const additionalHashtagCandidates=tagProbes.flatMap(row=>(row.eligible_ids||[]).
   .filter(row=>!existingCandidates.has(row.post_id));
 console.log('HASHTAG_INCREMENTAL_CANDIDATES '+JSON.stringify({existing_candidates:existingCandidates.size,
   additional_unique_candidates:additionalHashtagCandidates.length,items:additionalHashtagCandidates.slice(0,50)}));
+const incrementalDetails=await Promise.all(additionalHashtagCandidates.map(async row=>{
+  try {const raw=await app.fetchOriginal(row.post_id),post=app.normalize(raw,'hashtag:'+row.tag);
+    return {tag:row.tag,page:row.page,post_id:row.post_id,verified:!!post&&app.isEligiblePost(post),
+      status:post?.status||null,published_at:post?.published_at||null,expires_at:post?.expires_at||null,
+      currency:post?.currency||null,author:post?.author||null};}
+  catch(error){return {...row,verified:false,error:String(error.message||error).slice(0,180)};}
+}));
+console.log('HASHTAG_INCREMENTAL_ORIGINAL_CHECK '+JSON.stringify(incrementalDetails));
 let detailAudit=[];
 try {
   const candidates=app.publishCandidates(snapshot)
