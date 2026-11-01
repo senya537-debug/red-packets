@@ -170,7 +170,7 @@ test('fresh global heads run before archive pagination while every existing pack
   assert.ok(firstDeep>0);
   assert.ok(tasks.slice(firstDeep).every(t=>page(t)>1));
   assert.ok(tasks[0].tag.includes(':type2:'));
-  for(const tag of ['redpacket','redpacketgiveawaycampaign','binanceredpacket','redpacketmission','redpacketquiz','红包'])
+  for(const tag of ['redpacket','redpacketgiveawaycampaign','binanceredpacket','redpacketmission','redpacketquiz','红包','giveaway'])
     assert.ok(tasks.some(t=>t.tag===tag));
   assert.deepEqual(app.buildDiscoveryFeeds('authors',0),[]);
   assert.ok(app.buildDiscoveryFeeds('community',0).some(t=>t.language==='ar'));
