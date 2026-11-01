@@ -74,9 +74,13 @@ console.log('HASHTAG_INCREMENTAL_CANDIDATES '+JSON.stringify({existing_candidate
   additional_unique_candidates:additionalHashtagCandidates.length,items:additionalHashtagCandidates.slice(0,50)}));
 const incrementalDetails=await Promise.all(additionalHashtagCandidates.map(async row=>{
   try {const raw=await app.fetchOriginal(row.post_id),post=app.normalize(raw,'hashtag:'+row.tag);
+    const identities=post?app.candidateIdentityKeys({key:'post:'+row.post_id,post}):[];
+    const historyMatches=identities.filter(identity=>Object.entries(snapshot.items||{}).some(([key,item])=>
+      key.endsWith(':'+identity)||(item.identity_keys||[]).includes(identity)));
     return {tag:row.tag,page:row.page,post_id:row.post_id,verified:!!post&&app.isEligiblePost(post),
       status:post?.status||null,published_at:post?.published_at||null,expires_at:post?.expires_at||null,
-      currency:post?.currency||null,author:post?.author||null};}
+      currency:post?.currency||null,packet_id:post?.packet_id||null,author:post?.author||null,
+      already_in_delivery_history:historyMatches.length>0,matched_identity_keys:historyMatches};}
   catch(error){return {...row,verified:false,error:String(error.message||error).slice(0,180)};}
 }));
 console.log('HASHTAG_INCREMENTAL_ORIGINAL_CHECK '+JSON.stringify(incrementalDetails));
