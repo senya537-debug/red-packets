@@ -153,12 +153,14 @@ test('all supported language feeds are scanned every cycle without locale rotati
     assert.ok(tasks.some(t=>t.tag==='square:global:type2:page1'));
     assert.ok(tasks.some(t=>t.tag==='square:discover'));
     for(const language of languages) {
-      assert.ok(tasks.some(t=>t.tag==='square:global:'+language+':type1:page1'));
-      assert.ok(tasks.some(t=>t.tag==='square:global:'+language+':type2:page1'));
-      assert.ok(tasks.some(t=>t.tag==='square:discover:'+language+':page1'));
+      for(const page of [1,2]) {
+        assert.ok(tasks.some(t=>t.tag==='square:global:'+language+':type1:page'+page));
+        assert.ok(tasks.some(t=>t.tag==='square:global:'+language+':type2:page'+page));
+        assert.ok(tasks.some(t=>t.tag==='square:discover:'+language+':page'+page));
+      }
     }
     assert.ok(tasks.every(t=>!/(?:redpacketcode|cryptobox)/i.test(t.tag)));
-    assert.ok(tasks.length<=56,'all-language feed expansion remains bounded');
+    assert.ok(tasks.length<=80,'two-page all-language feed expansion remains bounded');
   }
 });
 
