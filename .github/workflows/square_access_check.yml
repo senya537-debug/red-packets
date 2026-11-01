@@ -135,7 +135,7 @@ jobs:
           SQUARE_RESULT_DIR: redpacket-results
         run: &square_runtime |
           node --input-type=module <<'JS'
-          const TAGS = ["redpacket", "redpacketgiveawaycampaign", "binanceredpacket", "redpacketmission", "redpacketquiz", "红包"];
+          const TAGS = ["redpacket", "redpacketgiveawaycampaign", "binanceredpacket", "redpacketmission", "redpacketquiz", "红包", "giveaway"];
           // These are public content topics, not attributes assigned to authors.
           const COMMUNITY_TAGS = ['BinanceMuslimCommunity','MuslimCommunity','Islam','Islamic','Muslim',
             'IslamicFinance','ShariahEarn','RamadanGiveaway','Ramadan','رمضان','عيد'];
