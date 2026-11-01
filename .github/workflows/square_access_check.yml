@@ -164,8 +164,9 @@ jobs:
           const TAG_PAGES = 3;
           const RECOMMENDATION_PAGES = 2;
           const GLOBAL_FEED_LANGUAGES = ['ru','zh-CN','es','pt-BR','tr','fr','vi','id'];
-          const GLOBAL_FEED_PAGES = 1;
-          const GLOBAL_DISCOVERY_AUTHOR_LIMIT = 64;
+          const GLOBAL_FEED_PAGES = 2;
+          const GLOBAL_RECOMMENDATION_PAGES = 2;
+          const GLOBAL_DISCOVERY_AUTHOR_LIMIT = 96;
           const AUTHOR_LIMIT = 48;
           const FAST_AUTHOR_LIMIT = 320;
           const ACTIVE_AUTHOR_SLOTS = 128;
@@ -799,9 +800,10 @@ jobs:
                 Array.from({length:GLOBAL_FEED_PAGES},(_,i)=>({tag:'square:global:'+language+':type'+type+':page'+(i+1),
                   language,coverage:'public_all_language_global_feed_'+language+'_type'+type+'_page'+(i+1),
                   run:()=>fetchLatest(type,i+1,language)})))) : []),
-              ...(legacy || worker==='posts' ? GLOBAL_FEED_LANGUAGES.map(language=>({
-                tag:'square:discover:'+language+':page1',language,coverage:'public_all_language_recommendations_'+language,
-                run:()=>fetchRecommended(1,language)})) : []),
+              ...(legacy || worker==='posts' ? GLOBAL_FEED_LANGUAGES.flatMap(language=>Array.from({length:GLOBAL_RECOMMENDATION_PAGES},(_,i)=>({
+                tag:'square:discover:'+language+(i?':page'+(i+1):':page1'),language,
+                coverage:'public_all_language_recommendations_'+language+'_page'+(i+1),
+                run:()=>fetchRecommended(i+1,language)}))) : []),
               ...(REMOTE_KEYWORD_SEARCH_ENABLED && (legacy || worker==='posts') ? SEARCH_TERMS.map(term=>({tag:'square:search:'+term,coverage:'first_search_page_only',run:()=>fetchKeyword(term)})) : []),
               ...(scanLive ? [{tag:'square:live:catalog',coverage:'recommended_live_rooms_only',run:fetchLiveCatalog}] : []),
               ...(scanCommunity ? COMMUNITY_TAGS.flatMap(tag=>Array.from({length:COMMUNITY_TAG_PAGES},(_,i)=>({
