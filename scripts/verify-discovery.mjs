@@ -32,6 +32,21 @@ assert.ok(added.some(result=>[...result.ids].some(id=>!baseline.has(id))),'addit
 
 // Read-only sample of original-post reward metadata. This determines whether detail
 // responses expose remaining amount/places that are absent from feed cards.
+// Read-only public news-feed endpoint probe; no credentials, state writes or publishing.
+try {
+  const response=await fetch('https://www.binance.com/bapi/composite/v4/friendly/pgc/feed/news/list?pageIndex=1&pageSize=20',{
+    signal:AbortSignal.timeout(12000),headers:{Accept:'application/json','User-Agent':'Mozilla/5.0',
+      Referer:'https://www.binance.com/zh-CN/square/trending'}});
+  const data=await response.json().catch(()=>null),root=data?.data;
+  const arrays=Array.isArray(root)?[{key:'data',items:root}]:
+    Object.entries(root||{}).filter(([,value])=>Array.isArray(value)).map(([key,items])=>({key,items}));
+  console.log('NEWS_FEED_SOURCE_AUDIT '+JSON.stringify({http_status:response.status,success:data?.success??null,
+    top_keys:Object.keys(data||{}),data_keys:Object.keys(root||{}),
+    arrays:arrays.map(({key,items})=>({key,posts:items.length,
+      red_envelope_metadata:items.filter(p=>p?.redEnvelop && typeof p.redEnvelop==='object').length,
+      marker_matches:items.filter(p=>app.searchMarkers(p).length).length,
+      sample_keys:Object.keys(items[0]||{}).slice(0,30)}))}));
+} catch(error) {console.log('NEWS_FEED_SOURCE_AUDIT '+JSON.stringify({ok:false,error:String(error.message||error).slice(0,180)}));}
 // Read-only hashtag and keyword endpoint audit. These probes do not enter the publisher.
 const candidateTags=['cryptobox','redpacketgiveaway','binanceairdrop','giveaway','红包活动'];
 const tagProbes=await Promise.all(candidateTags.flatMap(tag=>[1,2,3].map(async page=>{
