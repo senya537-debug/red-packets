@@ -174,6 +174,9 @@ test('fresh global heads run before archive pagination while every existing pack
     assert.ok(tasks.some(t=>t.tag===tag));
     assert.ok(!tasks.some(t=>t.tag===tag+':page2' || t.tag===tag+':page3'),tag+' keeps only the fresh first page');
   }
+  assert.ok(tasks.some(t=>t.tag==='binance'));
+  assert.ok(!tasks.some(t=>t.tag==='binance:page2'));
+  assert.ok(tasks.some(t=>t.tag==='binance:page3'),'verified #binance page 3 stays enabled');
   assert.deepEqual(app.buildDiscoveryFeeds('authors',0),[]);
   assert.ok(app.buildDiscoveryFeeds('community',0).some(t=>t.language==='ar'));
 });
