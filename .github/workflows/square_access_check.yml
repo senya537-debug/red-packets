@@ -161,7 +161,7 @@ jobs:
           const ENDPOINT = "https://www.binance.com/bapi/composite/v4/friendly/pgc/content/queryByHashtag";
           const PAGE_SIZE = 50;
           const LATEST_PAGES = 4;
-          const TAG_PAGES = 3;
+          const TAG_PAGES = 1;
           const RECOMMENDATION_PAGES = 2;
           const GLOBAL_FEED_LANGUAGES = ['ru','zh-CN','es','pt-BR','tr','fr','vi','id'];
           const GLOBAL_FEED_PAGES = 2;
