@@ -10,19 +10,15 @@ const posts=(u,body,extra={})=>({name:u.split('/bapi/')[1]+' '+JSON.stringify(bo
 const gets=(u,q)=>({name:u.split('/bapi/')[1]+'?'+new URLSearchParams(q),url:u+'?'+new URLSearchParams(q),
   init:{headers:{...base(term),'Content-Type':undefined}}});
 const B='https://www.binance.com/bapi/composite/';
+const H='https://www.binance.com/bapi/composite/v4/friendly/pgc/content/queryByHashtag';
+const tagCases=[];
+for(const tag of ['红包','binanceredpacket','redpacketquiz','giveaway'])
+  for(const page of [1,3,6,10,20])
+    tagCases.push(gets(H,{hashtag:'#'+tag,pageIndex:String(page),pageSize:'50',orderBy:'LATEST'}));
+tagCases.push(gets(H,{hashtag:'#redpacketquiz',pageIndex:'1',pageSize:'50',orderBy:'HOT'}));
 const cases=[
-  posts(B+'v2/friendly/pgc/feed/search/list',{scene:'web',pageIndex:1,pageSize:20,searchContent:term,type:1}),
-  posts(B+'v2/friendly/pgc/feed/search/list',{scene:'web',pageIndex:1,pageSize:20,searchContent:term,type:2}),
-  posts(B+'v2/friendly/pgc/feed/search/list',{scene:'web',pageIndex:1,pageSize:20,searchContent:term}),
-  posts(B+'v1/friendly/pgc/feed/search/list',{scene:'web',pageIndex:1,pageSize:20,searchContent:term,type:1}),
-  posts(B+'v3/friendly/pgc/feed/search/list',{scene:'web',pageIndex:1,pageSize:20,searchContent:term,type:1}),
-  posts(B+'v1/public/pgc/search/post',{keyword:term,pageIndex:1,pageSize:20}),
-  gets(B+'v1/friendly/pgc/feed/search/list',{searchContent:term,pageIndex:'1',pageSize:'20',type:'1'}),
   gets(B+'v3/friendly/pgc/content/article/list',{pageIndex:'1',pageSize:'20',type:'1'}),
-  gets(B+'v1/friendly/pgc/hashtag/hot-list',{}),
-  gets(B+'v1/friendly/pgc/feed/hashtag/list',{hashtag:'#redpacket',pageIndex:'3',pageSize:'50',orderBy:'LATEST'}),
-  gets(B+'v1/friendly/pgc/feed/hashtag/list',{hashtag:'#redpacket',pageIndex:'10',pageSize:'50',orderBy:'LATEST'}),
-  gets(B+'v1/friendly/pgc/feed/hashtag/list',{hashtag:'#redpacket',pageIndex:'1',pageSize:'50',orderBy:'HOT'}),
+  ...tagCases,
 ];
 for(const c of cases){
   try{
@@ -30,7 +26,8 @@ for(const c of cases){
     const t=await r.text();let j=null;try{j=JSON.parse(t)}catch{}
     const d=j?.data;
     const arr=d?.vos||d?.feedData||d?.list||(Array.isArray(d)?d:null);
+    const open=arr?arr.filter(p=>JSON.stringify(p).includes('redEnvelop')&&!JSON.stringify(p).includes('"isExpired":true')).length:'-';
     console.log(r.status,c.name,'| success=',j?.success,'| msg=',String(j?.message||'').slice(0,60),'| items=',arr?.length??'-',
-      '| redEnvelop=',arr?arr.filter(p=>p.redEnvelop||p.redPacket).length:'-','| keys=',d&&!arr?Object.keys(d).slice(0,6).join(','):'');
+      '| open_packets=',open,'| keys=',d&&!arr?Object.keys(d).slice(0,6).join(','):'');
   }catch(e){console.log('ERR',c.name,String(e.message).slice(0,80));}
 }
