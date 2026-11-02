@@ -160,7 +160,7 @@ test('all supported language feeds are scanned every cycle without locale rotati
       }
     }
     assert.ok(tasks.every(t=>!/(?:redpacketcode|cryptobox)/i.test(t.tag)));
-    assert.ok(tasks.length<=120,'all-language feeds plus measured-depth hashtag pages remain bounded');
+    assert.ok(tasks.length<=80,'two-page all-language feed expansion remains bounded');
   }
 });
 
@@ -172,11 +172,7 @@ test('fresh global heads run before archive pagination while every existing pack
   assert.ok(tasks[0].tag.includes(':type2:'));
   for(const tag of ['redpacket','redpacketgiveawaycampaign','binanceredpacket','redpacketmission','redpacketquiz','红包','giveaway']) {
     assert.ok(tasks.some(t=>t.tag===tag));
-  }
-  const depth={giveaway:9,'红包':6,binanceredpacket:4,redpacket:3,redpacketgiveawaycampaign:3,redpacketmission:3,redpacketquiz:1};
-  for(const [tag,pages] of Object.entries(depth)) {
-    for(let n=1;n<=pages;n++)assert.ok(tasks.some(t=>t.tag===(n===1?tag:tag+':page'+n)),tag+' page '+n);
-    assert.ok(!tasks.some(t=>t.tag===tag+':page'+(pages+1)),tag+' stops at its measured depth');
+    assert.ok(!tasks.some(t=>t.tag===tag+':page2' || t.tag===tag+':page3'),tag+' keeps only the fresh first page');
   }
   assert.ok(tasks.some(t=>t.tag==='binance'));
   assert.ok(!tasks.some(t=>t.tag==='binance:page2'));
