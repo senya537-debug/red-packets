@@ -162,8 +162,10 @@ jobs:
           const PAGE_SIZE = 50;
           const LATEST_PAGES = 4;
           const TAG_PAGES = 1;
-          // Broad #binance discovery is useful on pages 1 and 3; page 2 was empty.
-          const TAG_PAGE_OVERRIDES = {binance:[1,3]};
+          // Measured depth of each hashtag on 2026-11-02: Square returns nothing past ~page 9
+          // (#giveaway 9, #红包 6, #binanceredpacket 4, #redpacketquiz 1). Broad #binance stays on 1 and 3.
+          const TAG_PAGE_OVERRIDES = {binance:[1,3],giveaway:[1,2,3,4,5,6,7,8,9],'红包':[1,2,3,4,5,6],
+            binanceredpacket:[1,2,3,4],redpacket:[1,2,3],redpacketgiveawaycampaign:[1,2,3],redpacketmission:[1,2,3]};
           const RECOMMENDATION_PAGES = 2;
           const GLOBAL_FEED_LANGUAGES = ['ru','zh-CN','es','pt-BR','tr','fr','vi','id'];
           const GLOBAL_FEED_PAGES = 2;
