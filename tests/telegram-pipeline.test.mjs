@@ -569,6 +569,38 @@ test('publishDailyReport claims before sending, sends once and never throws into
   assert.equal(sends.length,before);
 });
 
+test('best topic: strong packets are copied once, weak ones, other languages and unset topic are not',async()=>{
+  const dest='d'.repeat(64),m=market(),sends=[],saves=[],stats={connection_failures:0},storage={save:async(st,r)=>saves.push(r)};
+  const send=async(env,chat,msg)=>{sends.push([env.TG_THREAD_ID,msg]);return {ok:true,message_id:'9'};};
+  const strong={...totalPacket('USDT',12,100,'801'),message:{text:'strong'}};
+  const small={...totalPacket('USDT',1,100,'802'),message:{text:'small'}};
+  const coin={...totalPacket('SOL',0.05,100,'803'),message:{text:'coin'}};
+  const run=(state,cand,key,env={TG_BEST_THREAD_ID:'55'},language='ru')=>
+    app.publishBest(state,storage,env,'-100',dest,dest+':'+key,cand,m,stats,{language,wait:async()=>{},send});
+  const state={items:{}};
+  await run(state,strong,'post:801');
+  assert.equal(sends.length,1);assert.equal(sends[0][0],'55');assert.equal(stats.best_sent,1);
+  assert.deepEqual(saves,['best topic claim before send','best topic sent'],'claim saved before the message goes out');
+  assert.equal(state.items[dest+':best:post:801'].kind,'best');
+  await run(state,strong,'post:801');assert.equal(sends.length,1,'never twice');
+  await run(state,small,'post:802');assert.equal(sends.length,1,'below the threshold');
+  await run(state,coin,'post:803');assert.equal(sends.length,2,'SOL 0.05*200 = 10 USD counts');
+  await run(state,{...strong},'post:804',{});assert.equal(sends.length,2,'no TG_BEST_THREAD_ID, nothing happens');
+  await run(state,{...strong},'post:805',{TG_BEST_THREAD_ID:'55'},'en');assert.equal(sends.length,2,'only the RU topic feeds it');
+  await run(state,{...strong},'post:806',{TG_BEST_THREAD_ID:'abc'});assert.equal(sends.length,2,'invalid topic id is ignored');
+  // uncertain delivery is kept and never resent
+  const s2={items:{}};
+  await app.publishBest(s2,storage,{TG_BEST_THREAD_ID:'55'},'-100',dest,dest+':post:807',strong,m,stats,
+    {wait:async()=>{},send:async()=>({ok:false,uncertain:true,error:'unclear'})});
+  assert.equal(s2.items[dest+':best:post:807'].state,'uncertain');
+  // a failing store is reported, not thrown into delivery
+  const s3={items:{}},st3={connection_failures:0};
+  await app.publishBest(s3,{save:async()=>{throw new Error('github down');}},{TG_BEST_THREAD_ID:'55'},'-100',dest,dest+':post:808',strong,m,st3,
+    {wait:async()=>{},send});
+  assert.match(st3.best_error,/github down/);
+  assert.equal(app.bestPacketWorth({kind:'live'},m),null);
+});
+
 // ---- one commit for all search workers ----
 test('enqueueSnapshots writes all workers in a single commit and keeps each worker status',async()=>{
   const proto=app.GitHubState.prototype,saved={readLatest:proto.readLatest,request:proto.request};

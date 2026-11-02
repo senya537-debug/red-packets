@@ -1,5 +1,5 @@
 # GitHub: replace .github/workflows/square_access_check.yml with this file.
-# Repository Secrets: TG_BOT_TOKEN, TG_CHAT_ID. Optional: TG_THREAD_ID (legacy), TG_RU_THREAD_ID and TG_EN_THREAD_ID (both for RU/EN topics).
+# Repository Secrets: TG_BOT_TOKEN, TG_CHAT_ID. Optional: TG_THREAD_ID (legacy), TG_RU_THREAD_ID and TG_EN_THREAD_ID (both for RU/EN topics), TG_BEST_THREAD_ID (topic with strong packets only).
 # RU keeps the existing delivery history; EN has a separate receipt namespace. Questions, answers and codes stay original.
 # Run telegram_test first. Run publish manually to enable automatic posting.
 # Preview and test never enable the schedule. No Binance account/API keys needed.
@@ -2173,6 +2173,35 @@ jobs:
             return {parse_mode:'HTML',link_preview_options:{is_disabled:true},text:lines.join('\\n')};
           }
           // Same claim-before-send discipline as affiliate messages, but a failure here never blocks packet delivery.
+          // ---- Optional "Best" topic: strong packets are copied once to TG_BEST_THREAD_ID ----
+          const BEST_TOTAL_USD = 5;
+          export function bestPacketWorth(post,market) {
+            const worth=post && post.kind!=='live' && post.exchange!=='gate' ? valuation(post,market) : null;
+            if(!worth || worth.liquid===false)return null;
+            return (worth.total_usd>=BEST_TOTAL_USD || worth.avg_usd>=BIG_AVG_USD) ? worth : null;
+          }
+          export async function publishBest(state,storage,sendEnv,chatId,destination,itemKey,candidate,market,stats,
+              {language='ru',wait=WAIT,budget=null,send=sendMessage}={}) {
+            const thread=String(sendEnv.TG_BEST_THREAD_ID||'');
+            if(!thread || language!=='ru' || !/^[1-9]\d*$/.test(thread) || !bestPacketWorth(candidate?.post,market))return;
+            const key=destination+':best:'+itemKey.slice(destination.length+1);
+            if(state.items[key] || (budget && Date.now()+8000>budget.deadline))return;
+            try {
+              const claimId=randomUUID();
+              state.items[key]={kind:'best',state:'sending',claim_id:claimId,updated_at:Date.now()};
+              await storage.save(state,'best topic claim before send');
+              const claim=state.items[key];
+              if(claim?.state!=='sending' || claim.claim_id!==claimId)return;
+              const result=await send({...sendEnv,TG_THREAD_ID:thread},chatId,candidate.message,{wait,
+                canSend:()=>!budget || Date.now()+1000<budget.deadline});
+              stats.connection_failures+=result.connection_failures||0;
+              Object.assign(claim,{state:result.ok?'sent':'uncertain',updated_at:Date.now(),
+                ...(result.ok?{message_id:result.message_id}:{error:result.error})});
+              await storage.save(state,result.ok?'best topic sent':'best topic delivery not confirmed');
+              if(result.ok)stats.best_sent=(stats.best_sent||0)+1;else stats.best_error=result.error;
+              await wait(budget?.send_delay_ms||3100);
+            } catch(error) {stats.best_error=redact(error,sendEnv);}
+          }
           export async function publishDailyReport(state,storage,sendEnv,chatId,configuration,destination,language,wait,budget,stats,market,
               {send=sendMessage,now=Date.now()}={}) {
             const key=dailyReportDue(state,destination,now);
@@ -2385,6 +2414,7 @@ jobs:
               index=deliveryIndex(state,destination);
               if (!result.ok) break;
               if (budget || attempted<MAX_POSTS_PER_RUN || affiliateProgress(state,destination).due) await wait(budget?.send_delay_ms||3100);
+              if(mode!=='telegram_test')await publishBest(state,storage,sendEnv,chatId,destination,key,candidate,market,stats,{language,wait,budget});
               if(mode!=='telegram_test')await publishAffiliate(state,storage,sendEnv,chatId,configuration,destination,language,wait,budget,stats);
             }
             stats.enabled=targetEnabled(state,configuration);
@@ -2883,6 +2913,7 @@ jobs:
           TG_THREAD_ID: ${{ secrets.TG_THREAD_ID }}
           TG_RU_THREAD_ID: ${{ secrets.TG_RU_THREAD_ID }}
           TG_EN_THREAD_ID: ${{ secrets.TG_EN_THREAD_ID }}
+          TG_BEST_THREAD_ID: ${{ secrets.TG_BEST_THREAD_ID }}
           TG_ALERT_CHAT_ID: ${{ secrets.TG_ALERT_CHAT_ID }}
           HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
           GH_STATE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
