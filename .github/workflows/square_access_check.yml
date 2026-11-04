@@ -36,7 +36,7 @@
 # Arabic/Urdu packet and code labels are recognized in any feed; eligibility rules stay the same.
 # Durable outbox in the existing delivery state: max 200 findings per category.
 # Publisher starts after the searches; imports their artifacts, then consumes the durable queue for up to 240 seconds.
-# Affiliate message after every 10 confirmed new giveaways per language; durable receipts prevent repeats.
+# Affiliate message after every 30 confirmed new giveaways per language; durable receipts prevent repeats.
 # Discovery is language-neutral. Per-destination send quotas remain anti-spam safeguards; verified per-place rewards rank first, total pools second, comments never estimate payouts.
 # After setting both topic secrets, run telegram_test to check the two topics, then publish to enable this configuration.
 # Queue rounds: one packet/quiz, then one verified live alert.
@@ -2053,7 +2053,7 @@ jobs:
             traderpro:'https://trader-pro.org/ru/?ref=REF1AC1106D',
             gate:'https://www.gate.com/ru/referral/earn-together/invite/VAAQV1ONUW?ref=VAAQV1ONUW&ref_type=103&utm_cmp=rXJBDjtJ&activity_id=1791876947985'
           };
-          export const AFFILIATE_INTERVAL=10;
+          export const AFFILIATE_INTERVAL=30;
           export function formatAffiliateMessage(language='ru') {
             const en=language==='en';
             return {parse_mode:'HTML',link_preview_options:{is_disabled:true},text:en ? [
