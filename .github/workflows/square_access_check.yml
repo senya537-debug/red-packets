@@ -194,6 +194,9 @@ jobs:
           const WORKER_ROLES = ['posts','authors','live','community'];
           const QUEUE_LIMITS = {posts:20,live:5};
           const OUTBOX_LIMIT = 400;
+          // The public feed backs the website and the daily summary, so it must hold every open post, not just the Telegram queue size.
+          // Observed open posts were 267+ against the old cap of 200; ~1.1 KB per entry keeps the file under ~600 KB.
+          export const PUBLIC_FEED_LIMIT = 500;
           const PUBLISH_WINDOW_MS = 240000;
           const PUBLISH_POLL_MS = 5000;
           const POST_MAX_AGE_MS = 10 * 60 * 1000;
@@ -1603,7 +1606,7 @@ jobs:
             const entries=Object.entries(feed||{}).filter(([key,entry])=>
               key===entry?.candidate?.key && canonicalIdentity(key) && isEligiblePost(entry.candidate.post,now) &&
               Number.isFinite(Number(entry.observed_at)) && Number(entry.observed_at)<=now+60000);
-            return Object.fromEntries(retainRewardRankedEntries(entries,200));
+            return Object.fromEntries(retainRewardRankedEntries(entries,PUBLIC_FEED_LIMIT));
           }
           export function mergeOutbox(...maps) {
             const result={};
@@ -2144,7 +2147,9 @@ jobs:
               const rank=rewardRank({post});
               return rank.tier===3 && rank.value>=BIG_PER_COMMENTER_USD;
             }).length;
-            return {fresh:fresh.length,active:active.length,known:known.length,notable,top:ranked};
+            // Square's listing usually omits remaining places, so a per-place count of 0 can mean "unknown", not "none".
+            const placesKnown=active.filter(post=>averagePerPerson(post)!==null).length;
+            return {fresh:fresh.length,active:active.length,known:known.length,notable,places_known:placesKnown,top:ranked};
           }
           export function formatDailyReport(report,language='ru') {
             const en=language==='en',t=(ru,e)=>en?e:ru;
@@ -2152,7 +2157,9 @@ jobs:
               t(`🧧 Новых пакетов и викторин за 24 ч: <b>${report.fresh}</b>`,`🧧 New packets and quizzes in 24 h: <b>${report.fresh}</b>`),
               t(`✅ Сейчас активны: <b>${report.active}</b>`,`✅ Active now: <b>${report.active}</b>`),
               t(`💰 С известной суммой пакета: <b>${report.known}</b> из ${report.active}`,`💰 With a known total pool: <b>${report.known}</b> of ${report.active}`),
-              t(`🎯 С известной наградой на место ≥ 0.50 $: <b>${report.notable}</b>`,`🎯 With a reported reward per place ≥ $0.50: <b>${report.notable}</b>`)];
+              report.places_known===0
+                ? t('🎯 Награда на место: Square не сообщает число мест ни у одного поста, оценить нельзя','🎯 Reward per place: Square reports no remaining places for any post, so it cannot be estimated')
+                : t(`🎯 С известной наградой на место ≥ 0.50 $: <b>${report.notable}</b> (число мест известно у ${report.places_known})`,`🎯 With a reported reward per place ≥ $0.50: <b>${report.notable}</b> (places known for ${report.places_known})`)];
             if(report.top.length) {
               lines.push('',t('<b>Лучшие доступные оценки (награда на место выше общей суммы):</b>','<b>Best available reward estimates (per-place values before total pools):</b>'));
               report.top.forEach((post,i)=>{

@@ -232,7 +232,7 @@ test('outbox and public feed reserve capacity for fresh candidates with unknown 
   const outbox=app.compactOutbox(entries,{},now);
   const feed=app.compactPublicFeed(entries,now);
   assert.equal(Object.keys(outbox).length,200);
-  assert.equal(Object.keys(feed).length,200);
+  assert.equal(Object.keys(feed).length,Math.min(Object.keys(entries).length,app.PUBLIC_FEED_LIMIT),'feed is bounded by its own, larger limit');
   assert.ok(outbox['post:40000'],'fresh unknown reward is retained in the reserve');
   assert.ok(feed['post:40049'],'the reserve keeps the 50 freshest unknown rewards');
   assert.ok(!outbox['post:40050'],'unknown rewards cannot overflow their reserved share');
@@ -250,10 +250,27 @@ test('outbox and public feed retain the highest verified stablecoin reward-per-p
   const outbox=app.compactOutbox(entries,{},now);
   const feed=app.compactPublicFeed(entries,now);
   assert.equal(Object.keys(outbox).length,200);
-  assert.equal(Object.keys(feed).length,200);
+  assert.equal(Object.keys(feed).length,Math.min(Object.keys(entries).length,app.PUBLIC_FEED_LIMIT));
   assert.ok(outbox['post:10000'],'best reward-per-place survives outbox compaction');
   assert.ok(feed['post:10000'],'best reward-per-place survives public-feed compaction');
   assert.ok(!outbox['post:10204'],'lowest-priority tail is trimmed first');
+});
+
+test('public feed holds more than 200 open posts and trims only above its own limit, keeping the best reward',()=>{
+  assert.ok(app.PUBLIC_FEED_LIMIT>200,'the daily summary must not be capped at the old 200');
+  const entries={},total=app.PUBLIC_FEED_LIMIT+25;
+  for(let i=0;i<total;i++) {
+    const candidate=packet(String(50000+i));
+    candidate.post.currency='USDT';
+    candidate.post.available_amount=i===0?100:0.1;
+    candidate.post.available_receivers=10;
+    entries[candidate.key]={candidate,observed_at:now-i};
+  }
+  const feed=app.compactPublicFeed(entries,now);
+  assert.equal(Object.keys(feed).length,app.PUBLIC_FEED_LIMIT);
+  assert.ok(feed['post:50000'],'best reward-per-place survives public-feed trimming');
+  const small=Object.fromEntries(Object.entries(entries).slice(0,250));
+  assert.equal(Object.keys(app.compactPublicFeed(small,now)).length,250,'250 open posts are all kept, not cut to 200');
 });
 
 // ---- USD-equivalent valuation of non-stable reward coins ----
@@ -533,9 +550,22 @@ test('daily report ranks real per-place values ahead of total pools and never tr
   assert.match(ru,/итоги суток/);assert.match(ru,/Новых пакетов и викторин за 24 ч: <b>4<\/b>/);
   assert.match(ru,/Весь пакет: 100 DOGE \(≈ 20 \$, не на человека\)/);
   assert.match(ru,/награда на место показывается отдельно/i);
+  assert.equal(report.places_known,0);
+  assert.match(ru,/Square не сообщает число мест/);assert.doesNotMatch(ru,/≥ 0\.50/,'unknown places must not read as zero qualifying posts');
+  assert.match(app.formatDailyReport(report,'en').text,/cannot be estimated/);
   assert.match(en,/daily summary/);assert.match(en,/Total pool: 100 DOGE \(≈ 20 \$, not per person\)/);
   assert.match(en,/<a href="https:\/\/www\.binance\.com\/en\/square\/post\/\d+">post<\/a>/);
   assert.equal(app.buildDailyReport({items:{},public_feed:{}},m,now),null,'nothing to report, nothing is sent');
+});
+
+test('daily report shows the per-place count once Square reports remaining places',()=>{
+  const rich=coinPacket('USDT',20,10,'980'),poor=coinPacket('USDT',1,10,'981'),state={items:{},
+    public_feed:Object.fromEntries([rich,poor].map(c=>[c.key,feedEntry(c)]))};
+  const report=app.buildDailyReport(state,market(),now);
+  assert.equal(report.places_known,2);assert.equal(report.notable,1,'only the 2 $ per place post passes 0.50 $');
+  const ru=app.formatDailyReport(report,'ru').text;
+  assert.match(ru,/≥ 0\.50 \$: <b>1<\/b> \(число мест известно у 2\)/);
+  assert.doesNotMatch(ru,/не сообщает число мест/);
 });
 
 test('publishDailyReport claims before sending, sends once and never throws into delivery',async()=>{
