@@ -194,9 +194,10 @@ jobs:
           const WORKER_ROLES = ['posts','authors','live','community'];
           const QUEUE_LIMITS = {posts:20,live:5};
           const OUTBOX_LIMIT = 400;
-          // The public feed backs the website and the daily summary, so it must hold every open post, not just the Telegram queue size.
-          // Observed open posts were 267+ against the old cap of 200; ~1.1 KB per entry keeps the file under ~600 KB.
-          export const PUBLIC_FEED_LIMIT = 500;
+          // The public feed backs the website and the daily summary, so it must hold more than the Telegram queue size.
+          // A cap of 500 was saturated within hours (508 entries, all unexpired), so the real number of open posts is higher.
+          // ~1.1 KB per entry: 800 entries is ~0.9 MB. Reports must say "at least" whenever the cap is reached.
+          export const PUBLIC_FEED_LIMIT = 800;
           const PUBLISH_WINDOW_MS = 240000;
           const PUBLISH_POLL_MS = 5000;
           const POST_MAX_AGE_MS = 10 * 60 * 1000;
@@ -2149,17 +2150,20 @@ jobs:
             }).length;
             // Square's listing usually omits remaining places, so a per-place count of 0 can mean "unknown", not "none".
             const placesKnown=active.filter(post=>averagePerPerson(post)!==null).length;
-            return {fresh:fresh.length,active:active.length,known:known.length,notable,places_known:placesKnown,top:ranked};
+            // At the storage cap the lowest-priority open posts were trimmed, so every count is a lower bound.
+            return {fresh:fresh.length,active:active.length,known:known.length,notable,places_known:placesKnown,
+              capped:active.length>=PUBLIC_FEED_LIMIT,top:ranked};
           }
           export function formatDailyReport(report,language='ru') {
-            const en=language==='en',t=(ru,e)=>en?e:ru;
+            const en=language==='en',t=(ru,e)=>en?e:ru,ge=report.capped?'≥ ':'';
             const lines=[t('📊 <b>Red Packet Radar · итоги суток</b>','📊 <b>Red Packet Radar · daily summary</b>'),'',
-              t(`🧧 Новых пакетов и викторин за 24 ч: <b>${report.fresh}</b>`,`🧧 New packets and quizzes in 24 h: <b>${report.fresh}</b>`),
-              t(`✅ Сейчас активны: <b>${report.active}</b>`,`✅ Active now: <b>${report.active}</b>`),
-              t(`💰 С известной суммой пакета: <b>${report.known}</b> из ${report.active}`,`💰 With a known total pool: <b>${report.known}</b> of ${report.active}`),
+              t(`🧧 Новых пакетов и викторин за 24 ч: <b>${ge}${report.fresh}</b>`,`🧧 New packets and quizzes in 24 h: <b>${ge}${report.fresh}</b>`),
+              t(`✅ Сейчас активны: <b>${ge}${report.active}</b>`,`✅ Active now: <b>${ge}${report.active}</b>`),
+              t(`💰 С известной суммой пакета: <b>${report.known}</b> из ${ge}${report.active}`,`💰 With a known total pool: <b>${report.known}</b> of ${ge}${report.active}`),
               report.places_known===0
                 ? t('🎯 Награда на место: Square не сообщает число мест ни у одного поста, оценить нельзя','🎯 Reward per place: Square reports no remaining places for any post, so it cannot be estimated')
                 : t(`🎯 С известной наградой на место ≥ 0.50 $: <b>${report.notable}</b> (число мест известно у ${report.places_known})`,`🎯 With a reported reward per place ≥ $0.50: <b>${report.notable}</b> (places known for ${report.places_known})`)];
+            if(report.capped)lines.push(t('ℹ️ Лента достигла лимита хранения, реальные числа выше','ℹ️ The stored feed hit its size limit, so real counts are higher'));
             if(report.top.length) {
               lines.push('',t('<b>Лучшие доступные оценки (награда на место выше общей суммы):</b>','<b>Best available reward estimates (per-place values before total pools):</b>'));
               report.top.forEach((post,i)=>{
@@ -2628,7 +2632,15 @@ jobs:
               const metadata=await current.json();
               sha=typeof metadata?.sha==='string'?metadata.sha:null;
               try {
-                const existing=JSON.parse(Buffer.from(String(metadata.content||''),'base64').toString('utf8'));
+                let text;
+                if(metadata.encoding==='none' && Number(metadata.size)>0) {
+                  // Files over 1 MB come back without inline content; without this read the throttle below is skipped and every run commits.
+                  const raw=await fetchImpl(url+'?ref='+encodeURIComponent(stateBranch(env)),{headers:{...headers,Accept:'application/vnd.github.raw+json'},
+                    signal:AbortSignal.timeout(20000),redirect:'error'});
+                  if(!raw.ok)throw new Error('Public feed raw read: HTTP '+raw.status);
+                  text=await raw.text();
+                } else text=Buffer.from(String(metadata.content||''),'base64').toString('utf8');
+                const existing=JSON.parse(text);
                 // Every write is a repository commit: at most one per interval, and an unchanged feed only refreshes rarely.
                 const age=now-Date.parse(existing.generated_at||0);
                 if(age<PUBLIC_FEED_MIN_INTERVAL_MS ||
