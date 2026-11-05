@@ -1,57 +1,58 @@
 {
   "version": 1,
-  "generated_at": "2026-11-05T11:35:52.076Z",
-  "snapshots_processed": 27,
+  "generated_at": "2026-11-05T18:56:03.029Z",
+  "snapshots_processed": 28,
   "coverage": {
-    "retained_unique_posts": 1919,
-    "unique_packet_ids": 791,
-    "unique_codes": 791,
-    "unique_packet_or_code_groups": 1919,
-    "records_seen_in_latest_feed": 613,
+    "retained_unique_posts": 2061,
+    "unique_packet_ids": 831,
+    "unique_codes": 831,
+    "unique_packet_or_code_groups": 2061,
+    "records_seen_in_latest_feed": 647,
     "history_retention_days": 365,
     "history_cap": 20000,
     "last_feed_changed": true
   },
   "kinds": {
-    "quiz": 1553,
-    "packet": 270,
-    "live": 96
+    "quiz": 1655,
+    "packet": 308,
+    "live": 98
   },
   "currencies": {
-    "USDT": 714,
-    "SOL": 264,
-    "BTTC": 223,
-    "BNB": 122,
-    "PEPE": 98,
-    "unknown": 96,
-    "USDC": 89,
-    "SHIB": 69,
-    "BTC": 37,
-    "USTC": 28,
-    "LUNC": 25,
-    "DOGE": 24,
-    "ETH": 17,
+    "USDT": 756,
+    "SOL": 280,
+    "BTTC": 252,
+    "BNB": 125,
+    "PEPE": 107,
+    "USDC": 102,
+    "unknown": 98,
+    "SHIB": 70,
+    "BTC": 42,
+    "USTC": 32,
+    "LUNC": 29,
+    "DOGE": 25,
+    "ETH": 19,
     "WIN": 12,
+    "TRX": 8,
     "USD1": 8,
-    "TRX": 6,
+    "BONK": 8,
     "ADA": 6,
-    "BONK": 6,
+    "SUI": 6,
     "GRAM": 5,
     "HMSTR": 5,
+    "KERNEL": 5,
     "1000SATS": 4,
     "XRP": 4,
-    "KERNEL": 4,
-    "SUI": 4,
     "HOT": 4,
     "NEAR": 3,
     "WLD": 3,
     "DOGS": 3,
+    "DUSK": 3,
+    "BFUSD": 3,
+    "PARTI": 2,
     "LTC": 2,
     "XAUT": 2,
-    "DUSK": 2,
-    "BFUSD": 2,
+    "LSK": 2,
     "PYTH": 1,
-    "PARTI": 1,
     "BCH": 1,
     "BREV": 1,
     "SOPH": 1,
@@ -71,7 +72,6 @@
     "NOT": 1,
     "PLUME": 1,
     "RWUSD": 1,
-    "LSK": 1,
     "TURTLE": 1,
     "BIO": 1,
     "PEOPLE": 1,
@@ -80,27 +80,27 @@
     "UNI": 1
   },
   "workers": {
-    "authors": 1815,
-    "posts": 49,
-    "live": 46,
-    "community": 9
+    "authors": 1925,
+    "posts": 75,
+    "live": 51,
+    "community": 10
   },
   "eligibility": {
-    "not_checked": 1919
+    "not_checked": 2061
   },
   "statuses": {
-    "reported_open": 1823,
-    "live_badge": 96
+    "reported_open": 1963,
+    "live_badge": 98
   },
   "data_quality": {
-    "code_present": 791,
-    "packet_id_present": 791,
-    "amount_known": 791,
+    "code_present": 831,
+    "packet_id_present": 831,
+    "amount_known": 831,
     "available_amount_known": 0,
     "receivers_known": 0,
     "answer_verified": 0,
     "reward_verified": 0,
-    "expired_by_feed_timestamp": 1189
+    "expired_by_feed_timestamp": 1298
   },
   "daily": [
     {
@@ -161,7 +161,7 @@
     },
     {
       "date": "2026-10-30",
-      "count": 263
+      "count": 264
     },
     {
       "date": "2026-10-31",
@@ -169,11 +169,11 @@
     },
     {
       "date": "2026-11-01",
-      "count": 244
+      "count": 245
     },
     {
       "date": "2026-11-02",
-      "count": 247
+      "count": 248
     },
     {
       "date": "2026-11-03",
@@ -181,17 +181,17 @@
     },
     {
       "date": "2026-11-04",
-      "count": 281
+      "count": 288
     },
     {
       "date": "2026-11-05",
-      "count": 138
+      "count": 270
     }
   ],
   "hourly_utc": [
     {
       "hour_utc": "00",
-      "count": 66
+      "count": 67
     },
     {
       "hour_utc": "01",
@@ -199,11 +199,11 @@
     },
     {
       "hour_utc": "02",
-      "count": 101
+      "count": 102
     },
     {
       "hour_utc": "03",
-      "count": 77
+      "count": 78
     },
     {
       "hour_utc": "04",
@@ -219,11 +219,11 @@
     },
     {
       "hour_utc": "07",
-      "count": 81
+      "count": 83
     },
     {
       "hour_utc": "08",
-      "count": 66
+      "count": 67
     },
     {
       "hour_utc": "09",
@@ -235,35 +235,35 @@
     },
     {
       "hour_utc": "11",
-      "count": 89
+      "count": 93
     },
     {
       "hour_utc": "12",
-      "count": 108
-    },
-    {
-      "hour_utc": "13",
-      "count": 104
-    },
-    {
-      "hour_utc": "14",
       "count": 127
     },
     {
+      "hour_utc": "13",
+      "count": 121
+    },
+    {
+      "hour_utc": "14",
+      "count": 148
+    },
+    {
       "hour_utc": "15",
-      "count": 106
+      "count": 125
     },
     {
       "hour_utc": "16",
-      "count": 80
+      "count": 99
     },
     {
       "hour_utc": "17",
-      "count": 112
+      "count": 125
     },
     {
       "hour_utc": "18",
-      "count": 95
+      "count": 118
     },
     {
       "hour_utc": "19",
@@ -283,15 +283,15 @@
     },
     {
       "hour_utc": "23",
-      "count": 49
+      "count": 50
     }
   ],
   "top_authors": [
     {
       "author": "哈达Hada-BNB",
       "author_id": "H8gKQa54UXo4qPJLpM8dsw",
-      "posts": 57,
-      "quiz": 57,
+      "posts": 61,
+      "quiz": 61,
       "packets": 0,
       "live": 0,
       "codes": 5,
@@ -303,8 +303,8 @@
     {
       "author": "OmenX Official",
       "author_id": "Pi7ii7fGAs0ddILDlt-v1Q",
-      "posts": 51,
-      "quiz": 51,
+      "posts": 52,
+      "quiz": 52,
       "packets": 0,
       "live": 0,
       "codes": 0,
@@ -329,8 +329,8 @@
     {
       "author": "达哥k",
       "author_id": "w1diw6Tpx_A1gFO7fB1uJw",
-      "posts": 33,
-      "quiz": 33,
+      "posts": 34,
+      "quiz": 34,
       "packets": 0,
       "live": 0,
       "codes": 6,
@@ -342,9 +342,9 @@
     {
       "author": "周仓BNB",
       "author_id": "fHBGIHAFCMqAH1mqnM7tDQ",
-      "posts": 32,
+      "posts": 33,
       "quiz": 0,
-      "packets": 32,
+      "packets": 33,
       "live": 0,
       "codes": 0,
       "packet_ids": 0,
@@ -355,9 +355,48 @@
     {
       "author": "BullsVsBears",
       "author_id": "tPXTaCio3wNtCA4Ruzk6zw",
-      "posts": 22,
+      "posts": 24,
       "quiz": 13,
-      "packets": 9,
+      "packets": 11,
+      "live": 0,
+      "codes": 0,
+      "packet_ids": 0,
+      "amounts_known": 0,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "Leo Bull Square",
+      "author_id": "_KBVmM1PY1uqoFLyD3N65Q",
+      "posts": 23,
+      "quiz": 0,
+      "packets": 23,
+      "live": 0,
+      "codes": 0,
+      "packet_ids": 0,
+      "amounts_known": 0,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "小马哥哥啊",
+      "author_id": "idTSDx6-q21Ur2iNehShYA",
+      "posts": 22,
+      "quiz": 22,
+      "packets": 0,
+      "live": 0,
+      "codes": 3,
+      "packet_ids": 3,
+      "amounts_known": 3,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "ALEXANDER¹⁹⁴⁵",
+      "author_id": "W3wmuF74XRdJpY05tBFvmQ",
+      "posts": 22,
+      "quiz": 22,
+      "packets": 0,
       "live": 0,
       "codes": 0,
       "packet_ids": 0,
@@ -379,28 +418,15 @@
       "reward_verified": 0
     },
     {
-      "author": "小马哥哥啊",
-      "author_id": "idTSDx6-q21Ur2iNehShYA",
-      "posts": 20,
-      "quiz": 20,
+      "author": "葫芦胖老鱼",
+      "author_id": "Gf4oIOVHS1gLk6ey9zzDdg",
+      "posts": 19,
+      "quiz": 19,
       "packets": 0,
       "live": 0,
-      "codes": 3,
-      "packet_ids": 3,
-      "amounts_known": 3,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "ALEXANDER¹⁹⁴⁵",
-      "author_id": "W3wmuF74XRdJpY05tBFvmQ",
-      "posts": 20,
-      "quiz": 20,
-      "packets": 0,
-      "live": 0,
-      "codes": 0,
-      "packet_ids": 0,
-      "amounts_known": 0,
+      "codes": 1,
+      "packet_ids": 1,
+      "amounts_known": 1,
       "answer_verified": 0,
       "reward_verified": 0
     },
@@ -431,8 +457,8 @@
       "reward_verified": 0
     },
     {
-      "author": "Leo Bull Square",
-      "author_id": "_KBVmM1PY1uqoFLyD3N65Q",
+      "author": "dashreef44",
+      "author_id": "jTSKqbPtvcdgsuDd6i0erA",
       "posts": 17,
       "quiz": 0,
       "packets": 17,
@@ -444,15 +470,28 @@
       "reward_verified": 0
     },
     {
-      "author": "葫芦胖老鱼",
-      "author_id": "Gf4oIOVHS1gLk6ey9zzDdg",
+      "author": "MaheshJBG",
+      "author_id": "iCx4T0GVhINo30LR5bgXiw",
       "posts": 17,
-      "quiz": 17,
-      "packets": 0,
+      "quiz": 0,
+      "packets": 17,
       "live": 0,
-      "codes": 1,
-      "packet_ids": 1,
-      "amounts_known": 1,
+      "codes": 0,
+      "packet_ids": 0,
+      "amounts_known": 0,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "路飞社区糖宝Luffy",
+      "author_id": "JrGTZEbgETAQGQ1PLu_lrA",
+      "posts": 16,
+      "quiz": 12,
+      "packets": 0,
+      "live": 4,
+      "codes": 7,
+      "packet_ids": 7,
+      "amounts_known": 7,
       "answer_verified": 0,
       "reward_verified": 0
     },
@@ -470,12 +509,12 @@
       "reward_verified": 0
     },
     {
-      "author": "路飞社区糖宝Luffy",
-      "author_id": "JrGTZEbgETAQGQ1PLu_lrA",
+      "author": "金川哥",
+      "author_id": "cVbjuBfaMgSPiNt20wg2WQ",
       "posts": 15,
-      "quiz": 11,
+      "quiz": 15,
       "packets": 0,
-      "live": 4,
+      "live": 0,
       "codes": 6,
       "packet_ids": 6,
       "amounts_known": 6,
@@ -483,28 +522,67 @@
       "reward_verified": 0
     },
     {
-      "author": "dashreef44",
-      "author_id": "jTSKqbPtvcdgsuDd6i0erA",
+      "author": "奋斗Hustle1688",
+      "author_id": "6fEhdrOVnPi6jStFlkemew",
       "posts": 15,
-      "quiz": 0,
-      "packets": 15,
-      "live": 0,
-      "codes": 0,
-      "packet_ids": 0,
-      "amounts_known": 0,
+      "quiz": 12,
+      "packets": 0,
+      "live": 3,
+      "codes": 5,
+      "packet_ids": 5,
+      "amounts_known": 5,
       "answer_verified": 0,
       "reward_verified": 0
     },
     {
-      "author": "奋斗Hustle1688",
-      "author_id": "6fEhdrOVnPi6jStFlkemew",
+      "author": "ENTRY HUNTER⁷⁸⁹",
+      "author_id": "rKLOkEyvdQqT4IMEpk_3mA",
+      "posts": 15,
+      "quiz": 2,
+      "packets": 13,
+      "live": 0,
+      "codes": 5,
+      "packet_ids": 5,
+      "amounts_known": 5,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "云Z",
+      "author_id": "spjM72NS0wA8Y9NQn69Z9Q",
       "posts": 14,
-      "quiz": 11,
+      "quiz": 14,
       "packets": 0,
-      "live": 3,
-      "codes": 4,
-      "packet_ids": 4,
-      "amounts_known": 4,
+      "live": 0,
+      "codes": 12,
+      "packet_ids": 12,
+      "amounts_known": 12,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "猎狗AI机器人",
+      "author_id": "yy_Yh_I9990SsBIVERXomA",
+      "posts": 14,
+      "quiz": 14,
+      "packets": 0,
+      "live": 0,
+      "codes": 1,
+      "packet_ids": 1,
+      "amounts_known": 1,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "zhen宝儿-势不可挡",
+      "author_id": "vEATitjdrsO82h3INDUuMQ",
+      "posts": 14,
+      "quiz": 14,
+      "packets": 0,
+      "live": 0,
+      "codes": 12,
+      "packet_ids": 12,
+      "amounts_known": 12,
       "answer_verified": 0,
       "reward_verified": 0
     },
@@ -522,41 +600,15 @@
       "reward_verified": 0
     },
     {
-      "author": "MaheshJBG",
-      "author_id": "iCx4T0GVhINo30LR5bgXiw",
-      "posts": 14,
+      "author": "KST Smart Trader",
+      "author_id": "Xoq7FrNMmqUWN6onzvwIAg",
+      "posts": 13,
       "quiz": 0,
-      "packets": 14,
+      "packets": 13,
       "live": 0,
       "codes": 0,
       "packet_ids": 0,
       "amounts_known": 0,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "金川哥",
-      "author_id": "cVbjuBfaMgSPiNt20wg2WQ",
-      "posts": 13,
-      "quiz": 13,
-      "packets": 0,
-      "live": 0,
-      "codes": 6,
-      "packet_ids": 6,
-      "amounts_known": 6,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "zhen宝儿-势不可挡",
-      "author_id": "vEATitjdrsO82h3INDUuMQ",
-      "posts": 13,
-      "quiz": 13,
-      "packets": 0,
-      "live": 0,
-      "codes": 12,
-      "packet_ids": 12,
-      "amounts_known": 12,
       "answer_verified": 0,
       "reward_verified": 0
     },
@@ -587,15 +639,15 @@
       "reward_verified": 0
     },
     {
-      "author": "云Z",
-      "author_id": "spjM72NS0wA8Y9NQn69Z9Q",
+      "author": "YYD元易道",
+      "author_id": "tZQWqQPd5xKzxyxdj-ycAw",
       "posts": 12,
       "quiz": 12,
       "packets": 0,
       "live": 0,
-      "codes": 11,
-      "packet_ids": 11,
-      "amounts_known": 11,
+      "codes": 0,
+      "packet_ids": 0,
+      "amounts_known": 0,
       "answer_verified": 0,
       "reward_verified": 0
     },
@@ -624,58 +676,6 @@
       "amounts_known": 10,
       "answer_verified": 0,
       "reward_verified": 0
-    },
-    {
-      "author": "KST Smart Trader",
-      "author_id": "Xoq7FrNMmqUWN6onzvwIAg",
-      "posts": 12,
-      "quiz": 0,
-      "packets": 12,
-      "live": 0,
-      "codes": 0,
-      "packet_ids": 0,
-      "amounts_known": 0,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "YYD元易道",
-      "author_id": "tZQWqQPd5xKzxyxdj-ycAw",
-      "posts": 11,
-      "quiz": 11,
-      "packets": 0,
-      "live": 0,
-      "codes": 0,
-      "packet_ids": 0,
-      "amounts_known": 0,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "静姐6888",
-      "author_id": "Fb9rZxWmdbi1U6xBM4L1zA",
-      "posts": 11,
-      "quiz": 9,
-      "packets": 0,
-      "live": 2,
-      "codes": 9,
-      "packet_ids": 9,
-      "amounts_known": 9,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "SUNEEL KUMAR PERFECT",
-      "author_id": "mamGqT7PoQA6cKUkBn64Uw",
-      "posts": 11,
-      "quiz": 0,
-      "packets": 11,
-      "live": 0,
-      "codes": 1,
-      "packet_ids": 1,
-      "amounts_known": 1,
-      "answer_verified": 0,
-      "reward_verified": 0
     }
   ],
   "top_authors_by_data_completeness": [
@@ -693,10 +693,23 @@
       "reward_verified": 0
     },
     {
+      "author": "云Z",
+      "author_id": "spjM72NS0wA8Y9NQn69Z9Q",
+      "posts": 14,
+      "quiz": 14,
+      "packets": 0,
+      "live": 0,
+      "codes": 12,
+      "packet_ids": 12,
+      "amounts_known": 12,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
       "author": "zhen宝儿-势不可挡",
       "author_id": "vEATitjdrsO82h3INDUuMQ",
-      "posts": 13,
-      "quiz": 13,
+      "posts": 14,
+      "quiz": 14,
       "packets": 0,
       "live": 0,
       "codes": 12,
@@ -719,12 +732,12 @@
       "reward_verified": 0
     },
     {
-      "author": "云Z",
-      "author_id": "spjM72NS0wA8Y9NQn69Z9Q",
+      "author": "仙子1688",
+      "author_id": "MkC8hWcbe-TfMK8-ngt-KQ",
       "posts": 12,
-      "quiz": 12,
+      "quiz": 11,
       "packets": 0,
-      "live": 0,
+      "live": 1,
       "codes": 11,
       "packet_ids": 11,
       "amounts_known": 11,
@@ -732,12 +745,12 @@
       "reward_verified": 0
     },
     {
-      "author": "仙子1688",
-      "author_id": "MkC8hWcbe-TfMK8-ngt-KQ",
+      "author": "天龙敏姝-光明社区",
+      "author_id": "0lsKXqWeXtbGgXfcoz6qmQ",
       "posts": 12,
-      "quiz": 11,
+      "quiz": 12,
       "packets": 0,
-      "live": 1,
+      "live": 0,
       "codes": 11,
       "packet_ids": 11,
       "amounts_known": 11,
@@ -758,10 +771,10 @@
       "reward_verified": 0
     },
     {
-      "author": "天龙敏姝-光明社区",
-      "author_id": "0lsKXqWeXtbGgXfcoz6qmQ",
-      "posts": 11,
-      "quiz": 11,
+      "author": "aasho",
+      "author_id": "Z29yhB35XqTlwb0zWn2v2g",
+      "posts": 10,
+      "quiz": 10,
       "packets": 0,
       "live": 0,
       "codes": 10,
@@ -810,19 +823,6 @@
       "reward_verified": 0
     },
     {
-      "author": "aasho",
-      "author_id": "Z29yhB35XqTlwb0zWn2v2g",
-      "posts": 9,
-      "quiz": 9,
-      "packets": 0,
-      "live": 0,
-      "codes": 9,
-      "packet_ids": 9,
-      "amounts_known": 9,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
       "author": "赫方-光明社区",
       "author_id": "TYhY8VdjM7niRZ62cZIWkA",
       "posts": 14,
@@ -849,6 +849,19 @@
       "reward_verified": 0
     },
     {
+      "author": "Life is Race",
+      "author_id": "lcmQM3LPIgHVVMPlsCqbCg",
+      "posts": 8,
+      "quiz": 8,
+      "packets": 0,
+      "live": 0,
+      "codes": 8,
+      "packet_ids": 8,
+      "amounts_known": 8,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
       "author": "易琳Ten",
       "author_id": "DGjWSLVUOIVM7IDFwr0nHw",
       "posts": 8,
@@ -862,8 +875,86 @@
       "reward_verified": 0
     },
     {
+      "author": "路飞社区糖宝Luffy",
+      "author_id": "JrGTZEbgETAQGQ1PLu_lrA",
+      "posts": 16,
+      "quiz": 12,
+      "packets": 0,
+      "live": 4,
+      "codes": 7,
+      "packet_ids": 7,
+      "amounts_known": 7,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
       "author": "大东哥势不可挡",
       "author_id": "ETgIwIFudUvEeMuRdQlIZQ",
+      "posts": 8,
+      "quiz": 8,
+      "packets": 0,
+      "live": 0,
+      "codes": 7,
+      "packet_ids": 7,
+      "amounts_known": 7,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "燕寶Melissa",
+      "author_id": "YY6ykMA7KD9TAPGxxwLpww",
+      "posts": 8,
+      "quiz": 8,
+      "packets": 0,
+      "live": 0,
+      "codes": 7,
+      "packet_ids": 7,
+      "amounts_known": 7,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "Bitroot铄鸿",
+      "author_id": "OpM80mEL7XGHW1DuE1GoOw",
+      "posts": 8,
+      "quiz": 7,
+      "packets": 0,
+      "live": 1,
+      "codes": 7,
+      "packet_ids": 7,
+      "amounts_known": 7,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "王婷-光明社区",
+      "author_id": "SoQptu_UPxvyAkRCVJJTUA",
+      "posts": 8,
+      "quiz": 8,
+      "packets": 0,
+      "live": 0,
+      "codes": 7,
+      "packet_ids": 7,
+      "amounts_known": 7,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "大丹7878",
+      "author_id": "aMePpNUjR1IL-bqpFOmjog",
+      "posts": 8,
+      "quiz": 8,
+      "packets": 0,
+      "live": 0,
+      "codes": 7,
+      "packet_ids": 7,
+      "amounts_known": 7,
+      "answer_verified": 0,
+      "reward_verified": 0
+    },
+    {
+      "author": "一休哥168",
+      "author_id": "3J90mVgmS_I-KPY1XjhoPQ",
       "posts": 8,
       "quiz": 8,
       "packets": 0,
@@ -888,10 +979,10 @@
       "reward_verified": 0
     },
     {
-      "author": "燕寶Melissa",
-      "author_id": "YY6ykMA7KD9TAPGxxwLpww",
-      "posts": 7,
-      "quiz": 7,
+      "author": "MeiMei美美",
+      "author_id": "aw0PkXBZGk6-5d81wE45RA",
+      "posts": 8,
+      "quiz": 8,
       "packets": 0,
       "live": 0,
       "codes": 7,
@@ -901,8 +992,8 @@
       "reward_verified": 0
     },
     {
-      "author": "Life is Race",
-      "author_id": "lcmQM3LPIgHVVMPlsCqbCg",
+      "author": "RCB signal",
+      "author_id": "f3wgiqFQeNj7sKApwU2tdQ",
       "posts": 7,
       "quiz": 7,
       "packets": 0,
@@ -953,32 +1044,6 @@
       "reward_verified": 0
     },
     {
-      "author": "王婷-光明社区",
-      "author_id": "SoQptu_UPxvyAkRCVJJTUA",
-      "posts": 7,
-      "quiz": 7,
-      "packets": 0,
-      "live": 0,
-      "codes": 7,
-      "packet_ids": 7,
-      "amounts_known": 7,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "大丹7878",
-      "author_id": "aMePpNUjR1IL-bqpFOmjog",
-      "posts": 7,
-      "quiz": 7,
-      "packets": 0,
-      "live": 0,
-      "codes": 7,
-      "packet_ids": 7,
-      "amounts_known": 7,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
       "author": "光明社区-红红火火",
       "author_id": "kx-8DVT7sv1LBt3kjrfGyg",
       "posts": 7,
@@ -992,77 +1057,12 @@
       "reward_verified": 0
     },
     {
-      "author": "一休哥168",
-      "author_id": "3J90mVgmS_I-KPY1XjhoPQ",
-      "posts": 7,
-      "quiz": 7,
-      "packets": 0,
-      "live": 0,
-      "codes": 7,
-      "packet_ids": 7,
-      "amounts_known": 7,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
       "author": "达哥k",
       "author_id": "w1diw6Tpx_A1gFO7fB1uJw",
-      "posts": 33,
-      "quiz": 33,
+      "posts": 34,
+      "quiz": 34,
       "packets": 0,
       "live": 0,
-      "codes": 6,
-      "packet_ids": 6,
-      "amounts_known": 6,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "路飞社区糖宝Luffy",
-      "author_id": "JrGTZEbgETAQGQ1PLu_lrA",
-      "posts": 15,
-      "quiz": 11,
-      "packets": 0,
-      "live": 4,
-      "codes": 6,
-      "packet_ids": 6,
-      "amounts_known": 6,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "金川哥",
-      "author_id": "cVbjuBfaMgSPiNt20wg2WQ",
-      "posts": 13,
-      "quiz": 13,
-      "packets": 0,
-      "live": 0,
-      "codes": 6,
-      "packet_ids": 6,
-      "amounts_known": 6,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "光明社区张珂漪",
-      "author_id": "p3byUdp066mAgfPoRjsVGQ",
-      "posts": 9,
-      "quiz": 9,
-      "packets": 0,
-      "live": 0,
-      "codes": 6,
-      "packet_ids": 6,
-      "amounts_known": 6,
-      "answer_verified": 0,
-      "reward_verified": 0
-    },
-    {
-      "author": "阿婧1688",
-      "author_id": "oW4L_Qmc5V1HxoCQ19fgtg",
-      "posts": 8,
-      "quiz": 6,
-      "packets": 0,
-      "live": 2,
       "codes": 6,
       "packet_ids": 6,
       "amounts_known": 6,
