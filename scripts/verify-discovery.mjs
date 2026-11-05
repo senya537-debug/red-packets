@@ -33,16 +33,17 @@ assert.ok(added.some(result=>[...result.ids].some(id=>!baseline.has(id))),'addit
 // Read-only author-yield probe. Mirrors what ingest() enrols into the author registry (a red-envelope card or marker text,
 // open or already expired) for the current and for deeper/extra sources, so new authors per request can be compared against
 // the registry offline. It only prints; it never asserts, publishes or writes state.
-const probeTags=['redpacket','redpacketgiveawaycampaign','redpacketmission','红包','giveaway','binance',
-  'redpacketgiveaway','cryptogiveaway','freecrypto'];
+const probeTags=['redenvelope','redenvelopes','giveaways','airdrops','cryptoairdrop','usdtgiveaway','bnbgiveaway','btcgiveaway',
+  'binancegiveaway','squaregiveaway','dailygiveaway','giveawayalert','cryptogiveaways','luckydraw','quizgiveaway','cryptoquiz',
+  'quiz','answertoearn','rewards','earnrewards','lixi','angpao','红包雨','红包群'];
+const deepTags=['redpacketgiveaway','cryptogiveaway','freecrypto','redpacketgiveawaycampaign'];
 const probeTargets=[
-  ...probeTags.flatMap(tag=>[1,2,3,4,5].map(page=>({src:'tag:'+tag,page,run:()=>app.fetchTag(tag,page)}))),
-  ...['en','zh-CN'].flatMap(language=>[1,2,3,4,5].map(page=>({src:'recommended:'+language,page,run:()=>app.fetchRecommended(page,language)}))),
-  ...[1,2,3,4,5,6,7,8].map(page=>({src:'latest:type2:en',page,run:()=>app.fetchLatest(2,page)}))];
+  ...probeTags.flatMap(tag=>[1,2].map(page=>({src:'tag:'+tag,page,run:()=>app.fetchTag(tag,page)}))),
+  ...deepTags.flatMap(tag=>[6,7,8,9,10].map(page=>({src:'tag:'+tag,page,run:()=>app.fetchTag(tag,page)})))];
 for(let offset=0;offset<probeTargets.length;offset+=4) {
   await Promise.all(probeTargets.slice(offset,offset+4).map(async target=>{
     try {
-      const posts=await target.run(),authors=new Set(),stamps=posts.map(p=>Number(p.date??p.firstReleaseTime??p.createTime)||0).filter(Boolean);
+      const posts=await target.run(),authors=new Set(),stamps=posts.map(p=>{const v=Number(p.date??p.firstReleaseTime??p.createTime)||0;return v&&v<1e11?v*1000:v;}).filter(Boolean);
       let cards=0;
       for(const post of posts) {
         const item=app.normalize(post,'probe');
