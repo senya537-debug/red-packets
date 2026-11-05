@@ -384,6 +384,22 @@ test('public feed file is small, worker-compatible, and skips unchanged writes',
   await assert.rejects(app.exportPublicFeed(env,state,{fetchImpl:async()=>new Response('x',{status:500}),now}),/HTTP 500/);
 });
 
+test('public feed export still throttles when GitHub omits inline content for files over 1 MB',async()=>{
+  const state={items:{},public_feed:{[packet('840').key]:{candidate:packet('840'),observed_at:now}}};
+  const env={GITHUB_REPOSITORY:'o/r',GITHUB_REF_NAME:'main',GH_STATE_TOKEN:'t'};
+  const file=app.buildPublicFeedFile(state,now),calls=[];
+  const fetchImpl=async(url,init={})=>{
+    const method=init.method||'GET',accept=init.headers?.Accept||'';calls.push(method+(accept.includes('raw')?':raw':''));
+    if(method==='GET' && accept.includes('raw'))return new Response(JSON.stringify(file),{status:200});
+    if(method==='GET')return new Response(JSON.stringify({sha:'big',encoding:'none',size:1500000,content:''}),{status:200});
+    return new Response('{}',{status:200});
+  };
+  // unchanged and written moments ago: must NOT commit again
+  const result=await app.exportPublicFeed(env,state,{fetchImpl,now:now+60000});
+  assert.equal(result.changed,false);
+  assert.deepEqual(calls,['GET','GET:raw']);
+});
+
 // ---- total amount and competition (comments) when Square hides per-person figures ----
 const totalPacket=(currency,amount,comments,id)=>{const p=coinPacket(currency,null,null,id);
   return {...p,post:{...p.post,available_amount:null,available_receivers:null,amount:String(amount),comments}};};
@@ -556,6 +572,18 @@ test('daily report ranks real per-place values ahead of total pools and never tr
   assert.match(en,/daily summary/);assert.match(en,/Total pool: 100 DOGE \(≈ 20 \$, not per person\)/);
   assert.match(en,/<a href="https:\/\/www\.binance\.com\/en\/square\/post\/\d+">post<\/a>/);
   assert.equal(app.buildDailyReport({items:{},public_feed:{}},m,now),null,'nothing to report, nothing is sent');
+});
+
+test('daily report says "at least" when the stored feed hit its cap',()=>{
+  const entries={};
+  for(let i=0;i<app.PUBLIC_FEED_LIMIT;i++) {const c=totalPacket('USDT',1,5,String(7000+i));entries[c.key]=feedEntry(c);}
+  const capped=app.buildDailyReport({items:{},public_feed:entries},market(),now);
+  assert.equal(capped.active,app.PUBLIC_FEED_LIMIT);assert.equal(capped.capped,true);
+  assert.match(app.formatDailyReport(capped,'ru').text,new RegExp('Сейчас активны: <b>≥ '+app.PUBLIC_FEED_LIMIT+'</b>'));
+  assert.match(app.formatDailyReport(capped,'ru').text,/достигла лимита хранения/);
+  assert.match(app.formatDailyReport(capped,'en').text,/Active now: <b>≥ /);
+  const below=app.buildDailyReport(dailyState(),market(),now);
+  assert.equal(below.capped,false);assert.doesNotMatch(app.formatDailyReport(below,'ru').text,/≥ \d+<\/b>|лимита хранения/);
 });
 
 test('daily report shows the per-place count once Square reports remaining places',()=>{
