@@ -574,6 +574,40 @@ test('daily report ranks real per-place values ahead of total pools and never tr
   assert.equal(app.buildDailyReport({items:{},public_feed:{}},m,now),null,'nothing to report, nothing is sent');
 });
 
+test('affiliate message is due after every interval of counted receipts, relative to the last one sent',()=>{
+  const dest='d1',I=app.AFFILIATE_INTERVAL;
+  const counted=(from,n)=>Object.fromEntries(Array.from({length:n},(_,i)=>[dest+':p'+(from+i),{state:'sent',affiliate_counted:true,updated_at:from+i}]));
+  assert.equal(app.affiliateProgress({items:counted(1000,I-1)},dest).due,null,'below the interval nothing is due');
+  assert.deepEqual(app.affiliateProgress({items:counted(1000,I)},dest).due,{key:dest+':affiliate:1',sequence:1});
+  // History without the marker and other destinations never count.
+  const noise={...counted(1000,I-1),[dest+':old']:{state:'sent',updated_at:5},other:{state:'sent',affiliate_counted:true,updated_at:1500}};
+  assert.equal(app.affiliateProgress({items:noise},dest).due,null);
+});
+
+test('affiliate messages resume after the interval was raised although many sequence numbers are already used',()=>{
+  const dest='d1',items={};
+  // 696 messages were sent under the old interval of 10; the old all-time milestone logic then never fired again.
+  for(let n=1;n<=696;n++)items[dest+':affiliate:'+n]={kind:'affiliate',sequence:n,state:'sent',updated_at:n*10};
+  for(let i=0;i<838;i++)items[dest+':p'+i]={state:'sent',affiliate_counted:true,updated_at:7000+i};
+  const first=app.affiliateProgress({items},dest);
+  assert.deepEqual(first.due,{key:dest+':affiliate:697',sequence:697});
+  // once it is sent, the next one needs a full new interval, not a catch-up burst
+  items[dest+':affiliate:697']={kind:'affiliate',sequence:697,state:'sent',updated_at:9000};
+  assert.equal(app.affiliateProgress({items},dest).due,null);
+  for(let i=0;i<app.AFFILIATE_INTERVAL;i++)items[dest+':q'+i]={state:'sent',affiliate_counted:true,updated_at:9001+i};
+  assert.equal(app.affiliateProgress({items},dest).due.key,dest+':affiliate:698');
+});
+
+test('affiliate retry keeps its sequence number, and an uncertain send is never repeated',()=>{
+  const dest='d1',now=100000,base={};
+  for(let i=0;i<app.AFFILIATE_INTERVAL;i++)base[dest+':p'+i]={state:'sent',affiliate_counted:true,updated_at:10+i};
+  const waiting={...base,[dest+':affiliate:1']:{kind:'affiliate',sequence:1,state:'queued',retry_at:now+60000,updated_at:5}};
+  assert.equal(app.affiliateProgress({items:waiting},dest,now).due,null,'backoff not over yet');
+  assert.deepEqual(app.affiliateProgress({items:waiting},dest,now+120000).due,{key:dest+':affiliate:1',sequence:1});
+  const uncertain={...base,[dest+':affiliate:1']:{kind:'affiliate',sequence:1,state:'uncertain',updated_at:500}};
+  assert.equal(app.affiliateProgress({items:uncertain},dest,now).due,null,'the uncertain send consumed the slot');
+});
+
 test('daily report says "at least" when the stored feed hit its cap',()=>{
   const entries={};
   for(let i=0;i<app.PUBLIC_FEED_LIMIT;i++) {const c=totalPacket('USDT',1,5,String(7000+i));entries[c.key]=feedEntry(c);}

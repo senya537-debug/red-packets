@@ -2092,17 +2092,27 @@ jobs:
           export function affiliateProgress(state,destination,now=Date.now()) {
             // Only new, confirmed giveaway receipts count. Existing history and test
             // messages have no marker, so installing this version starts at zero.
-            const count=Object.entries(state.items).filter(([key,item])=>key.startsWith(destination+':') &&
-              item.state==='sent' && item.affiliate_counted===true && item.kind!=='affiliate').length;
-            const milestones=Math.floor(count/AFFILIATE_INTERVAL);
-            for(let sequence=1;sequence<=milestones;sequence++) {
-              const key=destination+':affiliate:'+sequence,item=state.items[key];
-              // An ambiguous send consumes this milestone; it is never retried blindly.
-              if(item && ['sent','uncertain','sending'].includes(item.state))continue;
-              if(item?.retry_at>now)return {count,due:null};
-              return {count,due:{key,sequence}};
+            // The next message is due once AFFILIATE_INTERVAL counted receipts were sent after the last consumed one.
+            // This is relative on purpose: numbering milestones against the all-time count stalled the messages for good
+            // when the interval was raised from 10 to 30, because 696 sequence numbers were already used.
+            const prefix=destination+':affiliate:';
+            let lastSequence=0,lastConsumedAt=0,retry=null;
+            for(const [key,item] of Object.entries(state.items)) {
+              if(!key.startsWith(prefix) || item.kind!=='affiliate')continue;
+              const sequence=Number(item.sequence)||Number(key.slice(prefix.length))||0;
+              lastSequence=Math.max(lastSequence,sequence);
+              // An ambiguous send consumes its slot; it is never retried blindly.
+              if(['sent','uncertain','sending'].includes(item.state))lastConsumedAt=Math.max(lastConsumedAt,item.updated_at||0);
+              else if(!retry || sequence>retry.sequence)retry={key,sequence,retry_at:item.retry_at||0};
             }
-            return {count,due:null};
+            let count=0;
+            for(const [key,item] of Object.entries(state.items)) {
+              if(key.startsWith(destination+':') && item.kind!=='affiliate' && item.state==='sent' && item.affiliate_counted===true &&
+                (item.updated_at||0)>lastConsumedAt)count++;
+            }
+            // A failed send keeps its sequence number and is retried once its backoff has passed.
+            if(retry && retry.sequence>=lastSequence)return retry.retry_at>now ? {count,due:null} : {count,due:{key:retry.key,sequence:retry.sequence}};
+            return count>=AFFILIATE_INTERVAL ? {count,due:{key:prefix+(lastSequence+1),sequence:lastSequence+1}} : {count,due:null};
           }
           async function publishAffiliate(state,storage,sendEnv,chatId,configuration,destination,language,wait,budget,stats) {
             const due=affiliateProgress(state,destination).due;
