@@ -1089,6 +1089,11 @@ jobs:
           }
           // Reward split among receivers is random (set by Square, not the author), so only the average is shown.
           const BIG_AVG_USD = 1;
+          // A pool worth a few cents in total (e.g. 0.00003 USDC) is noise before it is even split between receivers, so it is
+          // never queued, published or kept in the public feed. Observed totals have a gap between 0.05 and 0.10 USD (6 posts, against
+          // ~45 below 0.05 and ~45 in 0.10-0.50), so this line does not cut through a real cluster. Only totals that are known and
+          // in a dollar stablecoin count: an unknown reward, or a coin we cannot price here, is never dropped as dust.
+          export const MIN_POOL_USD = 0.1;
           const USD_STABLE = new Set(['USDT','USDC','FDUSD','USD1','BUSD','TUSD']);
           const hasValue=v=>v!==null && v!==undefined && String(v).trim()!=='';
           function averagePerPerson(post) {
@@ -1149,6 +1154,10 @@ jobs:
           function totalAmount(post) {
             const total=hasValue(post?.amount) ? Number(post.amount) : NaN;
             return Number.isFinite(total) && total>0 ? total : null;
+          }
+          export function isDustPool(post) {
+            const total=totalAmount(post),symbol=currencySymbol(post?.currency);
+            return total!==null && symbol!==null && USD_STABLE.has(symbol) && total<MIN_POOL_USD;
           }
           export function valuation(post,market) {
             post=post||{};
@@ -1299,6 +1308,7 @@ jobs:
                 Number.isFinite(checked) && checked<=now+60000 && now-checked<=LIVE_QUEUE_MAX_AGE_MS;
             }
             if (post?.status==='reported_open' && ['quiz','packet'].includes(post.kind)) {
+              if(isDustPool(post))return false;
               return Number.isFinite(Date.parse(post.expires_at)) && Date.parse(post.expires_at)>now;
             }
             return false;

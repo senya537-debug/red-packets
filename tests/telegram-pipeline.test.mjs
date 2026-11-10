@@ -574,6 +574,22 @@ test('daily report ranks real per-place values ahead of total pools and never tr
   assert.equal(app.buildDailyReport({items:{},public_feed:{}},m,now),null,'nothing to report, nothing is sent');
 });
 
+test('dust pools (a few cents in total) are never eligible, queued or kept in the public feed',()=>{
+  const dust=totalPacket('USDC',0.00003,60,'7100'),few=totalPacket('USDT',0.05,3,'7101'),edge=totalPacket('USDT',0.1,3,'7102'),real=totalPacket('USDT',1,3,'7103');
+  assert.equal(app.MIN_POOL_USD,0.1);
+  assert.equal(app.isDustPool(dust.post),true);assert.equal(app.isDustPool(few.post),true);
+  assert.equal(app.isDustPool(edge.post),false,'exactly 0.10 is not dust');assert.equal(app.isDustPool(real.post),false);
+  assert.equal(app.isEligiblePost(dust.post,now),false);assert.equal(app.isEligiblePost(few.post,now),false);
+  assert.equal(app.isEligiblePost(edge.post,now),true);assert.equal(app.isEligiblePost(real.post,now),true);
+  // never drop what cannot be judged: unknown total, or a coin that cannot be priced as a dollar stablecoin
+  const unknown=totalPacket('USDT',1,3,'7104');unknown.post.amount=null;
+  const other=totalPacket('USDT',0.00003,3,'7105');other.post.currency='BNB';
+  assert.equal(app.isEligiblePost(unknown.post,now),true);assert.equal(app.isEligiblePost(other.post,now),true);
+  assert.deepEqual(app.publishCandidates({reported_open:[dust.post,few.post,real.post]},now).map(c=>c.key),[real.key]);
+  const feed=app.compactPublicFeed(Object.fromEntries([dust,few,real].map(c=>[c.key,feedEntry(c)])),now);
+  assert.deepEqual(Object.keys(feed),[real.key]);
+});
+
 test('affiliate message is due after every interval of counted receipts, relative to the last one sent',()=>{
   const dest='d1',I=app.AFFILIATE_INTERVAL;
   const counted=(from,n)=>Object.fromEntries(Array.from({length:n},(_,i)=>[dest+':p'+(from+i),{state:'sent',affiliate_counted:true,updated_at:from+i}]));
