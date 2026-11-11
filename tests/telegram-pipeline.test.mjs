@@ -1003,3 +1003,13 @@ test('enqueueSnapshots stamps the author weight on that author’s other packets
     assert.equal(remote.outbox['post:22'].candidate.post.author_best_usd,50);
   } finally {Object.assign(proto,saved);}
 });
+
+test('a liquid non-stable pool worth 5 USD or more also marks its author as big',()=>{
+  const market={source:'test',symbols:new Map([['BNBUSDT',{price:600,volume:5e8}],['THINUSDT',{price:1,volume:10}]])};
+  const post=(id,author,amount,currency)=>({post:bigPost(id,author,amount,currency)});
+  const updates=app.authorRewardUpdates([post('31','bnbauthor01',0.02,'BNB'),post('32','tinybnb0001',0.001,'BNB'),
+    post('33','thinauthor1',100000,'THIN'),post('34','stableauth1',6,'USDC')],now,market);
+  assert.deepEqual(updates.map(u=>u.uid).sort(),['bnbauthor01','stableauth1']);
+  assert.equal(updates.find(u=>u.uid==='bnbauthor01').best_usd,12);
+  assert.deepEqual(app.authorRewardUpdates([post('31','bnbauthor01',0.02,'BNB')],now,null),[],'workers have no prices and skip other coins');
+});

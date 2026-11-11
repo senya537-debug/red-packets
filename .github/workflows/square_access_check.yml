@@ -1684,15 +1684,23 @@ jobs:
             return {eligible_candidates:candidates.length,queue_reasons:reasons,ready_by_queue:byQueue,already_sent_examples:alreadySent};
           }
           // Applies one worker's findings to an in-memory state; saving is the caller's job.
-          export function authorRewardUpdates(candidates,now=Date.now()) {
+          // Stable coins count at face value. Other coins count only with a liquid Binance price, which only the
+          // publisher has (market); workers call this without one and simply skip them.
+          export function authorRewardUpdates(candidates,now=Date.now(),market=null) {
             const updates=[];
             for(const {post} of candidates||[]) {
-              const symbol=currencySymbol(post?.currency),total=totalAmount(post);
-              if(!post?.author_id || symbol===null || !USD_STABLE.has(symbol) || total===null || total<BIG_POOL_USD)continue;
+              if(!post?.author_id || post.kind==='live' || post.exchange==='gate')continue;
+              const worth=valuation(post,market),usd=worth?.liquid ? worth.total_usd : null;
+              if(!(usd>=BIG_POOL_USD))continue;
               const at=Math.min(Date.parse(post.published_at)||now,now);
-              updates.push({uid:post.author_id,name:post.author||'',last_packet_at:at,last_big_at:at,best_usd:total});
+              updates.push({uid:post.author_id,name:post.author||'',last_packet_at:at,last_big_at:at,best_usd:usd});
             }
             return updates;
+          }
+          export function stampAuthorWeight(post,registry,now=Date.now()) {
+            const author=registry.get(post?.author_id);
+            if(isBigAuthor(author,now))post.author_best_usd=author.best_usd;
+            else delete post.author_best_usd;
           }
           function applySnapshot(state,snapshot,env,worker,status,error,now) {
             if(!WORKER_ROLES.includes(worker))throw new Error('Unknown search worker');
@@ -1701,11 +1709,7 @@ jobs:
             // amounts are hidden, so the author's record is the best available hint for ordering them.
             state.authors=mergeAuthors(state.authors||[],snapshot.packet_authors||[],authorRewardUpdates(candidates,now));
             const registry=new Map(state.authors.map(author=>[author.uid,author]));
-            for(const candidate of candidates) {
-              const author=registry.get(candidate.post?.author_id);
-              if(isBigAuthor(author,now))candidate.post.author_best_usd=author.best_usd;
-              else delete candidate.post.author_best_usd;
-            }
+            for(const candidate of candidates)stampAuthorWeight(candidate.post,registry,now);
             const additions=Object.fromEntries(candidates.map(candidate=>[candidate.key,
               {candidate,worker,observed_at:now}]));
             state.public_feed=compactPublicFeed(mergeOutbox(state.public_feed,additions),now);
@@ -2283,7 +2287,7 @@ jobs:
               state.enabled_topic_signature=configuration.signature;
             }
             const authors=mergeAuthors(Array.isArray(state.authors)?state.authors:[],snapshot.packet_authors||[]);
-            const authorsChanged=JSON.stringify(authors)!==JSON.stringify(state.authors||[]);
+            let authorsChanged=JSON.stringify(authors)!==JSON.stringify(state.authors||[]);
             state.authors=authors;
             const followingChanged=snapshot.following_sync!==undefined &&
               JSON.stringify(snapshot.following_sync)!==JSON.stringify(state.following_sync);
@@ -2305,6 +2309,16 @@ jobs:
                 market=await loadUsdMarket();
                 stats.usd_prices={ok:true,source:market.source,symbols:market.symbols.size};
               } catch(error) {stats.usd_prices={ok:false,error:redact(error,env)};}
+            }
+            // Big pools in other coins are only visible here, where prices exist: record those authors too, and
+            // stamp their weight on every queued packet, so the ordering below can use it.
+            if(mode!=='telegram_test') {
+              const known=[...Object.values(state.public_feed||{}),...Object.values(state.outbox||{})].map(e=>e?.candidate).filter(Boolean);
+              const before=JSON.stringify(state.authors||[]);
+              state.authors=mergeAuthors(state.authors||[],authorRewardUpdates(known,Date.now(),market));
+              if(JSON.stringify(state.authors)!==before)authorsChanged=true;
+              const registry=new Map(state.authors.map(author=>[author.uid,author]));
+              for(const post of [...(snapshot.queued_candidates||[]),...publishCandidates(snapshot)].map(c=>c.post))stampAuthorWeight(post,registry);
             }
             const allCandidates=mode==='telegram_test'
               ? [{key:'test:'+(env.GITHUB_RUN_ID||'local'),message:{text:language==='en'?
