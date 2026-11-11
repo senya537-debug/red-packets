@@ -175,6 +175,10 @@ jobs:
           const FAST_DISCOVERY_SLOTS = 192;
           const FAST_FOLLOWING_SLOTS = 0;
           const ACTIVE_AUTHOR_INTERVAL_MS = 2 * 60 * 1000;
+          // An author whose pool reached BIG_POOL_USD stays in the fast cycle for BIG_AUTHOR_DAYS and is checked every run.
+          export const BIG_POOL_USD = 5;
+          const BIG_AUTHOR_DAYS = 14;
+          const BIG_AUTHOR_INTERVAL_MS = 60 * 1000;
           const PACKET_AUTHOR_SLOTS = 16;
           const DISCOVERY_AUTHOR_SLOTS = 32;
           const FOLLOWING_AUTHOR_SLOTS = 0;
@@ -485,6 +489,13 @@ jobs:
               throw new Error(String(primaryError||'Square author API unavailable')+'; public profile: '+String(error?.message||error));
             }
           }
+          function bigAuthorFields(item,old) {
+            const best=Math.max(Number(item.best_usd)||0,Number(old?.best_usd)||0),at=Math.max(Number(item.last_big_at)||0,Number(old?.last_big_at)||0);
+            return best>0 && at>0 ? {best_usd:best,last_big_at:at} : {};
+          }
+          export function isBigAuthor(author,now=Date.now()) {
+            return Number(author?.last_big_at)>=now-BIG_AUTHOR_DAYS*86400000;
+          }
           export function mergeAuthors(...lists) {
             const authors=new Map();
             for(const item of lists.flat()) {
@@ -500,6 +511,7 @@ jobs:
                 first_discovered_at:old?.first_discovered_at>0 && Number(item.first_discovered_at)>0 ?
                   Math.min(old.first_discovered_at,Number(item.first_discovered_at)) : Number(item.first_discovered_at)||old?.first_discovered_at||0,
                 last_marker_at:Math.max(Number(item.last_marker_at)||0,old?.last_marker_at||0),
+                ...bigAuthorFields(item,old),
                 discovery_sources:[...new Set([...(Array.isArray(old?.discovery_sources)?old.discovery_sources:[]),
                   ...(Array.isArray(item.discovery_sources)?item.discovery_sources:[])])].slice(0,12)});
             }
@@ -534,8 +546,10 @@ jobs:
           export function chooseFastAuthors(authors,now=Date.now()) {
             const byCheck=(a,b)=>(a.last_checked_at||0)-(b.last_checked_at||0) ||
               (b.last_packet_at||0)-(a.last_packet_at||0) || a.uid.localeCompare(b.uid);
-            const active=a=>a.last_packet_at>=now-2*86400000;
-            const due=a=>!active(a) || !a.last_checked_at || a.last_checked_at<=now-ACTIVE_AUTHOR_INTERVAL_MS;
+            const big=a=>isBigAuthor(a,now);
+            const active=a=>a.last_packet_at>=now-2*86400000 || big(a);
+            const due=a=>big(a) ? !a.last_checked_at || a.last_checked_at<=now-BIG_AUTHOR_INTERVAL_MS :
+              !active(a) || !a.last_checked_at || a.last_checked_at<=now-ACTIVE_AUTHOR_INTERVAL_MS;
             const pool=authors.filter(due),selected=[],used=new Set();
             function take(items,count,reason) {
               let added=0;
@@ -544,7 +558,9 @@ jobs:
               }
               return added;
             }
-            take(pool.filter(active).sort(byCheck),ACTIVE_AUTHOR_SLOTS,'active_packet_publisher');
+            // Authors with a recent big pool take the active slots first, then the rest by least recently checked.
+            const bigFirst=(a,b)=>Number(big(b))-Number(big(a)) || (big(a)&&big(b) ? (b.best_usd||0)-(a.best_usd||0) : 0) || byCheck(a,b);
+            take(pool.filter(active).sort(bigFirst),ACTIVE_AUTHOR_SLOTS,'active_packet_publisher');
             const discovery=pool.filter(a=>a.discovered || a.last_marker_at>0);
             const fresh=discovery.filter(a=>!a.last_checked_at).sort((a,b)=>(b.first_discovered_at||0)-(a.first_discovered_at||0) ||
               (b.last_marker_at||0)-(a.last_marker_at||0) || byCheck(a,b));
@@ -1433,7 +1449,9 @@ jobs:
               if(total!==null)return {tier:2,value:total,source:'reported_total_pool_stable'};
             }
             // Tier 1: unknown or not reliably comparable. Keep the discovery reserve.
-            return {tier:1,value:0,source:'unknown'};
+            // Among unknown rewards, an author with a recent big pool goes first.
+            const author=Number(post.author_best_usd);
+            return {tier:1,value:Number.isFinite(author)&&author>0?author:0,source:'unknown'};
           }
 
           function compareRewardPriority(a,b) {
@@ -1666,16 +1684,34 @@ jobs:
             return {eligible_candidates:candidates.length,queue_reasons:reasons,ready_by_queue:byQueue,already_sent_examples:alreadySent};
           }
           // Applies one worker's findings to an in-memory state; saving is the caller's job.
+          export function authorRewardUpdates(candidates,now=Date.now()) {
+            const updates=[];
+            for(const {post} of candidates||[]) {
+              const symbol=currencySymbol(post?.currency),total=totalAmount(post);
+              if(!post?.author_id || symbol===null || !USD_STABLE.has(symbol) || total===null || total<BIG_POOL_USD)continue;
+              const at=Math.min(Date.parse(post.published_at)||now,now);
+              updates.push({uid:post.author_id,name:post.author||'',last_packet_at:at,last_big_at:at,best_usd:total});
+            }
+            return updates;
+          }
           function applySnapshot(state,snapshot,env,worker,status,error,now) {
             if(!WORKER_ROLES.includes(worker))throw new Error('Unknown search worker');
             const candidates=publishCandidates(snapshot,now);
+            // Remember which authors publish big pools, and stamp that weight on their other packets: most Square
+            // amounts are hidden, so the author's record is the best available hint for ordering them.
+            state.authors=mergeAuthors(state.authors||[],snapshot.packet_authors||[],authorRewardUpdates(candidates,now));
+            const registry=new Map(state.authors.map(author=>[author.uid,author]));
+            for(const candidate of candidates) {
+              const author=registry.get(candidate.post?.author_id);
+              if(isBigAuthor(author,now))candidate.post.author_best_usd=author.best_usd;
+              else delete candidate.post.author_best_usd;
+            }
             const additions=Object.fromEntries(candidates.map(candidate=>[candidate.key,
               {candidate,worker,observed_at:now}]));
             state.public_feed=compactPublicFeed(mergeOutbox(state.public_feed,additions),now);
             const combined=mergeOutbox(state.outbox,additions);
             extendOutboxHistoryAliases(state,combined);
             state.outbox=compactOutbox(combined,state,now);
-            state.authors=mergeAuthors(state.authors||[],snapshot.packet_authors||[]);
             if(snapshot.following_sync!==undefined)state.following_sync=mergeFollowingProgress(state.following_sync,snapshot.following_sync);
             state.keyword_checks=compactKeywordChecks(Object.fromEntries([...Object.entries(state.keyword_checks||{}),...Object.entries(snapshot.keyword_checks||{})]
               .reduce((map,[key,stamp])=>map.set(key,Math.max(map.get(key)||0,Number(stamp)||0)),new Map())),now);

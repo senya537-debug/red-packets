@@ -953,3 +953,53 @@ test('public feed and watchdog files are written to the state branch',async()=>{
     {fetchImpl,telegram:async()=>({ok:true,status:200}),now});
   assert.deepEqual(seen,['GET state','PUT state']);
 });
+
+const bigPost=(id,author,amount,currency='USDT')=>({...packet(id).post,kind:'packet',author_id:author,author:'n'+author,amount:String(amount),currency});
+
+test('only stable pools of at least 5 USD mark an author as big; the record keeps the best and latest value',()=>{
+  const candidates=[bigPost('1','bigauthor01',100),bigPost('2','smallauth01',4.99),bigPost('3','coinauthor1',500,'BNB'),
+    bigPost('4','dustauthor1',0.00003),{post:{...packet('5').post}}].map(post=>post.post?post:{post});
+  const updates=app.authorRewardUpdates(candidates,now);
+  assert.deepEqual(updates.map(u=>u.uid),['bigauthor01']);
+  const merged=app.mergeAuthors([{uid:'bigauthor01',name:'a',best_usd:100,last_big_at:now-1000}],[{uid:'bigauthor01',name:'a',best_usd:20,last_big_at:now-500}]);
+  assert.equal(merged[0].best_usd,100);assert.equal(merged[0].last_big_at,now-500);
+  assert.equal(app.mergeAuthors([{uid:'plainauth01',name:'p'}])[0].best_usd,undefined,'no empty reward fields');
+});
+
+test('authors with a recent big pool take the fast slots first and are due every minute, for 14 days',()=>{
+  const authors=[
+    ...Array.from({length:200},(_,i)=>({uid:'active_'+String(i).padStart(5,'0'),last_packet_at:now-60000,last_checked_at:now-3*60000})),
+    {uid:'bigold_0001',last_packet_at:now-6*86400000,last_big_at:now-6*86400000,best_usd:50,last_checked_at:now-90000},
+    {uid:'bigfresh_01',last_packet_at:now-60000,last_big_at:now-60000,best_usd:5,last_checked_at:now-30000},
+    {uid:'bigexpired1',last_packet_at:now-20*86400000,last_big_at:now-20*86400000,best_usd:500,last_checked_at:now-90000}];
+  const selected=app.chooseFastAuthors(authors,now);
+  assert.equal(selected[0].uid,'bigold_0001','checked >60 s ago, so it is due and goes first');
+  assert.ok(!selected.some(a=>a.uid==='bigfresh_01'),'checked 30 s ago is not due yet');
+  assert.ok(!selected.slice(0,128).some(a=>a.uid==='bigexpired1'),'a 20-day-old record is no longer big');
+  assert.equal(selected.filter(a=>a.scan_reason==='active_packet_publisher').length,128);
+});
+
+test('among unknown rewards, packets of authors with big pools are ordered first; known rewards still win',()=>{
+  const plain=packet('10'),big=packet('11'),bigger=packet('12'),known=packet('13');
+  big.post.author_best_usd=20;bigger.post.author_best_usd=80;
+  known.post.currency='USDT';known.post.amount='2';
+  const order=app.orderDeliveryCandidates([plain,big,known,bigger]).map(c=>c.key);
+  assert.deepEqual(order.slice(0,4),['post:13','post:12','post:11','post:10']);
+});
+
+test('enqueueSnapshots stamps the author weight on that author’s other packets',async()=>{
+  const proto=app.GitHubState.prototype,saved={readLatest:proto.readLatest,request:proto.request};
+  const remote={version:1,items:{},enabled_destination:null};
+  proto.readLatest=async function(){this.sha='s';return clone(remote);};
+  proto.request=async function(method,body){Object.assign(remote,clone(JSON.parse(Buffer.from(body.content,'base64').toString('utf8'))));return response(200,{content:{sha:'c'}});};
+  try {
+    const env={GITHUB_REPOSITORY:'o/r',GITHUB_REF_NAME:'main',GH_STATE_TOKEN:'ghs_testtoken0123456789',GITHUB_RUN_ID:'78',GITHUB_RUN_ATTEMPT:'1'};
+    const first={...bigPost('21','bigauthor01',50),published_at:new Date(now-60000).toISOString()};
+    const hidden={...packet('22').post,kind:'packet',author_id:'bigauthor01',author:'nbigauthor01'};
+    await app.enqueueSnapshot({reported_open:[first,hidden],other_candidates:[]},env,'authors','done',null,async()=>{});
+    const author=remote.authors.find(a=>a.uid==='bigauthor01');
+    assert.equal(author.best_usd,50);assert.ok(author.last_big_at>0);
+    assert.equal(remote.public_feed['post:22'].candidate.post.author_best_usd,50);
+    assert.equal(remote.outbox['post:22'].candidate.post.author_best_usd,50);
+  } finally {Object.assign(proto,saved);}
+});
