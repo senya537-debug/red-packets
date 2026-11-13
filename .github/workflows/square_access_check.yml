@@ -179,6 +179,11 @@ jobs:
           export const BIG_POOL_USD = 5;
           const BIG_AUTHOR_DAYS = 14;
           const BIG_AUTHOR_INTERVAL_MS = 60 * 1000;
+          // Discovered authors who never produced a packet in COLD_NEVER_DAYS, or went silent for COLD_SILENT_DAYS,
+          // are only re-checked daily, so rotation slots go to fresh and active authors. A new packet or marker revives them.
+          const COLD_NEVER_DAYS = 7;
+          const COLD_SILENT_DAYS = 30;
+          const COLD_AUTHOR_INTERVAL_MS = 24 * 60 * 60 * 1000;
           const PACKET_AUTHOR_SLOTS = 16;
           const DISCOVERY_AUTHOR_SLOTS = 32;
           const FOLLOWING_AUTHOR_SLOTS = 0;
@@ -493,6 +498,12 @@ jobs:
             const best=Math.max(Number(item.best_usd)||0,Number(old?.best_usd)||0),at=Math.max(Number(item.last_big_at)||0,Number(old?.last_big_at)||0);
             return best>0 && at>0 ? {best_usd:best,last_big_at:at} : {};
           }
+          export function isColdAuthor(author,now=Date.now()) {
+            if(!author?.discovered || author.followed || isBigAuthor(author,now))return false;
+            if(Number(author.last_marker_at)>now-COLD_NEVER_DAYS*86400000)return false;
+            const packet=Number(author.last_packet_at)||0,found=Number(author.first_discovered_at)||0;
+            return packet>0 ? packet<now-COLD_SILENT_DAYS*86400000 : found>0 && found<now-COLD_NEVER_DAYS*86400000;
+          }
           export function isBigAuthor(author,now=Date.now()) {
             return Number(author?.last_big_at)>=now-BIG_AUTHOR_DAYS*86400000;
           }
@@ -549,6 +560,7 @@ jobs:
             const big=a=>isBigAuthor(a,now);
             const active=a=>a.last_packet_at>=now-2*86400000 || big(a);
             const due=a=>big(a) ? !a.last_checked_at || a.last_checked_at<=now-BIG_AUTHOR_INTERVAL_MS :
+              isColdAuthor(a,now) ? !a.last_checked_at || a.last_checked_at<=now-COLD_AUTHOR_INTERVAL_MS :
               !active(a) || !a.last_checked_at || a.last_checked_at<=now-ACTIVE_AUTHOR_INTERVAL_MS;
             const pool=authors.filter(due),selected=[],used=new Set();
             function take(items,count,reason) {

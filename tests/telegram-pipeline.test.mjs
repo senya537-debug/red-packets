@@ -1003,3 +1003,21 @@ test('enqueueSnapshots stamps the author weight on that author’s other packets
     assert.equal(remote.outbox['post:22'].candidate.post.author_best_usd,50);
   } finally {Object.assign(proto,saved);}
 });
+
+test('discovered authors with no packets for a week, or silent for a month, are only re-checked daily',()=>{
+  const D=86400000,found=now-10*D;
+  const never={uid:'never_00001',discovered:true,first_discovered_at:found,last_packet_at:0};
+  const silent={uid:'silent_0001',discovered:true,first_discovered_at:found,last_packet_at:now-40*D};
+  assert.ok(app.isColdAuthor(never,now)&&app.isColdAuthor(silent,now));
+  assert.ok(!app.isColdAuthor({...never,first_discovered_at:now-3*D},now),'new authors get a week');
+  assert.ok(!app.isColdAuthor({...never,followed:true},now),'followed authors are never cold');
+  assert.ok(!app.isColdAuthor({...never,last_marker_at:now-D},now),'a recent marker keeps it warm');
+  assert.ok(!app.isColdAuthor({...silent,last_packet_at:now-5*D},now),'a recent packet revives it');
+  assert.ok(!app.isColdAuthor({...never,last_big_at:now-D,best_usd:9},now),'big authors are never cold');
+  const authors=[{...never,last_checked_at:now-2*3600000},{...silent,uid:'silent_0002',last_checked_at:now-25*3600000},
+    {...never,uid:'warm_000001',first_discovered_at:now-2*D,last_checked_at:now-2*3600000}];
+  const picked=app.chooseFastAuthors(authors,now).map(a=>a.uid);
+  assert.ok(!picked.includes('never_00001'),'cold and checked 2 h ago: skipped');
+  assert.ok(picked.includes('silent_0002'),'cold but checked more than a day ago: due');
+  assert.ok(picked.includes('warm_000001'));
+});
