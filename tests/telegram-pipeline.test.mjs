@@ -1021,3 +1021,13 @@ test('discovered authors with no packets for a week, or silent for a month, are 
   assert.ok(picked.includes('silent_0002'),'cold but checked more than a day ago: due');
   assert.ok(picked.includes('warm_000001'));
 });
+
+test('a pool in another coin worth under 0.10 USD at a liquid price is dust; illiquid or larger ones are not',()=>{
+  const market={source:'test',symbols:new Map([['SOLUSDT',{price:80,volume:5e8}],['THINUSDT',{price:1,volume:10}]])};
+  const dust=app.valuedPost(bigPost('41','solauthor01',0.00002,'SOL'),market);
+  assert.equal(app.isDustPool(dust),true);
+  assert.equal(app.isEligiblePost(dust,now),false);
+  assert.equal(app.isDustPool(app.valuedPost(bigPost('42','solauthor01',0.01,'SOL'),market)),false,'0.8 USD is not dust');
+  assert.equal(app.isDustPool(app.valuedPost(bigPost('43','thinauthor1',0.01,'THIN'),market)),false,'no liquid price: not judged');
+  assert.equal(app.isDustPool(bigPost('44','solauthor01',0.00002,'SOL')),false,'without prices nothing is judged');
+});
