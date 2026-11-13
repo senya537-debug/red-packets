@@ -373,14 +373,14 @@ test('public feed file is small, worker-compatible, and skips unchanged writes',
   // only observed_at moved: no commit
   const moved={...state,public_feed:Object.fromEntries(Object.entries(state.public_feed).map(([k,e])=>[k,{...e,observed_at:now+minute}]))};
   assert.equal((await app.exportPublicFeed(env,moved,{fetchImpl,now:now+minute})).changed,false);
-  // a real change is held back until 10 minutes after the previous write
-  assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+9*minute})).changed,false);
+  // a real change is held back until 3 minutes after the previous write
+  assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+2*minute})).changed,false);
   assert.equal(calls.filter(m=>m==='PUT').length,1);
-  assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+11*minute})).changed,true);
+  assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+4*minute})).changed,true);
   assert.equal(calls.filter(m=>m==='PUT').length,2);
   // an unchanged feed refreshes only after 30 minutes
   assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+30*minute})).changed,false);
-  assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+42*minute})).changed,true);
+  assert.equal((await app.exportPublicFeed(env,withNew,{fetchImpl,now:now+35*minute})).changed,true);
   await assert.rejects(app.exportPublicFeed(env,state,{fetchImpl:async()=>new Response('x',{status:500}),now}),/HTTP 500/);
 });
 

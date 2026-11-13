@@ -2666,7 +2666,8 @@ jobs:
           // The website reads this small file instead of the full delivery history. It is derived data:
           // failures here never affect Telegram delivery or the durable state.
           const PUBLIC_FEED_PATH = '.redpacket/public_feed.json';
-          const PUBLIC_FEED_MIN_INTERVAL_MS = 10 * 60 * 1000;
+          // The site trails Telegram by up to this interval; the state branch is squashed daily, so the extra commits are cheap.
+          const PUBLIC_FEED_MIN_INTERVAL_MS = 3 * 60 * 1000;
           const PUBLIC_FEED_REFRESH_MS = 30 * 60 * 1000;
           export function buildPublicFeedFile(state,now=Date.now()) {
             return {version:1,items:{},generated_at:new Date(now).toISOString(),public_feed:compactPublicFeed(state?.public_feed,now)};
