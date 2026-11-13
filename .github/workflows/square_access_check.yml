@@ -1184,6 +1184,9 @@ jobs:
             return Number.isFinite(total) && total>0 ? total : null;
           }
           export function isDustPool(post) {
+            // Other coins are priced only in the publisher: valuedPost attaches a liquid USD value, which decides here.
+            const worth=post?.valuation;
+            if(worth?.liquid && worth.total_usd!==null && worth.total_usd<MIN_POOL_USD)return true;
             const total=totalAmount(post),symbol=currencySymbol(post?.currency);
             return total!==null && symbol!==null && USD_STABLE.has(symbol) && total<MIN_POOL_USD;
           }
@@ -2323,7 +2326,7 @@ jobs:
                 '🧧 Red Packet Radar connected.\nThis is a test message. Run publish separately to enable automatic posting.':
                 '🧧 Бот Red Packet подключён.\nЭто тестовое сообщение. Автопубликация включается отдельным запуском publish.'}}]
               : orderDeliveryCandidates((snapshot.queued_candidates ? deduplicateCandidates(snapshot.queued_candidates.filter(c=>isEligiblePost(c.post))) :
-                publishCandidates(snapshot)).map(item=>({...item,post:valuedPost(item.post,market)}))).filter((item,index,all)=>budget ? all.slice(0,index+1).filter(c=>deliveryQueue(c)===deliveryQueue(item)).length<=100 : index<100)
+                publishCandidates(snapshot)).map(item=>({...item,post:valuedPost(item.post,market)})).filter(item=>!isDustPool(item.post))).filter((item,index,all)=>budget ? all.slice(0,index+1).filter(c=>deliveryQueue(c)===deliveryQueue(item)).length<=100 : index<100)
                 .map(item=>({...item,message:formatTelegramPost(item.post,language)}));
             stats.candidates_found=allCandidates.length;
             let index=deliveryIndex(state,destination),identitiesChanged=false;
@@ -2400,6 +2403,7 @@ jobs:
                   available_amount:current.available_amount??candidate.post.available_amount??null,
                   available_receivers:current.available_receivers??candidate.post.available_receivers??null,
                   comments:current.comments??candidate.post.comments??null},market);
+                if(isDustPool(candidate.post)){skip('dust_pool');continue;}
                 candidate.message=formatTelegramPost(candidate.post,language);
                 index=deliveryIndex(state,destination);
                 const refreshedReason=deliverySkipReason(state,matchingDeliveries(index,candidate));
